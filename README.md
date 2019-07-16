@@ -31,9 +31,10 @@ Data scenarios to be compared are:
 
 5. Mouse brain scATAC-seq data
 
-6. potentially 1 more scATAC-seq data scenario
-
-If possible, we will attempt to merge scATAC and scRNA-seq datasets in mouse brain as well.
+Possible extensions:
+- potentially 1 more scATAC-seq data scenario
+- If possible, we will attempt to merge scATAC and scRNA-seq datasets in mouse brain as well.
+- lung atlas mapping using our published datasets (inter-individual variation)
 
 
 Strategy:
