@@ -22,6 +22,19 @@ def checkBatch(batch, obs):
         nBatch = obs[batch].nunique()
         print('Object contains '+str(nBatch)+' batches.')
 
+def checkHVG(hvg, adata_var):
+    if type(hvg) is not list:
+        raise TypeError('HVG list is not a list')
+    else:
+        if not all(i in adata_var.index for i in hvg):
+            raise ValueError('Not all HVGs are in the adata object')
+
+def checkSanity(adata, batch, hvg):
+    checkAdata(adata)
+    checkBatch(batch, adata.obs)
+    if hvg is not None:
+        checkHVG(hvg, adata.var)
+
 def splitBatches(adata, batch):
     split = []
     for i in adata.obs[batch].unique():
@@ -31,10 +44,9 @@ def splitBatches(adata, batch):
 
 # functions for running the methods
 
-def runScanorama(adata, batch, hvgPre):
+def runScanorama(adata, batch, hvg = None):
     import scanorama
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
+    checkSanity(adata, batch, hvg)
     split = splitBatches(adata.copy(), batch)
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
@@ -56,11 +68,28 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     network.sess.close()
     return corrected_adata
 
+def runMNN(adata, batch, hvg = None):
+    import mnnpy
+    checkSanity(adata, batch, hvg)
+    split = splitBatches(adata, batch)
+
+    corrected = mnnpy.mnn_correct(*split, var_subset=hvg)
+
+    return corrected[0]
+
+def runBBKNN(adata, batch, hvg=None):
+    import bbknn
+    checkSanity(adata, batch, hvg)
+    sc.pp.pca(adata, svd_solver='arpack')
+    corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
+    return corrected
+
+
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
-    emb, corrected = runScanorama(adata, 'method', False)
-    print(emb)
-    print(corrected)
+    #emb, corrected = runScanorama(adata, 'method', False)
+    #print(emb)
+    #print(corrected)
 
 
         
