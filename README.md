@@ -4,17 +4,17 @@ This repository contains code and analysis for the benchmarking study for data i
 
 Tools to be compared include:
 - Seurat v2
-- Seurat v3
-- scGen
-- scVI
-- CONOS
-- MNN
-- Scanorama
+- [Seurat v3](https://github.com/satijalab/seurat)
+- [scGen](https://github.com/theislab/scgen)
+- [scVI](https://github.com/YosefLab/scVI)
+- [CONOS](https://github.com/hms-dbmi/conos)
+- [MNN](https://github.com/chriscainx/mnnpy)
+- [Scanorama](https://github.com/brianhie/scanorama)
 - RISC
-- LIGER
-- BBKNN
-- Harmony
-- scMerge
+- [LIGER](https://github.com/MacoskoLab/liger)
+- [BBKNN](https://github.com/Teichlab/bbknn)
+- [Harmony](https://github.com/immunogenomics/harmony)
+- [scMerge](https://github.com/SydneyBioX/scMerge)
 
 
 Data scenarios to be compared are:
