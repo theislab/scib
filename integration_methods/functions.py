@@ -61,7 +61,7 @@ def runMNN(adata, batch, hvg = None):
 
     corrected = mnnpy.mnn_correct(*split, var_subset=hvg)
 
-    return corrected
+    return corrected[0]
 
 def runBBKNN(adata, batch, hvg=None):
     import bbknn
