@@ -42,6 +42,19 @@ def runScanorama(adata, batch, hvgPre):
 
     return emb, corrected
 
+def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100):
+    if 'cell_type' not in adata.obs:
+        adata.obs['cell_type'] = adata.obs[cell_type].copy()
+    if 'batch' not in adata.obs:
+        adata.obs['batch'] = adata.obs[batch].copy()
+    
+    # TODO: reduce data
+        
+    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
+    network.train(train_data=adata, n_epochs=epochs)
+    corrected_adata = scgen.batch_removal(network, adata)
+    network.sess.close()
+    return corrected_adata
 
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
