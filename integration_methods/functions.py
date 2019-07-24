@@ -10,6 +10,16 @@ import scanpy as sc
 import anndata
 import numpy as np
 
+# R in python
+import rpy2.rinterface_lib.callbacks
+import logging
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+import rpy2.robjects as ro
+from rpy2.robjects import pandas2ri
+pandas2ri.activate()
+import anndata2ri
+anndata2ri.activate()
+
 # first, some checker functions for data sanity
 def checkAdata(adata):
     if type(adata) is not anndata.AnnData:
@@ -67,6 +77,43 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     corrected_adata = scgen.batch_removal(network, adata)
     network.sess.close()
     return corrected_adata
+
+def runSeurat(adata):
+    ro.r('library(Seurat)')
+    ro.r('library(scater)')
+    
+    ro.globalenv['adata'] = adata
+    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
+    ro.r('batch_list = SplitObject(sobj, split.by = "method")')
+    ro.r('anchors = FindIntegrationAnchors('+
+        'object.list = batch_list, '+
+        'anchor.features = 10000,'+
+        'scale = T,'+
+        'l2.norm = T,'+
+        'dims = 1:30,'+
+        'k.anchor = 5,'+
+        'k.filter = 200,'+
+        'k.score = 30,'+
+        'max.features = 200,'+
+        'eps = 0)'
+    )
+    ro.r('integrated = IntegrateData('+
+        'anchorset = anchors,'+
+        'new.assay.name = "integrated",'+
+        'features = NULL,'+
+        'features.to.integrate = NULL,'+
+        'dims = 1:30,'+
+        'k.weight = 100,'+
+        'weight.reduction = NULL,'+
+        'sd.weight = 1,'+
+        'sample.tree = NULL,'+
+        'preserve.order = F,'+
+        'do.cpp = T,'+
+        'eps = 0,'+
+        'verbose = T)'
+    )
+    return ro.r('as.SingleCellExperiment(integrated)')
+
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
