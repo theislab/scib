@@ -78,16 +78,17 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     network.sess.close()
     return corrected_adata
 
-def runSeurat(adata):
+def runSeurat(adata, batch="method", hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     
     ro.globalenv['adata'] = adata
+    
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
-    ro.r('batch_list = SplitObject(sobj, split.by = "method")')
+    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
-        'anchor.features = 10000,'+
+        'anchor.features = 2000,'+
         'scale = T,'+
         'l2.norm = T,'+
         'dims = 1:30,'+
@@ -127,7 +128,7 @@ def runMNN(adata, batch, hvg = None):
 def runBBKNN(adata, batch, hvg=None):
     import bbknn
     checkSanity(adata, batch, hvg)
-    sc.pp.pca(adata, svd_solver='arpack', use_highly_variable=hvg)
+    sc.pp.pca(adata, svd_solver='arpack')
     corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
     return corrected
 
