@@ -127,7 +127,7 @@ def runMNN(adata, batch, hvg = None):
 def runBBKNN(adata, batch, hvg=None):
     import bbknn
     checkSanity(adata, batch, hvg)
-    sc.pp.pca(adata, svd_solver='arpack')
+    sc.pp.pca(adata, svd_solver='arpack', use_highly_variable=hvg)
     corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
     return corrected
 
