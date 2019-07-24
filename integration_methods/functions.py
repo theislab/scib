@@ -64,7 +64,10 @@ def runScanorama(adata, batch, hvg = None):
 
     return emb, corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100):
+def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import scgen
+
     if 'cell_type' not in adata.obs:
         adata.obs['cell_type'] = adata.obs[cell_type].copy()
     if 'batch' not in adata.obs:
@@ -79,6 +82,7 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     return corrected_adata
 
 def runSeurat(adata, batch="method", hvg=None):
+    checkSanity(adata, batch, hvg)
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     
@@ -115,6 +119,19 @@ def runSeurat(adata, batch="method", hvg=None):
     )
     return ro.r('as.SingleCellExperiment(integrated)')
 
+def runHarmony(adata, batch, hvg = None):
+    checkSanity(adata, batch, hvg)
+    ro.r('library(harmony)')
+
+    pca = sc.pp.pca(adata, svd_solver='arpack', copy=True).obsm['X_pca']
+    method = adata.obs[batch]
+
+    ro.globalenv['pca'] = pca
+    ro.globalenv['method'] = method
+
+    ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
+
+    return ro.r('harmonyEmb')
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
