@@ -7,7 +7,6 @@
 """
 
 import scanpy as sc
-import anndata
 import numpy as np
 
 # R in python
@@ -19,38 +18,6 @@ from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 import anndata2ri
 anndata2ri.activate()
-
-# first, some checker functions for data sanity
-def checkAdata(adata):
-    if type(adata) is not anndata.AnnData:
-        raise TypeError('Input is not a valid AnnData object')
-
-def checkBatch(batch, obs):
-    if batch not in obs:
-        raise ValueError('Selected batch column is not in obs')
-    else:
-        nBatch = obs[batch].nunique()
-        print('Object contains '+str(nBatch)+' batches.')
-
-def checkHVG(hvg, adata_var):
-    if type(hvg) is not list:
-        raise TypeError('HVG list is not a list')
-    else:
-        if not all(i in adata_var.index for i in hvg):
-            raise ValueError('Not all HVGs are in the adata object')
-
-def checkSanity(adata, batch, hvg):
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
-    if hvg is not None:
-        checkHVG(hvg, adata.var)
-
-def splitBatches(adata, batch):
-    split = []
-    for i in adata.obs[batch].unique():
-        split.append(adata[adata.obs[batch]==i])
-    return split
-
 
 # functions for running the methods
 
@@ -64,10 +31,7 @@ def runScanorama(adata, batch, hvg = None):
 
     return emb, corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import scgen
-
+def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100):
     if 'cell_type' not in adata.obs:
         adata.obs['cell_type'] = adata.obs[cell_type].copy()
     if 'batch' not in adata.obs:
@@ -81,18 +45,16 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     network.sess.close()
     return corrected_adata
 
-def runSeurat(adata, batch="method", hvg=None):
-    checkSanity(adata, batch, hvg)
+def runSeurat(adata):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     
     ro.globalenv['adata'] = adata
-    
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
-    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
+    ro.r('batch_list = SplitObject(sobj, split.by = "method")')
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
-        'anchor.features = 2000,'+
+        'anchor.features = 10000,'+
         'scale = T,'+
         'l2.norm = T,'+
         'dims = 1:30,'+
@@ -119,19 +81,6 @@ def runSeurat(adata, batch="method", hvg=None):
     )
     return ro.r('as.SingleCellExperiment(integrated)')
 
-def runHarmony(adata, batch, hvg = None):
-    checkSanity(adata, batch, hvg)
-    ro.r('library(harmony)')
-
-    pca = sc.pp.pca(adata, svd_solver='arpack', copy=True).obsm['X_pca']
-    method = adata.obs[batch]
-
-    ro.globalenv['pca'] = pca
-    ro.globalenv['method'] = method
-
-    ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
-
-    return ro.r('harmonyEmb')
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
