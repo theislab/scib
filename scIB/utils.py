@@ -1,7 +1,18 @@
 import numpy as np
 import anndata
 
-# first, some checker functions for data sanity
+
+def import_rpy2():
+    import rpy2.rinterface_lib.callbacks
+    import logging
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+    import rpy2.robjects as ro
+    from rpy2.robjects import pandas2ri
+    pandas2ri.activate()
+    import anndata2ri
+    anndata2ri.activate()
+
+# checker functions for data sanity
 def checkAdata(adata):
     if type(adata) is not anndata.AnnData:
         raise TypeError('Input is not a valid AnnData object')
@@ -33,15 +44,25 @@ def splitBatches(adata, batch):
         split.append(adata[adata.obs[batch]==i])
     return split
 
-def summarize_counts(adata, count_matrix=None):
+# remove duplicated columns
+def merge_adata(adata_list):
+    adata = adata_list[0].concatenate(*adata_list[1:], index_unique=None)
+    print(adata.n_vars)
+    columns_to_keep = [name.split('-')[1] == '0' for name in adata.var.columns.values]
+    clean_var = adata.var.loc[:, columns_to_keep]
+    adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
+    return adata
+
+def summarize_counts(adata, count_matrix=None, mito=True):
     if count_matrix is None:
         count_matrix = adata.X
     adata.obs['n_counts'] = count_matrix.sum(1)
     adata.obs['log_counts'] = np.log(adata.obs['n_counts'])
     adata.obs['n_genes'] = (count_matrix > 0).sum(1)
 
-    mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
-    mt_count = count_matrix[:, mt_gene_mask].sum(1)
-    if mt_count.ndim > 1:
-        mt_count = np.squeeze(np.asarray(mt_count))
-    adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
+    if mito:
+        mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
+        mt_count = count_matrix[:, mt_gene_mask].sum(1)
+        if mt_count.ndim > 1:
+            mt_count = np.squeeze(np.asarray(mt_count))
+        adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']

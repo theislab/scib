@@ -8,16 +8,7 @@
 
 import scanpy as sc
 import numpy as np
-
-# R in python
-import rpy2.rinterface_lib.callbacks
-import logging
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
-import rpy2.robjects as ro
-from rpy2.robjects import pandas2ri
-pandas2ri.activate()
-import anndata2ri
-anndata2ri.activate()
+from utils import *
 
 # functions for running the methods
 
@@ -31,30 +22,37 @@ def runScanorama(adata, batch, hvg = None):
 
     return emb, corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100):
+def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import scgen
+    
     if 'cell_type' not in adata.obs:
         adata.obs['cell_type'] = adata.obs[cell_type].copy()
     if 'batch' not in adata.obs:
         adata.obs['batch'] = adata.obs[batch].copy()
     
     # TODO: reduce data
-        
+    if hvg:
+        adata = adata[:, hvg]
+    
     network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
     network.train(train_data=adata, n_epochs=epochs)
     corrected_adata = scgen.batch_removal(network, adata)
     network.sess.close()
     return corrected_adata
 
-def runSeurat(adata):
+def runSeurat(adata, batch="method", hvg=None):
+    checkSanity(adata, batch, hvg)
+    import_rpy2()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     
     ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
-    ro.r('batch_list = SplitObject(sobj, split.by = "method")')
+    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
-        'anchor.features = 10000,'+
+        'anchor.features = 2000,'+
         'scale = T,'+
         'l2.norm = T,'+
         'dims = 1:30,'+
@@ -81,6 +79,20 @@ def runSeurat(adata):
     )
     return ro.r('as.SingleCellExperiment(integrated)')
 
+def runHarmony(adata, batch, hvg = None):
+    checkSanity(adata, batch, hvg)
+    import_rpy2()
+    ro.r('library(harmony)')
+
+    pca = sc.pp.pca(adata, svd_solver='arpack', copy=True).obsm['X_pca']
+    method = adata.obs[batch]
+
+    ro.globalenv['pca'] = pca
+    ro.globalenv['method'] = method
+
+    ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
+
+    return ro.r('harmonyEmb')
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
