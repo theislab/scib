@@ -8,7 +8,7 @@
 
 import scanpy as sc
 import numpy as np
-from utils import *
+from scIB.utils import *
 
 # functions for running the methods
 

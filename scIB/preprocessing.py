@@ -1,20 +1,9 @@
 import scanpy as sc
-import utils
-import rpy2.rinterface_lib.callbacks
-import logging
-from rpy2 import robjects as ro
-from rpy2.robjects import pandas2ri
-import anndata2ri
+from scIB.utils import *
 
-# Ignore R warning messages
-#Note: this can be commented out to get more verbose R output
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-
-## Automatically convert rpy2 outputs to pandas dataframes
-pandas2ri.activate()
-anndata2ri.activate()
 
 def normalize(adata, color_col='batch', min_mean = 0.1):
+    import_rpy2()
     ro.r('library("scran")')
     
     adata_pp = adata.copy()
@@ -47,12 +36,17 @@ def reduce_data(adata, subset=False,
                 diffmap=False,
                 draw_graph=False):
     
-    sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=bins, subset=subset)
-    print(f'\nNumber of highly variable genes: {np.sum(adata.var["highly_variable"])}')
+    
+    
+    if hvg:
+        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=bins, subset=subset)
+        n_hvg = np.sum(adata.var["highly_variable"])
+        print(f'\nNumber of highly variable genes: {n_hvg}')
     if pca:
         sc.pp.pca(adata, n_comps=50, use_highly_variable=hvg, svd_solver='arpack')
-     if tsne:
-        sc.tl.tsne(adata, n_jobs=12) #Note n_jobs works for MulticoreTSNE, but not regular implementation)
+    sc.pp.neighbors(adata)
+    if tsne:
+        sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
     if umap:
         sc.tl.umap(adata)
     if paga:
