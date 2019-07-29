@@ -3,12 +3,17 @@ import anndata
 
 
 def import_rpy2():
+    global callbacks
     import rpy2.rinterface_lib.callbacks
+    global logging
     import logging
     rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+    global ro
     import rpy2.robjects as ro
+    global pandas2ri
     from rpy2.robjects import pandas2ri
     pandas2ri.activate()
+    global anndata2ri
     import anndata2ri
     anndata2ri.activate()
 
@@ -66,3 +71,9 @@ def summarize_counts(adata, count_matrix=None, mito=True):
         if mt_count.ndim > 1:
             mt_count = np.squeeze(np.asarray(mt_count))
         adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
+
+def subsetHVG(adata, batch, number):
+    import scanpy as sc
+    hvg = sc.pp.highly_variable_genes(adata, n_top_genes=number, batch_key=batch, flavor='cell_ranger', inplace=False)
+    return hvg
+
