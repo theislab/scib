@@ -10,6 +10,16 @@ import scanpy as sc
 import numpy as np
 from scIB.utils import *
 
+def import_rpy2():
+    import rpy2.rinterface_lib.callbacks
+    import logging
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+    import rpy2.robjects as ro
+    from rpy2.robjects import pandas2ri
+    pandas2ri.activate()
+    import anndata2ri
+    anndata2ri.activate()
+
 # functions for running the methods
 
 def runScanorama(adata, batch, hvg = None):
@@ -109,6 +119,23 @@ def runBBKNN(adata, batch, hvg=None):
     sc.pp.pca(adata, svd_solver='arpack')
     corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
     return corrected
+
+def runConos(adata, batch, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import_rpy2()
+    ro.r('library(Seurat)')
+    ro.r('library(conos)')
+
+    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
+    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
+
+    ro.r('con <- Conos$new(pl)')
+    ro.r('con$buildGraph()')
+    ro.r('con$findCommunities()')
+
+
+
+    
 
 
 if __name__=="__main__":
