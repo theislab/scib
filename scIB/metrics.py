@@ -7,12 +7,15 @@ from scIB.utils import *
 sns.set_context('talk')
 sns.set_palette('Dark2')
 
+### Silhouette score
 def silhouette_score(adata, batch='method', group='cell_ontology_class', metric='euclidean', embed='X_pca'):
     """
+    Silhouette score subsetted for each cluster (group) between batches.
+    This results in 1 score per group label
     params:
         adata: 
-        batch: 
-        group: e.g. cell type
+        batch: batches to be compared against
+        group: group labels to be subsetted by e.g. cell type
         metric: 
         embed: name of column in adata.obsm
     returns:
@@ -51,6 +54,7 @@ def plot_silhouette_score(adata_dict):
         per_group, sil_means = silhouette_score(adata)
         sns.distplot(per_group, label=label, hist=False)
 
+### Naive cluster overlap
 def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
     checkAdata(adata)
     cluster_ov = {}
@@ -82,3 +86,27 @@ def plot_cluster_overlap(adata_dict, group1='louvain', group2='louvain_post'):
     sns.swarmplot(data=clust_df, color=".25")
     
     return clust_df
+
+### NMI
+def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/"):
+    group1_file = write_tmp_labels(adata, group1)
+    group2_file = write_tmp_labels(adata, group2)
+    
+    nmi_call = subprocess.Popen(
+        [onmi_dir+"onmi", group1_file, group2_file], 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT)
+    
+    stdout, stderr = nmi_call.communicate()
+    print(stderr)
+    nmi_out = stdout.decode()
+    print(nmi_out)
+    
+    nmi_split = [x.strip().split('\t') for x in nmi_out.split('\n')]
+    nmi_max = nmi_split[0][1]
+    
+    # remove temporary files
+    os.remove(group1_file)
+    os.remove(group2_file)
+    
+    return nmi_max

@@ -2,6 +2,7 @@
 
 This repository contains code and analysis for the benchmarking study for data integration tools.
 
+## Tools
 Tools to be compared include:
 - Seurat v2
 - [Seurat v3](https://github.com/satijalab/seurat)
@@ -17,6 +18,7 @@ Tools to be compared include:
 - [scMerge](https://github.com/SydneyBioX/scMerge)
 
 
+## Data
 Data scenarios to be compared are:
 
 1. Pancreas data
@@ -36,8 +38,13 @@ Possible extensions:
 - If possible, we will attempt to merge scATAC and scRNA-seq datasets in mouse brain as well.
 - lung atlas mapping using our published datasets (inter-individual variation)
 
+## Metrics
++ silhouette score
++ kBET
++ PCA regression
++ normalized mutual information NMI [github](https://github.com/aaronmcdaid/Overlapping-NMI)
 
-Strategy:
+## Strategy
 
 1. Datasets are normalized and pre-processed separately. QC from the publications will be used wherever possible.
 2. Cell labels must be harmonized between datasets (ideally on the basis of the cell ontology). This can be done by matching marker gene sets (overlap metrics).
