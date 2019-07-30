@@ -106,6 +106,8 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
         return clust_df
     return None
 
+
+### NMI normalised mutual information
 '''
 def nmi(adata, labelColumn, res=0.5):
     import sklearn.metrics as scm
@@ -116,7 +118,6 @@ def nmi(adata, labelColumn, res=0.5):
     return scm.normalized_mutual_info_score(labels_pre, labels_post)
 '''
 
-### NMI normalised mutual information
 def nmi(adata, group1, group2, average_method='max'):
     """
     """
@@ -164,6 +165,7 @@ def onmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False
     os.remove(group2_file)
     
     return nmi_max
+
 
 def nmi_Lanc(adata, group1, group2, nmi_dir="../../mutual3/"):
     import subprocess
