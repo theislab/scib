@@ -100,7 +100,22 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
     return None
 
 ### NMI normalised mutual information
-def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False):
+def nmi(adata, group1, group2, average_method='max'):
+    """
+    """
+    from sklearn.metrics import normalized_mutual_info_score
+    
+    checkAdata(adata)
+    checkBatch(group1, adata.obs)
+    checkBatch(group2, adata.obs)
+    
+    group1_list = adata.obs[group1].tolist()
+    group2_list = adata.obs[group2].tolist()
+    
+    return normalized_mutual_info_score(group1_list, group2_list, average_method=average_method)
+    
+
+def onmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False):
     """
     compute normalized mutual information based on 2 different cluster assignments
     runs the compiled onmi C code
@@ -108,8 +123,8 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False)
     import subprocess
     import os
     
-    group1_file = write_tmp_labels(adata, group1, to_int=True)
-    group2_file = write_tmp_labels(adata, group2, to_int=True)
+    group1_file = write_tmp_labels(adata, group1, to_int=False)
+    group2_file = write_tmp_labels(adata, group2, to_int=False)
     
     nmi_call = subprocess.Popen(
         [onmi_dir+"onmi", group1_file, group2_file], 
@@ -133,7 +148,26 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False)
     
     return nmi_max
 
-def write_tmp_labels(adata, group_name, to_int=False):
+def nmi_Lanc(adata, group1, group2, nmi_dir="../../mutual3/"):
+    import subprocess
+    import os
+    
+    group1_file = write_tmp_labels(adata, group1, to_int=False)
+    group2_file = write_tmp_labels(adata, group2, to_int=False)
+    
+    nmi_call = subprocess.Popen(
+        [nmi_dir+"mutual", group1_file, group2_file], 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT)
+    
+    stdout, stderr = nmi_call.communicate()
+    if stderr:
+        print(stderr)
+    nmi_out = stdout.decode().strip()
+    
+    return nmi_out.split('\t')[1]
+
+def write_tmp_labels(adata, group_name, to_int=False, delim='\n'):
     """
     write the values of a specific obs column into a temporary file in text format
     params:
@@ -152,11 +186,20 @@ def write_tmp_labels(adata, group_name, to_int=False):
         for label in adata.obs[group_name].unique():
             label_map[label] = i
             i += 1
-    labels = '\n'.join([str(label_map[name]) for name in adata.obs[group_name]])
+        labels = delim.join([str(label_map[name]) for name in adata.obs[group_name]])
+    else:
+        labels = delim.join([str(name) for name in adata.obs[group_name]])
+        
+    clusters = {label:[] for label in adata.obs[group_name].unique()}
+    for i, label in enumerate(adata.obs[group_name]):
+        clusters[label].append(str(i))
+    
+    output = '\n'.join([' '.join(c) for c in clusters.values()])
+    output = str.encode(output)
     
     # write to file
     with tempfile.NamedTemporaryFile(delete=False) as f:
-        f.write(str.encode(labels))
+        f.write(output)
         filename = f.name
     
     return filename
