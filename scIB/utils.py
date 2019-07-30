@@ -1,5 +1,6 @@
 import numpy as np
 import anndata
+import scanpy as sc
 
 
 def import_rpy2():
@@ -43,8 +44,10 @@ def checkSanity(adata, batch, hvg):
         checkHVG(hvg, adata.var)
 
 
-def splitBatches(adata, batch):
+def splitBatches(adata, batch, hvg= None):
     split = []
+    if hvg is not None:
+        adata = adata[:, hvg]
     for i in adata.obs[batch].unique():
         split.append(adata[adata.obs[batch]==i])
     return split
@@ -79,9 +82,11 @@ def subsetHVG(adata, batch, number):
     return hvg
 
 def hvg_intersect(adata, batch, num=4000):
-    split = scIB.utils.splitBatches(adata, 'sample')
+    split = splitBatches(adata, 'sample')
+    variable = []
     for i in split:
+        print(i)
         tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=num, inplace=False)
-        hvg.append(set(i.var[[j[0] for j in tmp]].index))
-    return list(hvg[0].intersection(*hvg[1:]))
+        variable.append(set(i.var[[j[0] for j in tmp]].index))
+    return list(variable[0].intersection(*variable[1:]))
 

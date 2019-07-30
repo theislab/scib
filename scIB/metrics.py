@@ -3,6 +3,13 @@ import pandas as pd
 import seaborn as sns
 import sklearn.metrics as scm
 from scIB.utils import *
+import cProfile
+from pstats import Stats
+from memory_profiler import profile
+import memory_profiler
+import scIB
+import timeit
+import numpy as np
 
 sns.set_context('talk')
 sns.set_palette('Dark2')
@@ -110,3 +117,12 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/"):
     os.remove(group2_file)
     
     return nmi_max
+
+def measureTM(*args, **kwargs, info=False):
+    prof = cProfile.Profile()
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
+    mem = np.max(out[0])- out[0][0]
+    if info:
+        print(f'memory usage:{round(mem,0) } MB')
+        print(f'runtime: {round(Stats(prof).total_tt,0)} s')
+    return mem, Stats(prof).total_tt, out[1:]
