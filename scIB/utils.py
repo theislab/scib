@@ -23,12 +23,11 @@ def checkAdata(adata):
     if type(adata) is not anndata.AnnData:
         raise TypeError('Input is not a valid AnnData object')
 
-def checkBatch(batch, obs):
+def checkBatch(batch, obs, verbose=False):
     if batch not in obs:
         raise ValueError('Selected batch column is not in obs')
-    else:
-        nBatch = obs[batch].nunique()
-        print('Object contains '+str(nBatch)+' batches.')
+    elif verbose:
+        print(f'Object contains {obs[batch].nunique()} batches.')
 
 def checkHVG(hvg, adata_var):
     if type(hvg) is not list:
