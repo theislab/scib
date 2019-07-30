@@ -106,6 +106,15 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
         return clust_df
     return None
 
+def nmi(adata, labelColumn, res=0.5):
+    import sklearn.metrics as scm
+    sc.tl.louvain(adata, resolution=res, key_added='louvain_post')
+    labels_pre = adata.obs[labelColumn]
+    labels_post = adata.obs['louvain_post']
+    
+    return scm.normalized_mutual_info_score(labels_pre, labels_post)
+
+'''
 ### NMI normalised mutual information
 def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False):
     """
@@ -139,7 +148,7 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False)
     os.remove(group2_file)
     
     return nmi_max
-
+'''
 def write_tmp_labels(adata, group_name, to_int=False):
     """
     write the values of a specific obs column into a temporary file in text format
@@ -188,12 +197,10 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1_list, group2_list)
     
 
-def measureTM(*args, **kwargs, info=False):
+def measureTM(*args, **kwargs):
     prof = cProfile.Profile()
     out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
     mem = np.max(out[0])- out[0][0]
-    if info:
-        print(f'memory usage:{round(mem,0) } MB')
-        print(f'runtime: {round(Stats(prof).total_tt,0)} s')
+    print(f'memory usage:{round(mem,0) } MB')
+    print(f'runtime: {round(Stats(prof).total_tt,0)} s')
     return mem, Stats(prof).total_tt, out[1:]
-
