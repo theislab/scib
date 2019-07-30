@@ -72,7 +72,15 @@ def summarize_counts(adata, count_matrix=None, mito=True):
         adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
 
 def subsetHVG(adata, batch, number):
+    ## does not work yet, use hvg_intersect
     import scanpy as sc
     hvg = sc.pp.highly_variable_genes(adata, n_top_genes=number, batch_key=batch, flavor='cell_ranger', inplace=False)
     return hvg
+
+def hvg_intersect(adata, batch, num=4000):
+    split = scIB.utils.splitBatches(adata, 'sample')
+    for i in split:
+        tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=num, inplace=False)
+        hvg.append(set(i.var[[j[0] for j in tmp]].index))
+    return list(hvg[0].intersection(*hvg[1:]))
 
