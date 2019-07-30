@@ -1,14 +1,13 @@
 import scanpy as sc
 import pandas as pd
 import seaborn as sns
-import sklearn.metrics as scm
 from scIB.utils import *
 
 sns.set_context('talk')
 sns.set_palette('Dark2')
 
 ### Silhouette score
-def silhouette_score(adata, batch='method', group='cell_ontology_class', metric='euclidean', embed='X_pca'):
+def silhouette_score(adata, batch='method', group='cell_ontology_class', metric='euclidean', embed='X_pca', verbose=True):
     """
     Silhouette score subsetted for each cluster (group) between batches.
     This results in 1 score per group label
@@ -22,7 +21,12 @@ def silhouette_score(adata, batch='method', group='cell_ontology_class', metric=
         per_group: scores per group label
         sil_means: mean silhouette score of group means
     """
+    import sklearn.metrics as scm
+    
     checkAdata(adata)
+    checkBatch(batch, adata.obs)
+    checkBatch(group, adata.obs)
+    
     if embed not in adata.obsm:
         raise KeyError(f'{embed} not in obsm')
     
@@ -38,25 +42,31 @@ def silhouette_score(adata, batch='method', group='cell_ontology_class', metric=
         sil = scm.silhouette_score(tmp_type.obsm[embed], tmp_type.obs[batch], metric=metric)
         sil_means.append(sil)
         per_group.extend(scm.silhouette_samples(tmp_type.obsm[embed], tmp_type.obs[batch], metric=metric))
-    print(f'mean silhouette over label means: {np.mean(sil_means)}')
     per_group = [abs(i) for i in per_group] # take only absolute value
-    print(f'mean silhouette per cell: {np.mean(per_group)}')
+    
+    if verbose:
+        print(f'mean silhouette over label means: {np.mean(sil_means)}')
+        print(f'mean silhouette per cell: {np.mean(per_group)}')
     
     return per_group, sil_means
 
-def plot_silhouette_score(adata_dict):
+def plot_silhouette_score(adata_dict, verbose=True):
     """
     params:
         adata_dict: dictionary of adata objects, each labeled by e.g. integration method name
     """
     for label, adata in adata_dict.items():
         checkAdata(adata)
-        per_group, sil_means = silhouette_score(adata)
+        per_group, sil_means = silhouette_score(adata, verbose=verbose)
         sns.distplot(per_group, label=label, hist=False)
 
 ### Naive cluster overlap
 def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
+    
     checkAdata(adata)
+    checkBatch(group1, adata.obs)
+    checkBatch(group2, adata.obs)
+    
     cluster_ov = {}
     louv_post_sizes = adata.obs.groupby(group1).size()
     for i in adata.obs[group2].cat.categories:
@@ -65,32 +75,41 @@ def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
         cluster_ov[i] = (overlap / louv_post_sizes).sum() / len(overlap[overlap > 0])
     return cluster_ov
 
-def plot_cluster_overlap(adata_dict, group1='louvain', group2='louvain_post'):
+def plot_cluster_overlap(adata_dict, group1, group2, df=False):
     """
     params:
         adata_dict: dictionary of adata objects, each labeled by e.g. integration method name
-        group1: 
-        group2: 
+        group1: column containing cluster assignments
+        group2: column containing cluster assignments
     return:
         clust_df: dataframe with plotted data points
     """
     series = []
-    method_names = list(adata_dict.keys())
-    for i in method_names:
-        c_ov = cluster_overlap(adata[i], group1=group1, group2=group2)
+    dict_keys = list(adata_dict.keys())
+    for i in dict_keys:
+        c_ov = cluster_overlap(adata_dict[i], group1=group1, group2=group2)
         series.append(pd.Series(c_ov))
     clust_df = pd.DataFrame(series).transpose()
 
-    clust_df.columns = method_names
+    clust_df.columns = dict_keys
     sns.boxplot(data=clust_df)
     sns.swarmplot(data=clust_df, color=".25")
     
-    return clust_df
+    if df:
+        return clust_df
+    return None
 
-### NMI
-def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/"):
-    group1_file = write_tmp_labels(adata, group1)
-    group2_file = write_tmp_labels(adata, group2)
+### NMI normalised mutual information
+def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False):
+    """
+    compute normalized mutual information based on 2 different cluster assignments
+    runs the compiled onmi C code
+    """
+    import subprocess
+    import os
+    
+    group1_file = write_tmp_labels(adata, group1, to_int=True)
+    group2_file = write_tmp_labels(adata, group2, to_int=True)
     
     nmi_call = subprocess.Popen(
         [onmi_dir+"onmi", group1_file, group2_file], 
@@ -98,9 +117,12 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/"):
         stderr=subprocess.STDOUT)
     
     stdout, stderr = nmi_call.communicate()
-    print(stderr)
+    if stderr:
+        print(stderr)
+    
     nmi_out = stdout.decode()
-    print(nmi_out)
+    if verbose:
+        print(nmi_out)
     
     nmi_split = [x.strip().split('\t') for x in nmi_out.split('\n')]
     nmi_max = nmi_split[0][1]
@@ -110,3 +132,51 @@ def nmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/"):
     os.remove(group2_file)
     
     return nmi_max
+
+def write_tmp_labels(adata, group_name, to_int=False):
+    """
+    write the values of a specific obs column into a temporary file in text format
+    params:
+        adata: anndata object
+        group_name: name of column to be saved
+        to_int: rename the unique column entries by integers in range(1,len(adata.obs[group_name])+1)
+    """
+    import tempfile
+    
+    checkAdata(adata)
+    checkBatch(group_name, adata.obs)
+    
+    if to_int:
+        label_map = {}
+        i = 1
+        for label in adata.obs[group_name].unique():
+            label_map[label] = i
+            i += 1
+    labels = '\n'.join([str(label_map[name]) for name in adata.obs[group_name]])
+    
+    # write to file
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        f.write(str.encode(labels))
+        filename = f.name
+    
+    return filename
+
+### ARI adjusted rand index
+def ari(adata, group1, group2):
+    """
+    params:
+        adata: anndata object
+        group1: "true" cluster assignments
+        group2: "predicted" cluster assignments
+    """
+    from sklearn.metrics.cluster import adjusted_rand_score
+    
+    checkAdata(adata)
+    checkBatch(group1, adata.obs)
+    checkBatch(group2, adata.obs)
+    
+    group1_list = adata.obs[group1].tolist()
+    group2_list = adata.obs[group2].tolist()
+    
+    return adjusted_rand_score(group1_list, group2_list)
+    
