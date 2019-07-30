@@ -2,6 +2,13 @@ import scanpy as sc
 import pandas as pd
 import seaborn as sns
 from scIB.utils import *
+import cProfile
+from pstats import Stats
+from memory_profiler import profile
+import memory_profiler
+import scIB
+import timeit
+import numpy as np
 
 sns.set_context('talk')
 sns.set_palette('Dark2')
@@ -98,6 +105,16 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
     if df:
         return clust_df
     return None
+
+'''
+def nmi(adata, labelColumn, res=0.5):
+    import sklearn.metrics as scm
+    sc.tl.louvain(adata, resolution=res, key_added='louvain_post')
+    labels_pre = adata.obs[labelColumn]
+    labels_post = adata.obs['louvain_post']
+    
+    return scm.normalized_mutual_info_score(labels_pre, labels_post)
+'''
 
 ### NMI normalised mutual information
 def nmi(adata, group1, group2, average_method='max'):
@@ -223,3 +240,11 @@ def ari(adata, group1, group2):
     
     return adjusted_rand_score(group1_list, group2_list)
     
+
+def measureTM(*args, **kwargs):
+    prof = cProfile.Profile()
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
+    mem = np.max(out[0])- out[0][0]
+    print(f'memory usage:{round(mem,0) } MB')
+    print(f'runtime: {round(Stats(prof).total_tt,0)} s')
+    return mem, Stats(prof).total_tt, out[1:]
