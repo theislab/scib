@@ -7,18 +7,23 @@
 """
 
 import scanpy as sc
-import numpy as np
+import scipy as sp
+#import numpy as np
 from scIB.utils import *
+from memory_profiler import profile
+import os
+import pandas as pd
 
-def import_rpy2():
-    import rpy2.rinterface_lib.callbacks
-    import logging
-    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
-    import rpy2.robjects as ro
-    from rpy2.robjects import pandas2ri
-    pandas2ri.activate()
-    import anndata2ri
-    anndata2ri.activate()
+#def import_rpy2():
+import rpy2.rinterface_lib.callbacks
+import logging
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+import rpy2.robjects as ro
+global pandas2ri
+from rpy2.robjects import pandas2ri
+pandas2ri.activate()
+import anndata2ri
+anndata2ri.activate()
 
 # functions for running the methods
 
@@ -53,13 +58,13 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
 
 def runSeurat(adata, batch="method", hvg=None):
     checkSanity(adata, batch, hvg)
-    import_rpy2()
+    #import_rpy2()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     
     ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
-    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
+    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
         'anchor.features = 2000,'+
@@ -122,18 +127,33 @@ def runBBKNN(adata, batch, hvg=None):
 
 def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    import_rpy2()
+    #import_rpy2()
     ro.r('library(Seurat)')
+    ro.r('library(scater)')
     ro.r('library(conos)')
 
+    ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
-    ro.r(f'batch_list = SplitObject(sobj, split.by = {batch})')
+    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
 
-    ro.r('con <- Conos$new(pl)')
-    ro.r('con$buildGraph()')
-    ro.r('con$findCommunities()')
+    ro.r('con <- Conos$new(batch_list)')
+    ro.r('con$buildGraph(k=15, k.self=5, space="PCA", ncomps=30)')
+    os.mkdir('conos_tmp')
+    ro.r('saveConosForScanPy(con, output.path="conos_tmp/", verbose=T))')
 
+    DATA_PATH = os.path.expanduser('conos_tmp/')
+    pca_df = pd.read_csv(DATA_PATH+'pca.csv')
+    
+    graph_conn_mtx = sp.io.mmread(DATA_PATH + "graph_connectivities.mtx")
+    graph_dist_mtx = sp.io.mmread(DATA_PATH + "graph_distances.mtx")
+    
+    out = adata.copy()
+    
+    out.X_pca = pca_df.values
+    
+    out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
 
+    return out
 
     
 
