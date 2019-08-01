@@ -81,11 +81,10 @@ def subsetHVG(adata, batch, number):
     return hvg
 
 def hvg_intersect(adata, batch, num=4000):
-    split = splitBatches(adata, 'sample')
-    variable = []
+    split = splitBatches(adata, batch)
+    hvg = []
     for i in split:
-        print(i)
         tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=num, inplace=False)
-        variable.append(set(i.var[[j[0] for j in tmp]].index))
-    return list(variable[0].intersection(*variable[1:]))
+        hvg.append(set(i.var[[j[0] for j in tmp]].index))
+    return list(hvg[0].intersection(*hvg[1:]))
 

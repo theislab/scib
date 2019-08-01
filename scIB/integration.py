@@ -19,11 +19,15 @@ import rpy2.rinterface_lib.callbacks
 import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
 import rpy2.robjects as ro
-global pandas2ri
-from rpy2.robjects import pandas2ri
-pandas2ri.activate()
+import rpy2.robjects
+#rpy2.robjects.activate()
+#rpy2.robjects.numpy2ri.activate()
+#global pandas2ri
+#from rpy2.robjects import pandas2ri
+
 import anndata2ri
-anndata2ri.activate()
+#anndata2ri.activate()
+#ro.pandas2ri.activate()
 
 # functions for running the methods
 
@@ -61,6 +65,7 @@ def runSeurat(adata, batch="method", hvg=None):
     #import_rpy2()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
+    anndata2ri.activate()
     
     ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
@@ -92,11 +97,14 @@ def runSeurat(adata, batch="method", hvg=None):
         'eps = 0,'+
         'verbose = T)'
     )
-    return ro.r('as.SingleCellExperiment(integrated)')
+    integrated = ro.r('as.SingleCellExperiment(integrated)')
+    anndata2ri.deactivate()
+    return integrated
 
 def runHarmony(adata, batch, hvg = None):
     checkSanity(adata, batch, hvg)
-    import_rpy2()
+    #import_rpy2()
+    ro.pandas2ri.activate()
     ro.r('library(harmony)')
 
     pca = sc.pp.pca(adata, svd_solver='arpack', copy=True).obsm['X_pca']
@@ -106,8 +114,9 @@ def runHarmony(adata, batch, hvg = None):
     ro.globalenv['method'] = method
 
     ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
-
-    return ro.r('harmonyEmb')
+    emb = ro.r('harmonyEmb')
+    ro.pandas2ri.deactivate()
+    return emb
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
@@ -127,13 +136,13 @@ def runBBKNN(adata, batch, hvg=None):
 
 def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    #import_rpy2()
+    anndata2ri.activate()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     ro.r('library(conos)')
 
-    ro.globalenv['adata'] = adata
-    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
+    ro.globalenv['adata_c'] = adata
+    ro.r('sobj = as.Seurat(adata_c, counts = "counts", data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
 
     ro.r('con <- Conos$new(batch_list)')
@@ -152,7 +161,8 @@ def runConos(adata, batch, hvg=None):
     out.X_pca = pca_df.values
     
     out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
-
+    
+    anndata2ri.deactivate()
     return out
 
     
