@@ -8,6 +8,7 @@ Tools to be compared include:
 - [Seurat v3](https://github.com/satijalab/seurat)
 - [scGen](https://github.com/theislab/scgen)
 - [scVI](https://github.com/YosefLab/scVI)
+- [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
 - [CONOS](https://github.com/hms-dbmi/conos)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [Scanorama](https://github.com/brianhie/scanorama)
@@ -16,6 +17,7 @@ Tools to be compared include:
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [Harmony](https://github.com/immunogenomics/harmony)
 - [scMerge](https://github.com/SydneyBioX/scMerge)
+- [scAlign](https://github.com/quon-titative-biology/scAlign)
 
 
 ## Data
