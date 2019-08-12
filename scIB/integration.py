@@ -19,15 +19,7 @@ import rpy2.rinterface_lib.callbacks
 import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
 import rpy2.robjects as ro
-import rpy2.robjects
-#rpy2.robjects.activate()
-#rpy2.robjects.numpy2ri.activate()
-#global pandas2ri
-#from rpy2.robjects import pandas2ri
-
 import anndata2ri
-#anndata2ri.activate()
-#ro.pandas2ri.activate()
 
 # functions for running the methods
 
@@ -62,7 +54,6 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
 
 def runSeurat(adata, batch="method", hvg=None):
     checkSanity(adata, batch, hvg)
-    #import_rpy2()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()

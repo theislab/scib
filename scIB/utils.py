@@ -59,32 +59,3 @@ def merge_adata(adata_list):
     clean_var = adata.var.loc[:, columns_to_keep]
     adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
     return adata
-
-def summarize_counts(adata, count_matrix=None, mito=True):
-    if count_matrix is None:
-        count_matrix = adata.X
-    adata.obs['n_counts'] = count_matrix.sum(1)
-    adata.obs['log_counts'] = np.log(adata.obs['n_counts'])
-    adata.obs['n_genes'] = (count_matrix > 0).sum(1)
-
-    if mito:
-        mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
-        mt_count = count_matrix[:, mt_gene_mask].sum(1)
-        if mt_count.ndim > 1:
-            mt_count = np.squeeze(np.asarray(mt_count))
-        adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
-
-def subsetHVG(adata, batch, number):
-    ## does not work yet, use hvg_intersect
-    import scanpy as sc
-    hvg = sc.pp.highly_variable_genes(adata, n_top_genes=number, batch_key=batch, flavor='cell_ranger', inplace=False)
-    return hvg
-
-def hvg_intersect(adata, batch, num=4000):
-    split = splitBatches(adata, batch)
-    hvg = []
-    for i in split:
-        tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=num, inplace=False)
-        hvg.append(set(i.var[[j[0] for j in tmp]].index))
-    return list(hvg[0].intersection(*hvg[1:]))
-
