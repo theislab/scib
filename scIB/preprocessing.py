@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-import sns
+import seaborn as sns
 import scanpy as sc
 from scIB.utils import *
 
@@ -15,11 +15,7 @@ def plot_scatter(adata, count_threshold=0, gene_threshold=0,
     ax.set_xlabel("Count depth",fontsize=lab_size)
     ax.set_ylabel("Number of genes",fontsize=lab_size)
     ax.tick_params(labelsize=tick_size)
-    
-    if gene_threshold > 0:def plot_scatter(adata, count_threshold=0, gene_threshold=0,
-                 color='tissue', title='', lab_size=15, tick_size=11, legend_loc='right margin',
-                palette=None):
-    
+        
     ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
                        legend_fontweight=50, legend_loc=legend_loc, palette=palette)
     ax.set_title(title, fontsize=lab_size)
