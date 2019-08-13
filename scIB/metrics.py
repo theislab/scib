@@ -40,7 +40,8 @@ def silhouette_score(adata, batch='method', group='cell_ontology_class', metric=
     checkBatch(batch, adata.obs)
     checkBatch(group, adata.obs)
     
-    if embed not in adata.obsm:
+    if embed not in adata.obsm.keys():
+        print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
     
     # ony look at group labels that are present for all batches
@@ -290,3 +291,46 @@ def measureTM(*args, **kwargs):
     print(f'memory usage:{round(mem,0) } MB')
     print(f'runtime: {round(Stats(prof).total_tt,0)} s')
     return mem, Stats(prof).total_tt, out[1:]
+
+def pcr_hvg(pre, post, n_hvg, batch):
+    import rpy2.rinterface_lib.callbacks
+    import logging
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+    import rpy2.robjects as ro
+    import anndata2ri
+    anndata2ri.activate()
+    ro.numpy2ri.activate()
+    cons = []
+    for x in pre.obs['batch'].unique():
+        tmp = pre[pre.obs['batch']==x]
+        tmp_post = post[post.obs['batch']==x]
+        
+        ro.globalenv['tmp'] = tmp.X
+        ro.globalenv['tmp_post'] = tmp_post.X
+
+        ro.globalenv['pca.data'] = ro.r("pca.data <- prcomp(tmp, center=TRUE)")
+        ro.globalenv['pca_post.data'] = ro.r("pca_post.data <- prcomp(tmp_post, center=TRUE)")
+        
+        hvg = pd.DataFrame.from_records(sc.pp.highly_variable_genes(tmp, n_top_genes=n_hvg, inplace=False)).highly_variable
+        hvg_1 = tmp[:,hvg]
+        hvg_2 = tmp_post[:,hvg]
+        pcr_pre_all = []
+        pcr_post_all = []
+        summ = 0
+        for i in range(hvg_1.shape[1]):
+            ro.globalenv['y_1']= hvg_1[:,i].X
+            ro.globalenv['y_2']= hvg_2[:,i].X
+            pcr_pre = ro.r("batch.pca <- pcRegression(pca.data, y_1, n_top=50)")
+            pcr_post = ro.r("batch.pca <- pcRegression(pca_post.data, y_2, n_top=50)")
+            pcr_preV = dict(zip(pcr_pre.names, list(pcr_pre)))
+            pcr_postV = dict(zip(pcr_post.names, list(pcr_post)))
+            pcr_pre_all.append(pcr_preV['pcRegscale'])
+            pcr_post_all.append(pcr_postV['pcRegscale'])
+            print(i)
+        for i in range(len(pcr_pre_all)):
+            diff = (pcr_pre_all[i]-pcr_post_all[i])**2
+            summ = summ + diff
+        cons.append(summ)
+    anndata2ri.deactivate()
+    ro.numpy2ri.deactivate()
+    return np.mean(cons)
