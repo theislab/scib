@@ -10,6 +10,12 @@ import scIB
 import timeit
 import numpy as np
 
+import rpy2.rinterface_lib.callbacks
+import logging
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+import rpy2.robjects as ro
+import anndata2ri
+
 sns.set_context('talk')
 sns.set_palette('Dark2')
 
@@ -242,7 +248,41 @@ def ari(adata, group1, group2):
     group2_list = adata.obs[group2].tolist()
     
     return adjusted_rand_score(group1_list, group2_list)
+
+def pcr_comparison(adata, raw, corrected, covariate="phase"):
+    """
+    Compare the effect before and after integration
+    params:
+        raw: count matrix before integration
+        corrected: count matrix after correction
+    return:
+        difference of pcRegscale valnts'nts'ue of pcr
+    """
+    if covariate not in adata.obs:
+        print(f"column '{covariate}' not in adata")
+    batch = adata.obs[covariate]
+    pcr_before = pc_regression(raw, batch)
+    pcr_after = pc_regression(corrected, batch)
     
+    return pcr_before['pcRegscale'][0] - pcr_after['pcRegscale'][0]
+
+def pc_regression(matrix, batch):
+    """
+    params: 
+        matrix: count matrix
+        batch: series or list of batch assignemnts
+    """
+    ro.pandas2ri.activate()
+    ro.r("library(kBET)")
+    
+    ro.globalenv['data_mtrx'] = matrix
+    ro.globalenv['batch'] = batch
+    
+    pca_data = ro.r("pca.data <- prcomp(data_mtrx, center=TRUE)")
+    pcr = ro.r("batch.pca <- pcRegression(pca.data, batch, n_top=100)")
+
+    ro.pandas2ri.deactivate()    
+    return dict(zip(pcr.names, list(pcr)))
 
 def measureTM(*args, **kwargs):
     prof = cProfile.Profile()

@@ -14,7 +14,6 @@ from memory_profiler import profile
 import os
 import pandas as pd
 
-#def import_rpy2():
 import rpy2.rinterface_lib.callbacks
 import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
