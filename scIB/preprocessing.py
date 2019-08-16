@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
 import scanpy as sc
+from scipy import sparse
 
 # rpy2 for running R code
 import rpy2.rinterface_lib.callbacks
@@ -15,6 +16,9 @@ from scIB.utils import *
 
 
 def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
+    
+    checkAdata(adata)
+    
     if count_matrix is None:
         count_matrix = adata.X
     adata.obs['n_counts'] = count_matrix.sum(1)
@@ -22,12 +26,15 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
     adata.obs['n_genes'] = (count_matrix > 0).sum(1)
 
     if mt_gene_regex != None:
-        
-        mito_genes = adata.var_names.str.match(mt_gene_regex)
         # for each cell compute fraction of counts in mito genes vs. all genes
+        mito_genes = adata.var_names.str.match(mt_gene_regex)
+        mt_sum = np.sum(adata[:, mito_genes].X, axis=1)
+        total_sum = np.sum(adata.X, axis=1)
         # the `.A1` is only necessary as X is sparse (to transform to a dense array after summing)
-        adata.obs['percent_mito'] = np.sum(
-            adata[:, mito_genes].X, axis=1).A1 / np.sum(adata.X, axis=1).A1
+        if sparse.issparse(adata.X):
+            mt_sum = mt_sum.A1
+            total_sum = total_sum.A1
+        adata.obs['percent_mito'] =  mt_sum / total_sum 
         
         #mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
         #mt_count = count_matrix[:, mt_gene_mask].sum(1)
@@ -38,6 +45,10 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
 def plot_scatter(adata, count_threshold=0, gene_threshold=0,
                  color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
                 palette=None):
+    
+    checkAdata(adata)
+    if color:
+        checkBatch(color, adata.obs)
     
     ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
                        legend_fontweight=50, legend_loc=legend_loc, palette=palette)
@@ -133,11 +144,21 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
                           filter_upper = gene_filter_threshold[1])
     
 
-def normalize(adata, color_col='batch', min_mean = 0.1):
+def normalize(adata, min_mean = 0.1):
+    
+    checkAdata(adata)
+    
+    # massive speedup when working with sparse matrix
+    if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
+        adata.X = sparse.csr_matrix(adata.X)
     
     anndata2ri.activate()
     ro.r('library("scran")')
     
+    # keep raw counts
+    adata.layers["counts"] = adata.X.copy()
+    
+    # Preliminary clustering for differentiated normalisation
     adata_pp = adata.copy()
     sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
     sc.pp.log1p(adata_pp)
@@ -148,15 +169,15 @@ def normalize(adata, color_col='batch', min_mean = 0.1):
     ro.globalenv['data_mat'] = adata.X.T
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
     size_factors = ro.r(f'computeSumFactors(data_mat, clusters = input_groups, min.mean = {min_mean})')
+    del adata_pp
     
     # modify adata
     adata.obs['size_factors'] = size_factors
-    adata.layers["counts"] = adata.X.copy()
-
     adata.X /= adata.obs['size_factors'].values[:,None]
     sc.pp.log1p(adata)
-    adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing    
-    summarize_counts(adata, mt_gene_regex=None) # average counts for normalised counts
+    # convert to sparse, bc operation always converts to dense
+    adata.X = sparse.csr_matrix(adata.X)
+    adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
 def subsetHVG(adata, batch, number):
     ## does not work yet, use hvg_intersect
@@ -181,7 +202,14 @@ def reduce_data(adata, subset=False,
                 tsne=False,
                 diffmap=False,
                 draw_graph=False):
+    
+    checkAdata(adata)
+    print(f"paga_groups: {paga_groups}")
+    checkBatch(paga_groups, adata.obs)
+    
     if hvg:
+        if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
+            adata.X = sparse.csr_matrix(adata.X)
         sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=bins, subset=subset)
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'\nNumber of highly variable genes: {n_hvg}')
@@ -200,3 +228,18 @@ def reduce_data(adata, subset=False,
     if draw_graph:
         sc.tl.draw_graph(adata)
 
+def cc_tirosh(marker_gene_file):
+    """
+    Tirosh et al. cell cycle marker genes downloaded from
+    https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
+    return: (s_genes, g2m_genes)
+        s_genes: S-phase genes
+        g2m_genes: G2- and M-phase genes
+    """
+    cell_cycle_genes = [x.strip().lower().capitalize() for x in open(marker_gene_file)]
+    cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
+    # split list into S-phase and G2/M-phase genes
+    s_genes = cell_cycle_genes[:43]
+    g2m_genes = cell_cycle_genes[43:]
+    
+    return s_genes, g2m_genes
