@@ -249,6 +249,7 @@ def ari(adata, group1, group2):
     
     return adjusted_rand_score(group1_list, group2_list)
 
+### PC Regression
 def pcr_comparison(adata, raw, corrected, covariate="phase"):
     """
     Compare the effect before and after integration
@@ -258,8 +259,11 @@ def pcr_comparison(adata, raw, corrected, covariate="phase"):
     return:
         difference of pcRegscale valnts'nts'ue of pcr
     """
-    if covariate not in adata.obs:
-        print(f"column '{covariate}' not in adata")
+    
+    checkAdata(adata)
+    checkBatch(covariate, adata.obs)
+    
+    print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     pcr_before = pc_regression(raw, batch)
     pcr_after = pc_regression(corrected, batch)
@@ -268,11 +272,12 @@ def pcr_comparison(adata, raw, corrected, covariate="phase"):
 
 def pc_regression(matrix, batch):
     """
-    params: 
+    params:
         matrix: count matrix
         batch: series or list of batch assignemnts
     """
-    ro.pandas2ri.activate()
+    
+    anndata2ri.activate()
     ro.r("library(kBET)")
     
     ro.globalenv['data_mtrx'] = matrix
@@ -281,25 +286,14 @@ def pc_regression(matrix, batch):
     pca_data = ro.r("pca.data <- prcomp(data_mtrx, center=TRUE)")
     pcr = ro.r("batch.pca <- pcRegression(pca.data, batch, n_top=100)")
 
-    ro.pandas2ri.deactivate()    
+    anndata2ri.deactivate()    
     return dict(zip(pcr.names, list(pcr)))
 
-def measureTM(*args, **kwargs):
-    prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
-    mem = np.max(out[0])- out[0][0]
-    print(f'memory usage:{round(mem,0) } MB')
-    print(f'runtime: {round(Stats(prof).total_tt,0)} s')
-    return mem, Stats(prof).total_tt, out[1:]
-
 def pcr_hvg(pre, post, n_hvg, batch):
-    import rpy2.rinterface_lib.callbacks
-    import logging
-    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
-    import rpy2.robjects as ro
-    import anndata2ri
-    anndata2ri.activate()
-    ro.numpy2ri.activate()
+    
+    checkAdata(pre)
+    checkAdata(post)
+    
     cons = []
     for x in pre.obs['batch'].unique():
         tmp = pre[pre.obs['batch']==x]
@@ -334,3 +328,12 @@ def pcr_hvg(pre, post, n_hvg, batch):
     anndata2ri.deactivate()
     ro.numpy2ri.deactivate()
     return np.mean(cons)
+
+### Time and Memory
+def measureTM(*args, **kwargs):
+    prof = cProfile.Profile()
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
+    mem = np.max(out[0])- out[0][0]
+    print(f'memory usage:{round(mem,0) } MB')
+    print(f'runtime: {round(Stats(prof).total_tt,0)} s')
+    return mem, Stats(prof).total_tt, out[1:]
