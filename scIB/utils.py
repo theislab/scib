@@ -59,3 +59,7 @@ def merge_adata(adata_list):
     clean_var = adata.var.loc[:, columns_to_keep]
     adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
     return adata
+
+def todense(adata):
+    if isinstance(adata.X, scipy.sparse.csr_matrix):
+        adata.X = adata.X.todense()
