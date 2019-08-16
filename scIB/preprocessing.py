@@ -204,8 +204,6 @@ def reduce_data(adata, subset=False,
                 draw_graph=False):
     
     checkAdata(adata)
-    print(f"paga_groups: {paga_groups}")
-    checkBatch(paga_groups, adata.obs)
     
     if hvg:
         if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
@@ -222,6 +220,7 @@ def reduce_data(adata, subset=False,
         sc.tl.umap(adata)
     if paga:
         print(f'Compute PAGA by group "{paga_groups}"')
+        checkBatch(paga_groups, adata.obs)
         sc.tl.paga(adata, groups=paga_groups)
     if diffmap:
         sc.tl.diffmap(adata)
