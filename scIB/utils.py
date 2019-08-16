@@ -61,5 +61,6 @@ def merge_adata(adata_list):
     return adata
 
 def todense(adata):
+    import scipy
     if isinstance(adata.X, scipy.sparse.csr_matrix):
         adata.X = adata.X.todense()

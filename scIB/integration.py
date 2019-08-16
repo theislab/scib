@@ -60,6 +60,7 @@ def runSeurat(adata, batch="method", hvg=None):
     ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
+    #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
         'anchor.features = 2000,'+
