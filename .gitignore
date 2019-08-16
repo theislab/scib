@@ -4,4 +4,5 @@ testing.h5ad
 data
 .ipynb_checkpoints
 scIB.egg-info
+*cache*
 

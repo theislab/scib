@@ -97,7 +97,8 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
             gene_threshold=(0,np.inf), 
             gene_filter_threshold=(0,np.inf),
             count_threshold=(0,np.inf), 
-            count_filter_threshold=(0,np.inf)):
+            count_filter_threshold=(0,np.inf), 
+            palette=sc.pl.palettes.godsnot_64):
     
     if count_filter_threshold == (0, np.inf):
         count_filter_threshold = count_threshold
@@ -108,7 +109,7 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
     plot_scatter(adata, color=color, title=color,
                  gene_threshold=gene_filter_threshold[0], 
                  count_threshold=count_filter_threshold[0],
-                 legend_loc=legend_loc)
+                 legend_loc=legend_loc, palette=palette)
     
     if not histogram:
         return
