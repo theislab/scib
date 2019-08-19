@@ -73,25 +73,4 @@ sc.pp.neighbors(integrated)
 integrated.uns['mem']=methods['scanorama'][0]
 integrated.uns['runtime']=methods['scanorama'][1]
 
-
-# ## Quantifying quality of Integration
-
-# ### Silhouette score
-
-
-#sil = scIB.metrics.silhouette_score(integrated, batch, 'cell_ontology_class')
-
-
-# In[15]:
-
-
-#sc.tl.louvain(adatas['scanorama'], key_added='louvain_post')
-#nmi= scIB.metrics.nmi(adatas['scanorama'], 'cell_ontology_class', 'louvain_post')
-
-
-
-#pcr_hvg = scIB.metrics.pcr_hvg(adata, adatas['scanorama'], 10, batch)
-
-#pcr_hvg
-
 sc.write(out, integrated)
