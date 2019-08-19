@@ -117,24 +117,52 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
 
 
 ### NMI normalised mutual information
-'''
-def nmi(adata, labelColumn, res=0.5):
-    import sklearn.metrics as scm
-    sc.tl.louvain(adata, resolution=res, key_added='louvain_post')
-    labels_pre = adata.obs[labelColumn]
-    labels_post = adata.obs['louvain_post']
+def nmi(adata, group1, group2, method="max", nmi_dir=None):
+    """
+    Normalized mutual information NMI based on 2 different cluster assignments `group1` and `group2`
+    params:
+        adata: Anndata object
+        group1: column name of `adata.obs`
+        group2: column name of `adata.obs`
+        method: NMI implementation
+            'max': scikit method with `average_method='max'`
+            'min': scikit method with `average_method='min'`
+            'geometric': scikit method with `average_method='geometric'`
+            'arithmetic': scikit method with `average_method='arithmetic'`
+            'Lancichinetti': implementation by A. Lancichinetti 2009 et al.
+            'ONMI': implementation by Aaron F. McDaid et al. (https://github.com/aaronmcdaid/Overlapping-NMI) Hurley 2011
+        nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as `method`. Compilation should be done as specified in the corresponding README.
+    return:
+        normalized mutual information (NMI)
+    """
     
-    return scm.normalized_mutual_info_score(labels_pre, labels_post)
-'''
+    if method in ['max', 'min', 'geometric', 'arithmetic']:
+        nmi_value = nmi_scikit(adata, group1, group2, average_method=method)
+    else if method == "Lancichinetti":
+        nmi_value = nmi_Lanc(adata, group1, group2, nmi_dir=nmi_dir)
+    else if method == "ONMI":
+        nmi_value = onmi(adata, group1, group2, nmi_dir=nmi_dir)
+    else:
+        raise ValueError(f"Method {method} not valid")
+    
+    return nmi_value
 
-def nmi(adata, group1, group2, average_method='max'):
+
+def nmi_scikit(adata, group1, group2, average_method='max'):
     """
+    implementation from scikit-learn
+    params:
+        average_method: different ways of averaging for normalization
+            'max': scikit method with `average_method='max'`
+            'min': scikit method with `average_method='min'`
+            'geometric': scikit method with `average_method='geometric'`
+            'arithmetic': scikit method with `average_method='arithmetic'`
     """
-    from sklearn.metrics import normalized_mutual_info_score
-    
     checkAdata(adata)
     checkBatch(group1, adata.obs)
     checkBatch(group2, adata.obs)
+    
+    from sklearn.metrics import normalized_mutual_info_score
     
     group1_list = adata.obs[group1].tolist()
     group2_list = adata.obs[group2].tolist()
@@ -142,11 +170,21 @@ def nmi(adata, group1, group2, average_method='max'):
     return normalized_mutual_info_score(group1_list, group2_list, average_method=average_method)
     
 
-def onmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False):
+def onmi(adata, group1, group2, onmi_dir=None, verbose=False):
     """
-    compute normalized mutual information based on 2 different cluster assignments
-    runs the compiled onmi C code
+    Based on implementation https://github.com/aaronmcdaid/Overlapping-NMI
+    publication: Aaron F. McDaid, Derek Greene, Neil Hurley 2011
+    params:
+        onmi_dir: directory of compiled C code
     """
+    
+    checkAdata(adata)
+    checkBatch(group1, adata.obs)
+    checkBatch(group2, adata.obs)
+    
+    if not onmi_dir:
+        "Please provide the directory of the compiled C code from https://github.com/aaronmcdaid/Overlapping-NMI"
+    
     import subprocess
     import os
     
@@ -176,7 +214,18 @@ def onmi(adata, group1, group2, onmi_dir="../../Overlapping-NMI/", verbose=False
     return nmi_max
 
 
-def nmi_Lanc(adata, group1, group2, nmi_dir="../../mutual3/"):
+def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/"):
+    """
+    paper by A. Lancichinetti 2009
+    https://sites.google.com/site/andrealancichinetti/mutual
+    recommended by Malte
+    """
+    
+    checkAdata(adata)
+    
+    if not nmi_dir:
+        "Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz"
+    
     import subprocess
     import os
     
@@ -433,4 +482,6 @@ def measureTM(*args, **kwargs):
 
 
 ### All Metrics
+def metrics(adata,
+            silhouette_score, ):
 
