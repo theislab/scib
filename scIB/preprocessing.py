@@ -212,7 +212,7 @@ def reduce_data(adata, subset=False,
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'\nNumber of highly variable genes: {n_hvg}')
     if pca:
-        sc.pp.pca(adata, n_comps=50, use_highly_variable=hvg, svd_solver='arpack')
+        sc.tl.pca(adata, n_comps=50, use_highly_variable=hvg, svd_solver='arpack', return_info=True)
     sc.pp.neighbors(adata)
     if tsne:
         sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
@@ -227,7 +227,7 @@ def reduce_data(adata, subset=False,
     if draw_graph:
         sc.tl.draw_graph(adata)
 
-def cc_tirosh(marker_gene_file):
+def cc_tirosh(marker_gene_file, adata=None):
     """
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
@@ -236,7 +236,8 @@ def cc_tirosh(marker_gene_file):
         g2m_genes: G2- and M-phase genes
     """
     cell_cycle_genes = [x.strip().lower().capitalize() for x in open(marker_gene_file)]
-    cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
+    if adata:
+        cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
     # split list into S-phase and G2/M-phase genes
     s_genes = cell_cycle_genes[:43]
     g2m_genes = cell_cycle_genes[43:]

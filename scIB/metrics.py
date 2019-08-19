@@ -16,8 +16,6 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 
-sns.set_context('talk')
-sns.set_palette('Dark2')
 
 ### Silhouette score
 def silhouette_score(adata, batch='method', group='cell_ontology_class', metric='euclidean', embed='X_pca', verbose=True):
@@ -69,10 +67,13 @@ def plot_silhouette_score(adata_dict, verbose=True):
     params:
         adata_dict: dictionary of adata objects, each labeled by e.g. integration method name
     """
-    for label, adata in adata_dict.items():
-        checkAdata(adata)
-        per_group, sil_means = silhouette_score(adata, verbose=verbose)
-        sns.distplot(per_group, label=label, hist=False)
+    
+    sns.set_context('talk')
+    with sns.set_palette('Dark2'):
+        for label, adata in adata_dict.items():
+            checkAdata(adata)
+            per_group, sil_means = silhouette_score(adata, verbose=verbose)
+            sns.distplot(per_group, label=label, hist=False)
 
 ### Naive cluster overlap
 def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
@@ -104,10 +105,11 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
         c_ov = cluster_overlap(adata_dict[i], group1=group1, group2=group2)
         series.append(pd.Series(c_ov))
     clust_df = pd.DataFrame(series).transpose()
-
     clust_df.columns = dict_keys
-    sns.boxplot(data=clust_df)
-    sns.swarmplot(data=clust_df, color=".25")
+    
+    with sns.set_palette('Dark2'):
+        sns.boxplot(data=clust_df)
+        sns.swarmplot(data=clust_df, color=".25")
     
     if df:
         return clust_df
@@ -250,40 +252,79 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1_list, group2_list)
 
 ### PC Regression
-def pcr_comparison(adata, raw, corrected, covariate="phase"):
+def pcr_comparison(adata, raw, corrected, hvg=True, covariate="phase"):
     """
     Compare the effect before and after integration
     params:
         raw: count matrix before integration
         corrected: count matrix after correction
     return:
-        difference of pcRegscale valnts'nts'ue of pcr
+        difference of pcRegscale value of pcr
     """
     
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
+    if hvg:
+        if "highly_variable" not in adata.var.columns:
+            print("No highly variable genes computed, continuing with full matrix")
+        else:
+            hvg = (adata.var["highly_variable"] == True)
+            print(f"subsetting to {sum(hvg)} highly variable genes")
+            raw = raw[:, np.where(hvg)[0]]
+            corrected = corrected[:, np.where(hvg)[0]]
     
     print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
+    
     pcr_before = pc_regression(raw, batch)
     pcr_after = pc_regression(corrected, batch)
     
     return pcr_before['pcRegscale'][0] - pcr_after['pcRegscale'][0]
 
-def pc_regression(matrix, batch):
+def pc_regression(matrix, batch, pca_stdev=None, n_comps=None, verbose=True):
     """
     params:
         matrix: count matrix
         batch: series or list of batch assignemnts
+        n_comps: number of PCA components
+        pca_stdev: iterable of variances for `n_comps` components. If `pca_stdev` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     """
     
+    if verbose:
+        print(f"matrix dimensions: {matrix.shape}")
+    
+    if not n_comps:
+            n_comps = min(matrix.shape)
+    
+    if not pca_stdev:
+        # compute PCA if standard deviation not given
+        pca = sc.tl.pca(matrix,
+                        n_comps=n_comps,
+                        use_highly_variable=False,
+                        return_info=True,
+                        svd_solver='full',
+                        copy=True)
+        X_pca = pca[0].copy()
+        pca_stdev = pca[3].copy()
+        del pca
+    else:
+        X_pca = matrix
+        
+    # Activate R
     anndata2ri.activate()
     ro.r("library(kBET)")
     
+    if verbose:
+        print("importing data to R")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['batch'] = batch
     
-    pca_data = ro.r("pca.data <- prcomp(data_mtrx, center=TRUE)")
+    ro.globalenv["X_pca"] = X_pca
+    ro.globalenv["pca_stdev"] = pca_stdev
+    ro.r("pca.data <- list(x=X_pca, sdev=pca_stdev)")
+    
+    if verbose:
+        print("PC regression")
     pcr = ro.r("batch.pca <- pcRegression(pca.data, batch, n_top=100)")
 
     anndata2ri.deactivate()    
@@ -329,11 +370,67 @@ def pcr_hvg(pre, post, n_hvg, batch):
     ro.numpy2ri.deactivate()
     return np.mean(cons)
 
+### kBET
+def kBET(matrix, batch, subsample=0.3, verbose=True):
+    """
+    params:
+        matrix: count matrix
+        batch: series or list of batch assignemnts
+    """
+    if isinstance(subsample, float):
+        matrix = sc.pp.subsample(matrix, fraction=subsample, copy=True)
+    
+    anndata2ri.activate()
+    ro.r("library(kBET)")
+    
+    if verbose:
+        print("importing count matrix")
+    ro.globalenv['data_mtrx'] = matrix
+    ro.globalenv['batch'] = batch
+    
+    if verbose:
+        print("kBET estimation")
+    batch_estimate = ro.r("batch.estimate <- kBET(data_mtrx, batch)")
+    
+    anndata2ri.deactivate()
+    return ro.r("batch.estimate$average.pval")[0]
+
+def kBET_comparison(adata, raw, corrected, covariate="phase"):
+    """
+    Compare the effect before and after integration
+    params:
+        raw: count matrix before integration
+        corrected: count matrix after correction
+    return:
+        difference of kBET p-value
+    """
+    
+    checkAdata(adata)
+    checkBatch(covariate, adata.obs)
+    
+    print(f"covariate: {covariate}")
+    batch = adata.obs[covariate]
+    kBET_before = kBET(raw, batch)
+    kBET_after = kBET(corrected, batch)
+    
+    return kBET_before - kBET_after
+
 ### Time and Memory
 def measureTM(*args, **kwargs):
+    """
+    params:
+        *args: function to be tested for time and memory
+        **kwargs: list of function paramters
+    returns:
+        tuple : (memory (MB), time (s), list of *args function outputs)
+    """
     prof = cProfile.Profile()
     out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
     mem = np.max(out[0])- out[0][0]
     print(f'memory usage:{round(mem,0) } MB')
     print(f'runtime: {round(Stats(prof).total_tt,0)} s')
     return mem, Stats(prof).total_tt, out[1:]
+
+
+### All Metrics
+
