@@ -185,13 +185,22 @@ def subsetHVG(adata, batch, number):
     hvg = sc.pp.highly_variable_genes(adata, n_top_genes=number, batch_key=batch, flavor='cell_ranger', inplace=False)
     return hvg
 
-def hvg_intersect(adata, batch, num=4000):
+def hvg_intersect(adata, batch, max_genes=4000):
+    """
+    params:
+        adata:
+        batch: adata.obs column
+        max_genes: maximum number of genes (intersection reduces the number of genes)
+    return:
+        list of highly variable genes less or equal to `max_genes`
+    """
+    
     split = splitBatches(adata, batch)
-    hvg = []
+    genes = []
     for i in split:
-        tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=num, inplace=False)
-        hvg.append(set(i.var[[j[0] for j in tmp]].index))
-    return list(hvg[0].intersection(*hvg[1:]))
+        tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=max_genes, inplace=False)
+        genes.append(set(i.var[[j[0] for j in tmp]].index))
+    return list(genes[0].intersection(*genes[1:]))
 
 def reduce_data(adata, subset=False,
                 hvg=True, flavor='cell_ranger', n_top_genes=4000, bins=20,
@@ -208,7 +217,7 @@ def reduce_data(adata, subset=False,
     if hvg:
         if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
             adata.X = sparse.csr_matrix(adata.X)
-        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=bins, subset=subset)
+        adata.var["highly_variable"] = hvg_intersect(adata, flavor=flavor, max_genes=n_top_genes, n_bins=bins)
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'\nNumber of highly variable genes: {n_hvg}')
     if pca:
