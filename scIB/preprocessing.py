@@ -179,13 +179,7 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
-def subsetHVG(adata, batch, number):
-    ## does not work yet, use hvg_intersect
-    import scanpy as sc
-    hvg = sc.pp.highly_variable_genes(adata, n_top_genes=number, batch_key=batch, flavor='cell_ranger', inplace=False)
-    return hvg
-
-def hvg_intersect(adata, batch, max_genes=4000):
+def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20):
     """
     params:
         adata:
@@ -195,46 +189,85 @@ def hvg_intersect(adata, batch, max_genes=4000):
         list of highly variable genes less or equal to `max_genes`
     """
     
+    checkAdata(adata)
+    checkBatch(batch, adata.obs)
+    
     split = splitBatches(adata, batch)
     genes = []
     for i in split:
+        sc.pp.filter_genes(i, min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=max_genes, inplace=False)
-        genes.append(set(i.var[[j[0] for j in tmp]].index))
+        hvgs = [j[0] for j in tmp]
+        genes.append(set(i.var[hvgs].index))
     return list(genes[0].intersection(*genes[1:]))
+    
+def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_bins=20, inplace=False):
+    
+    checkAdata(adata)
+    if batch_key:
+        checkBatch(batch_key, adata.obs)
+    
+    adata_hvg = adata if inplace else adata.copy()
+    sc.pp.highly_variable_genes(adata_hvg,
+                                flavor=flavor, 
+                                n_top_genes=n_top_genes,
+                                n_bins=n_bins, 
+                                batch_key=batch_key)
+    hvg = adata_hvg.var.index.values[adata_hvg.var["highly_variable"]]
+    if not inplace:
+        del adata_hvg
+    
+    return hvg
 
 def reduce_data(adata, subset=False,
-                hvg=True, flavor='cell_ranger', n_top_genes=4000, bins=20,
+                hvg=True, filter=True, batch=None, flavor='cell_ranger', n_top_genes=4000, n_bins=20,
                 pca=True,
                 neighbors=True, 
-                paga=False, paga_groups='batch', 
+                paga=False, paga_groups='cell_type', 
                 umap=True,
                 tsne=False,
                 diffmap=False,
                 draw_graph=False):
     
     checkAdata(adata)
+    if batch:
+        checkBatch(batch, adata.obs)
     
     if hvg:
-        if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
+        # quick fix: HVG doesn't work on dense matrix
+        if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
-        adata.var["highly_variable"] = hvg_intersect(adata, flavor=flavor, max_genes=n_top_genes, n_bins=bins)
+        if filter:
+            sc.pp.filter_genes(adata, min_cells=1)
+        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch)
+        # adata.var["highly_variable"] =  hvg_intersect(adata, batch,
+        #                                             flavor=flavor,
+        #                                             max_genes=n_top_genes,
+        #                                             n_bins=n_bins)
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'\nNumber of highly variable genes: {n_hvg}')
+        
     if pca:
         sc.tl.pca(adata, n_comps=50, use_highly_variable=hvg, svd_solver='arpack', return_info=True)
     sc.pp.neighbors(adata)
+    
     if tsne:
         sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
+    
     if umap:
         sc.tl.umap(adata)
+    
     if paga:
         print(f'Compute PAGA by group "{paga_groups}"')
         checkBatch(paga_groups, adata.obs)
         sc.tl.paga(adata, groups=paga_groups)
+    
     if diffmap:
         sc.tl.diffmap(adata)
+    
     if draw_graph:
         sc.tl.draw_graph(adata)
+
 
 def cc_tirosh(marker_gene_file, adata=None):
     """
