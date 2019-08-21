@@ -10,7 +10,7 @@ def checkAdata(adata):
 
 def checkBatch(batch, obs, verbose=False):
     if batch not in obs:
-        raise ValueError('Selected batch column is not in obs')
+        raise ValueError(f'column {batch} is not in obs')
     elif verbose:
         print(f'Object contains {obs[batch].nunique()} batches.')
 

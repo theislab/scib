@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse
 import pandas as pd
 import seaborn as sns
 import scanpy as sc
@@ -294,8 +295,33 @@ def ari(adata, group1, group2):
     
     return adjusted_rand_score(group1_list, group2_list)
 
+
+### Cell cycle effect
+def cell_cycle(adata, raw, corrected, hvg=False,
+               s_phase_key='S_score', g2m_phase_key='G2M_score'):
+    """
+    params:
+        adata:
+        raw: raw count matrix
+        corrected: corrected count matrix (after integration)
+        s_phase_key: key of column containing S-phase score
+        g2m_phase_key: key of column containing G2M-phase score
+    returns:
+        sum of variance difference of S-phase score and G2M-phase score
+    """
+    
+    s_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=s_phase_key)
+    g2m_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=g2m_phase_key)
+        
+    return s_phase + g2m_phase
+
 ### PC Regression
-def pcr_comparison(adata, raw, corrected, hvg=True, covariate="phase"):
+def get_hvg_indices(adata):
+    if "highly_variable" not in adata.var.columns:
+        print("No highly variable genes computed, continuing with full matrix")
+    return np.where((adata.var["highly_variable"] == True))[0]
+        
+def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample'):
     """
     Compare the effect before and after integration
     params:
@@ -307,14 +333,13 @@ def pcr_comparison(adata, raw, corrected, hvg=True, covariate="phase"):
     
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
+    
     if hvg:
-        if "highly_variable" not in adata.var.columns:
-            print("No highly variable genes computed, continuing with full matrix")
-        else:
-            hvg = (adata.var["highly_variable"] == True)
-            print(f"subsetting to {sum(hvg)} highly variable genes")
-            raw = raw[:, np.where(hvg)[0]]
-            corrected = corrected[:, np.where(hvg)[0]]
+        hvg_idx = get_hvg_indices(adata)
+        if verbose:
+            print(f"subsetting to {len(hvg_idx)} highly variable genes")
+        raw = raw[:, hvg_idx]
+        corrected = corrected[:, hvg_idx]
     
     print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
@@ -414,15 +439,18 @@ def pcr_hvg(pre, post, n_hvg, batch):
     return np.mean(cons)
 
 ### kBET
-def kBET(matrix, batch, subsample=0.3, verbose=True):
+def kBET(matrix, batch, subsample=0.5, verbose=True):
     """
     params:
         matrix: count matrix
         batch: series or list of batch assignemnts
-        subsample: fraction to be subsampled
+        subsample: fraction to be subsampled. No subsampling if `subsample=None`
+    returns:
+        kBET p-value
     """
     if isinstance(subsample, float):
-        matrix = sc.pp.subsample(matrix, fraction=subsample, copy=True)
+        matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
+        batch = batch[indices]
     
     anndata2ri.activate()
     ro.r("library(kBET)")
@@ -434,12 +462,13 @@ def kBET(matrix, batch, subsample=0.3, verbose=True):
     
     if verbose:
         print("kBET estimation")
-    batch_estimate = ro.r("batch.estimate <- kBET(data_mtrx, batch)")
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, heuristic=FALSE, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
     return ro.r("batch.estimate$average.pval")[0]
 
-def kBET_comparison(adata, raw, corrected, covariate="phase"):
+def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='louvain',
+                    hvg=False, subsample=0.5, verbose=True):
     """
     Compare the effect before and after integration
     params:
@@ -450,14 +479,28 @@ def kBET_comparison(adata, raw, corrected, covariate="phase"):
     """
     
     checkAdata(adata)
-    checkBatch(covariate, adata.obs)
+    checkBatch(covariate_key, adata.obs)
+    checkBatch(cluster_key, adata.obs)
     
-    print(f"covariate: {covariate}")
-    batch = adata.obs[covariate]
-    kBET_before = kBET(raw, batch)
-    kBET_after = kBET(corrected, batch)
+    if hvg:
+        hvg_idx = get_hvg_indices(adata)
+        if verbose:
+            print(f"subsetting to {len(hvg_idx)} highly variable genes")
+        raw = raw[:, hvg_idx]
+        corrected = corrected[:, hvg_idx]
     
-    return kBET_before - kBET_after
+    print(f"covariate: {covariate_key}")
+    batch = adata.obs[covariate_key]
+    
+    kBET_scores = {}
+    for cluster in adata.obs[cluster_key].unique():
+        print(f'cluster {cluster}')
+        idx = np.where((adata.obs[cluster_key] == cluster))[0]
+        kBET_before = kBET(raw[idx, :], batch[idx], subsample=subsample, verbose=verbose)
+        kBET_after = kBET(corrected[idx, :], batch[idx], subsample=subsample, verbose=verbose)
+        kBET_scores[cluster] = kBET_before - kBET_after
+    
+    return kBET_scores
 
 ### Time and Memory
 def measureTM(*args, **kwargs):
@@ -490,8 +533,11 @@ def metrics(adata_dict):
         
     """
     
-    metrics = pd.DataFrame(columns=['Integration Tool'])
+    metrics = {}
+    for tool, adata in adata_dict.items():
+        metrics[tool] = metrics_per_tool(adata)
     
+    return pd.DataFrame(metrics) #TODO: name columns
 
 def metrics_per_tool(adata,
                      silhouette=True, si_batch='tissue', si_group='cell_type', si_embed='X_pca', 

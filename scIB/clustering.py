@@ -39,7 +39,7 @@ def opt_louvain(adata, label='cell_type', resolution=None, nmi_method='max', nmi
     nmi_all = pd.DataFrame(zip(resolution, nmi_all), columns=('resolution', 'NMI'))
     if plot:
         # NMI vs. resolution profile
-        sns.lineplot(data= nmi_all, x='resolution', y='NMI')
+        sns.lineplot(data= nmi_all, x='resolution', y='NMI').set_title('NMI profile')
         plt.show()
     
     if inplace:
