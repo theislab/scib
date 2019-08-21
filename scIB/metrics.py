@@ -165,20 +165,20 @@ def nmi_scikit(adata, group1, group2, average_method='max'):
     return normalized_mutual_info_score(group1_list, group2_list, average_method=average_method)
     
 
-def onmi(adata, group1, group2, onmi_dir=None, verbose=False):
+def onmi(adata, group1, group2, nmi_dir=None, verbose=True):
     """
     Based on implementation https://github.com/aaronmcdaid/Overlapping-NMI
     publication: Aaron F. McDaid, Derek Greene, Neil Hurley 2011
     params:
-        onmi_dir: directory of compiled C code
+        nmi_dir: directory of compiled C code
     """
     
     checkAdata(adata)
     checkBatch(group1, adata.obs)
     checkBatch(group2, adata.obs)
     
-    if not onmi_dir:
-        "Please provide the directory of the compiled C code from https://github.com/aaronmcdaid/Overlapping-NMI"
+    if nmi_dir is None:
+        raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
     
     import subprocess
     import os
@@ -187,7 +187,7 @@ def onmi(adata, group1, group2, onmi_dir=None, verbose=False):
     group2_file = write_tmp_labels(adata, group2, to_int=False)
     
     nmi_call = subprocess.Popen(
-        [onmi_dir+"onmi", group1_file, group2_file], 
+        [nmi_dir+"onmi", group1_file, group2_file], 
         stdout=subprocess.PIPE, 
         stderr=subprocess.STDOUT)
     
@@ -200,7 +200,7 @@ def onmi(adata, group1, group2, onmi_dir=None, verbose=False):
         print(nmi_out)
     
     nmi_split = [x.strip().split('\t') for x in nmi_out.split('\n')]
-    nmi_max = nmi_split[0][1]
+    nmi_max = float(nmi_split[0][1])
     
     # remove temporary files
     os.remove(group1_file)
@@ -209,7 +209,7 @@ def onmi(adata, group1, group2, onmi_dir=None, verbose=False):
     return nmi_max
 
 
-def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/"):
+def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/", verbose=True):
     """
     paper by A. Lancichinetti 2009
     https://sites.google.com/site/andrealancichinetti/mutual
@@ -218,8 +218,8 @@ def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/"):
     
     checkAdata(adata)
     
-    if not nmi_dir:
-        "Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz"
+    if nmi_dir is None:
+        raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
     
     import subprocess
     import os
@@ -237,7 +237,7 @@ def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/"):
         print(stderr)
     nmi_out = stdout.decode().strip()
     
-    return nmi_out.split('\t')[1]
+    return float(nmi_out.split('\t')[1])
 
 def write_tmp_labels(adata, group_name, to_int=False, delim='\n'):
     """
@@ -398,46 +398,6 @@ def pc_regression(matrix, batch, pca_stdev=None, n_comps=None, verbose=True):
     anndata2ri.deactivate()    
     return dict(zip(pcr.names, list(pcr)))
 
-def pcr_hvg(pre, post, n_hvg, batch):
-    
-    checkAdata(pre)
-    checkAdata(post)
-    
-    cons = []
-    for x in pre.obs['batch'].unique():
-        tmp = pre[pre.obs['batch']==x]
-        tmp_post = post[post.obs['batch']==x]
-        
-        ro.globalenv['tmp'] = tmp.X
-        ro.globalenv['tmp_post'] = tmp_post.X
-
-        ro.globalenv['pca.data'] = ro.r("pca.data <- prcomp(tmp, center=TRUE)")
-        ro.globalenv['pca_post.data'] = ro.r("pca_post.data <- prcomp(tmp_post, center=TRUE)")
-        
-        hvg = pd.DataFrame.from_records(sc.pp.highly_variable_genes(tmp, n_top_genes=n_hvg, inplace=False)).highly_variable
-        hvg_1 = tmp[:,hvg]
-        hvg_2 = tmp_post[:,hvg]
-        pcr_pre_all = []
-        pcr_post_all = []
-        summ = 0
-        for i in range(hvg_1.shape[1]):
-            ro.globalenv['y_1']= hvg_1[:,i].X
-            ro.globalenv['y_2']= hvg_2[:,i].X
-            pcr_pre = ro.r("batch.pca <- pcRegression(pca.data, y_1, n_top=50)")
-            pcr_post = ro.r("batch.pca <- pcRegression(pca_post.data, y_2, n_top=50)")
-            pcr_preV = dict(zip(pcr_pre.names, list(pcr_pre)))
-            pcr_postV = dict(zip(pcr_post.names, list(pcr_post)))
-            pcr_pre_all.append(pcr_preV['pcRegscale'])
-            pcr_post_all.append(pcr_postV['pcRegscale'])
-            print(i)
-        for i in range(len(pcr_pre_all)):
-            diff = (pcr_pre_all[i]-pcr_post_all[i])**2
-            summ = summ + diff
-        cons.append(summ)
-    anndata2ri.deactivate()
-    ro.numpy2ri.deactivate()
-    return np.mean(cons)
-
 ### kBET
 def kBET(matrix, batch, subsample=0.5, verbose=True):
     """
@@ -462,7 +422,7 @@ def kBET(matrix, batch, subsample=0.5, verbose=True):
     
     if verbose:
         print("kBET estimation")
-    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, heuristic=FALSE, verbose={str(verbose).upper()})")
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, heuristic=FALSE, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
     return ro.r("batch.estimate$average.pval")[0]
