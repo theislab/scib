@@ -1,14 +1,8 @@
-import scanpy as sc
+import numpy as np
 import pandas as pd
 import seaborn as sns
+import scanpy as sc
 from scIB.utils import *
-import cProfile
-from pstats import Stats
-from memory_profiler import profile
-import memory_profiler
-import scIB
-import timeit
-import numpy as np
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -18,7 +12,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette_score(adata, batch='method', group='cell_ontology_class', metric='euclidean', embed='X_pca', verbose=True):
+def silhouette_score(adata, batch='study', group='cell_type', metric='euclidean', embed='X_pca', verbose=True):
     """
     Silhouette score subsetted for each cluster (group) between batches.
     This results in 1 score per group label
@@ -138,9 +132,9 @@ def nmi(adata, group1, group2, method="max", nmi_dir=None):
     
     if method in ['max', 'min', 'geometric', 'arithmetic']:
         nmi_value = nmi_scikit(adata, group1, group2, average_method=method)
-    else if method == "Lancichinetti":
+    elif method == "Lancichinetti":
         nmi_value = nmi_Lanc(adata, group1, group2, nmi_dir=nmi_dir)
-    else if method == "ONMI":
+    elif method == "ONMI":
         nmi_value = onmi(adata, group1, group2, nmi_dir=nmi_dir)
     else:
         raise ValueError(f"Method {method} not valid")
@@ -425,6 +419,7 @@ def kBET(matrix, batch, subsample=0.3, verbose=True):
     params:
         matrix: count matrix
         batch: series or list of batch assignemnts
+        subsample: fraction to be subsampled
     """
     if isinstance(subsample, float):
         matrix = sc.pp.subsample(matrix, fraction=subsample, copy=True)
@@ -473,6 +468,10 @@ def measureTM(*args, **kwargs):
     returns:
         tuple : (memory (MB), time (s), list of *args function outputs)
     """
+    import cProfile
+    from pstats import Stats
+    import memory_profiler
+    
     prof = cProfile.Profile()
     out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
     mem = np.max(out[0])- out[0][0]
@@ -482,6 +481,46 @@ def measureTM(*args, **kwargs):
 
 
 ### All Metrics
-def metrics(adata,
-            silhouette_score, ):
+def metrics(adata_dict):
+    """
+    summary of all metrics for all tools in a DataFrame
+    params:
+        adata_dict: list of adata results from different integration methods
+            ["seurat", "scanorama", "mnn", "scGen", "Harmony", "CONOS"]
+        
+    """
+    
+    metrics = pd.DataFrame(columns=['Integration Tool'])
+    
+
+def metrics_per_tool(adata,
+                     silhouette=True, si_batch='tissue', si_group='cell_type', si_embed='X_pca', 
+                     nmi=True, group1='cell_type', group2='louvain_post', nmi_method='max', nmi_dir=None):
+    """
+    summary of all metrics for one Anndata object
+    params:
+        adata:
+        silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette_score` function for details)
+        nmi: compute normalized mutual information NMI
+    """
+    metrics = []
+    if silhouette:
+         metrics.append(
+             silhouette_score(adata,
+                              batch=si_batch,
+                              group=si_group,
+                              metric='euclidean',
+                              embed=si_embed,
+                              verbose=False)
+       )
+    if nmi:
+        sc.adata
+        metrics.append(
+            nmi(adata,
+                group1,
+                group2,
+                method=nmi_method,
+                nmi_dir=nmi_dir))
+        
+    return tuple(metrics)
 
