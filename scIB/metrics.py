@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import scanpy as sc
 from scIB.utils import *
+from scIB.preprocessing import hvg_intersect
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -397,6 +398,12 @@ def pc_regression(matrix, batch, pca_stdev=None, n_comps=None, verbose=True):
 
     anndata2ri.deactivate()    
     return dict(zip(pcr.names, list(pcr)))
+
+def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
+    hvg_pre= set(hvg_intersect(adata_pre, batch=batch, max_genes=n_hvg))
+    hvg_post= set(hvg_intersect(adata_post, batch=batch, max_genes=n_hvg))
+    jaccard = len(hvg_pre.intersection(hvg_post))/len(hvg_pre.union(hvg_post))
+    return jaccard
 
 def pcr_hvg(pre, post, n_hvg, batch):
     
