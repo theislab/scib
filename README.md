@@ -9,7 +9,7 @@ Tools to be compared include:
 - [scGen](https://github.com/theislab/scgen)
 - [scVI](https://github.com/YosefLab/scVI)
 - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
-- [CONOS](https://github.com/hms-dbmi/conos)
+- [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [Scanorama](https://github.com/brianhie/scanorama)
 - RISC
