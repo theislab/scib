@@ -235,7 +235,7 @@ def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_b
 def reduce_data(adata, subset=False,
                 hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=4000, n_bins=20,
                 pca=True, pca_comps=50,
-                neighbors=True, 
+                neighbors=True, use_rep='X_pca', 
                 paga=False, paga_groups='cell_type', 
                 umap=True,
                 tsne=False,
@@ -266,7 +266,7 @@ def reduce_data(adata, subset=False,
                   return_info=True)
     
     print("Nearest Neigbours")
-    sc.pp.neighbors(adata)
+    sc.pp.neighbors(adata, use_rep=use_rep)
     
     if tsne:
         print("tSNE")
