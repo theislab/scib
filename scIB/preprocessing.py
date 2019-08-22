@@ -42,68 +42,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
         #    mt_count = np.squeeze(np.asarray(mt_count))
         #adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
 
-def plot_scatter(adata, count_threshold=0, gene_threshold=0,
-                 color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
-                palette=None):
-    
-    checkAdata(adata)
-    if color:
-        checkBatch(color, adata.obs)
-    
-    ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
-                       legend_fontweight=50, legend_loc=legend_loc, palette=palette)
-    ax.set_title(title, fontsize=lab_size)
-    ax.set_xlabel("Count depth",fontsize=lab_size)
-    ax.set_ylabel("Number of genes",fontsize=lab_size)
-    ax.tick_params(labelsize=tick_size)
-    
-    if gene_threshold > 0:
-        ax.axhline(gene_threshold, 0,1, color='red')
-    if count_threshold > 0:
-        ax.axvline(count_threshold, 0,1, color='red')
-    
-    fig = plt.gcf()
-    cbar_ax = fig.axes[-1]
-    cbar_ax.tick_params(labelsize=tick_size)
-    f1 = ax.get_figure()
-    plt.show()
-    
-#Data quality summary plots        
-def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf, filter_lower=0, filter_upper=np.inf):
-    
-    plot_data = adata.obs[obs_col]
-    
-    sns.distplot(plot_data, kde=False, bins=bins)
-    
-    if lower > 0:
-        plt.axvline(lower, linestyle = '--', color = 'g')
-    if filter_lower > 0:
-        plt.axvline(filter_lower, linestyle = '-', color = 'r')
-    if not np.isinf(upper):
-        plt.axvline(upper, linestyle = '--', color = 'g')
-    if not np.isinf(upper):
-        plt.axvline(filter_upper, linestyle = '-', color = 'r')
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
-    plt.show()
-    
-    # determine lower bound of total, look at points below lower bound
-    if filter_lower > 0:
-        print(f"lower threshold: {filter_lower}")
-        sns.distplot(plot_data[plot_data < lower], kde=False, bins=bins)
-        plt.axvline(filter_lower, linestyle = '-', color = 'r')
-        plt.axvline(lower, linestyle = '--', color = 'g')
-        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
-        plt.show()
-
-    # determine upper bound of total
-    if not np.isinf(filter_upper) and not np.isinf(upper):
-        print(f"upper threshold: {filter_upper}")
-        sns.distplot(plot_data[plot_data > upper], kde=False, bins=bins)
-        plt.axvline(filter_upper, linestyle = '-', color = 'r')
-        plt.axvline(upper, linestyle = '--', color = 'g')
-        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
-        plt.show()
-        
+### Quality Control        
 def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=True,
             gene_threshold=(0,np.inf), 
             gene_filter_threshold=(0,np.inf),
@@ -142,8 +81,69 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
                           filter_lower = gene_filter_threshold[0],
                           upper = gene_threshold[1],
                           filter_upper = gene_filter_threshold[1])
-    
 
+def plot_scatter(adata, count_threshold=0, gene_threshold=0,
+                 color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
+                palette=None):
+    
+    checkAdata(adata)
+    if color:
+        checkBatch(color, adata.obs)
+    
+    ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
+                       legend_fontweight=50, legend_loc=legend_loc, palette=palette)
+    ax.set_title(title, fontsize=lab_size)
+    ax.set_xlabel("Count depth",fontsize=lab_size)
+    ax.set_ylabel("Number of genes",fontsize=lab_size)
+    ax.tick_params(labelsize=tick_size)
+    
+    if gene_threshold > 0:
+        ax.axhline(gene_threshold, 0,1, color='red')
+    if count_threshold > 0:
+        ax.axvline(count_threshold, 0,1, color='red')
+    
+    fig = plt.gcf()
+    cbar_ax = fig.axes[-1]
+    cbar_ax.tick_params(labelsize=tick_size)
+    f1 = ax.get_figure()
+    plt.show()
+
+def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf, filter_lower=0, filter_upper=np.inf):
+    
+    plot_data = adata.obs[obs_col]
+    
+    sns.distplot(plot_data, kde=False, bins=bins)
+    
+    if lower > 0:
+        plt.axvline(lower, linestyle = '--', color = 'g')
+    if filter_lower > 0:
+        plt.axvline(filter_lower, linestyle = '-', color = 'r')
+    if not np.isinf(upper):
+        plt.axvline(upper, linestyle = '--', color = 'g')
+    if not np.isinf(upper):
+        plt.axvline(filter_upper, linestyle = '-', color = 'r')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
+    plt.show()
+    
+    # determine lower bound of total, look at points below lower bound
+    if filter_lower > 0:
+        print(f"lower threshold: {filter_lower}")
+        sns.distplot(plot_data[plot_data < lower], kde=False, bins=bins)
+        plt.axvline(filter_lower, linestyle = '-', color = 'r')
+        plt.axvline(lower, linestyle = '--', color = 'g')
+        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
+        plt.show()
+
+    # determine upper bound of total
+    if not np.isinf(filter_upper) and not np.isinf(upper):
+        print(f"upper threshold: {filter_upper}")
+        sns.distplot(plot_data[plot_data > upper], kde=False, bins=bins)
+        plt.axvline(filter_upper, linestyle = '-', color = 'r')
+        plt.axvline(upper, linestyle = '--', color = 'g')
+        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,2))
+        plt.show()
+
+### Normalisation
 def normalize(adata, min_mean = 0.1):
     
     checkAdata(adata)
@@ -179,6 +179,7 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
+### Feature Selection
 def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20):
     """
     params:
@@ -219,9 +220,10 @@ def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_b
     
     return hvg
 
+### Feature Reduction
 def reduce_data(adata, subset=False,
-                hvg=True, filter=True, batch=None, flavor='cell_ranger', n_top_genes=4000, n_bins=20,
-                pca=True,
+                hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=4000, n_bins=20,
+                pca=True, pca_comps=50,
                 neighbors=True, 
                 paga=False, paga_groups='cell_type', 
                 umap=True,
@@ -230,35 +232,41 @@ def reduce_data(adata, subset=False,
                 draw_graph=False):
     
     checkAdata(adata)
-    if batch:
-        checkBatch(batch, adata.obs)
+    if batch_key:
+        checkBatch(batch_key, adata.obs)
     
     if hvg:
+        print("HVG")
         # quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
         if filter:
             sc.pp.filter_genes(adata, min_cells=1)
-        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch)
-        # adata.var["highly_variable"] =  hvg_intersect(adata, batch,
-        #                                             flavor=flavor,
-        #                                             max_genes=n_top_genes,
-        #                                             n_bins=n_bins)
+        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
         n_hvg = np.sum(adata.var["highly_variable"])
-        print(f'\nNumber of highly variable genes: {n_hvg}')
+        print(f'Computed {n_hvg} highly variable genes')
         
     if pca:
-        sc.tl.pca(adata, n_comps=50, use_highly_variable=hvg, svd_solver='arpack', return_info=True)
+        print("PCA")
+        sc.tl.pca(adata,
+                  n_comps=pca_comps, 
+                  use_highly_variable=hvg, 
+                  svd_solver='arpack', 
+                  return_info=True)
+    
+    print("Nearest Neigbours")
     sc.pp.neighbors(adata)
     
     if tsne:
+        print("tSNE")
         sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
     
     if umap:
+        print("UMAP")
         sc.tl.umap(adata)
     
     if paga:
-        print(f'Compute PAGA by group "{paga_groups}"')
+        print(f'PAGA by group "{paga_groups}"')
         checkBatch(paga_groups, adata.obs)
         sc.tl.paga(adata, groups=paga_groups)
     
@@ -267,8 +275,8 @@ def reduce_data(adata, subset=False,
     
     if draw_graph:
         sc.tl.draw_graph(adata)
-
-
+        
+### Cell Cycle
 def cc_tirosh(marker_gene_file, adata=None):
     """
     Tirosh et al. cell cycle marker genes downloaded from
