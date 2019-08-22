@@ -3,6 +3,7 @@ from scipy import sparse
 import pandas as pd
 import seaborn as sns
 import scanpy as sc
+import anndata
 from scIB.utils import *
 
 import rpy2.rinterface_lib.callbacks
@@ -349,54 +350,77 @@ def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample'):
     
     return pcr_before['pcRegscale'][0] - pcr_after['pcRegscale'][0]
 
-def pc_regression(matrix, batch, pca_stdev=None, n_comps=None, verbose=True):
+def pc_regression(data, batch, pca_sd=None, n_comps=50, svd_solver='arpack', tol=1e-16, verbose=True):
     """
     params:
-        matrix: count matrix
+        data: Anndata or count matrix
         batch: series or list of batch assignemnts
-        n_comps: number of PCA components
-        pca_stdev: iterable of variances for `n_comps` components. If `pca_stdev` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
+        n_comps: number of PCA components, only when PCA is not yet computed
+        pca_sd: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     """
     
-    if verbose:
-        print(f"matrix dimensions: {matrix.shape}")
+    if isinstance(data, anndata.AnnData):
+        matrix = adata.X
+        pca_sd = None
+    elif isinstance(data, (np.matrix, np.ndarray, sparse.csr_matrix)):
+        matrix = data
+    else:
+        raise TypeError(f'invalid type {data.__class__} for data')
     
-    if not n_comps:
+    # perform PCA if necessary
+    if pca_sd is None:
+        if verbose:
+            print("PCA")
+            
+        if n_comps is None or n_comps > min(matrix.shape):
             n_comps = min(matrix.shape)
+
+        if n_comps == min(matrix.shape):
+            svd_solver = 'full'
     
-    if not pca_stdev:
-        # compute PCA if standard deviation not given
         pca = sc.tl.pca(matrix,
                         n_comps=n_comps,
                         use_highly_variable=False,
                         return_info=True,
-                        svd_solver='full',
+                        svd_solver=svd_solver,
                         copy=True)
         X_pca = pca[0].copy()
-        pca_stdev = pca[3].copy()
+        pca_sd = pca[3].copy()
         del pca
     else:
         X_pca = matrix
-        
-    # Activate R
-    anndata2ri.activate()
-    ro.r("library(kBET)")
+        n_comps = matrix.shape[1]
     
+    ## PC Regression
     if verbose:
-        print("importing data to R")
-    ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['batch'] = batch
+        print("PC regression")    
     
-    ro.globalenv["X_pca"] = X_pca
-    ro.globalenv["pca_stdev"] = pca_stdev
-    ro.r("pca.data <- list(x=X_pca, sdev=pca_stdev)")
+    if sparse.issparse(X_pca):
+        X_pca = X_pca.todense()
+    batch = batch.cat.codes.values if 'category' == str(batch.dtype) else np.array(batch)
     
-    if verbose:
-        print("PC regression")
-    pcr = ro.r("batch.pca <- pcRegression(pca.data, batch, n_top=100)")
-
-    anndata2ri.deactivate()    
-    return dict(zip(pcr.names, list(pcr)))
+    import statsmodels as sm
+    # fit linear model for n_comps PCs
+    X_pca = sm.api.add_constant(X_pca) # add bias
+    if True:
+        r2 = []
+        pvals = [] # t-test pvalues
+        for i in range(1, n_comps+1): # i=0 is bias
+            lm = sm.api.OLS(batch, X_pca[:, [0,i]]).fit()
+            pvals.append(lm.pvalues[1])
+            r2.append(lm.rsquared)
+    else:
+        lm = sm.api.OLS(batch, X_pca).fit()
+        pvals = lm.pvalues[1:]
+    
+    # select significant fit: sig = BH-Pval < 0.05
+    signif = sm.stats.multitest.multipletests(pvals, alpha=0.05, method='fdr_bh')[0]
+    
+    Var = pca_sd**2 / (100 * sum(pca_sd))
+    #R2Var = sum(r2*Var)/100
+    pcRegscale = sum(Var[signif])/sum(Var)
+    
+    return pcRegscale
 
 ### kBET
 def kBET(matrix, batch, subsample=0.5, verbose=True):
