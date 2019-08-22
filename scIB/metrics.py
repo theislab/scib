@@ -5,6 +5,7 @@ import seaborn as sns
 import scanpy as sc
 import anndata
 from scIB.utils import *
+from scIB.preprocessing import hvg_intersect
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -316,6 +317,13 @@ def cell_cycle(adata, raw, corrected, hvg=False,
         
     return s_phase + g2m_phase
 
+### Highly Variable Genes conservation
+def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
+    hvg_pre= set(hvg_intersect(adata_pre, batch=batch, max_genes=n_hvg))
+    hvg_post= set(hvg_intersect(adata_post, batch=batch, max_genes=n_hvg))
+    jaccard = len(hvg_pre.intersection(hvg_post))/len(hvg_pre.union(hvg_post))
+    return jaccard
+
 ### PC Regression
 def get_hvg_indices(adata):
     if "highly_variable" not in adata.var.columns:
@@ -412,7 +420,6 @@ def pc_regression(data, batch, pca_sd=None, n_comps=50, svd_solver='arpack', tol
     else:
         lm = sm.api.OLS(batch, X_pca).fit()
         pvals = lm.pvalues[1:]
-    
     # select significant fit: sig = BH-Pval < 0.05
     signif = sm.stats.multitest.multipletests(pvals, alpha=0.05, method='fdr_bh')[0]
     

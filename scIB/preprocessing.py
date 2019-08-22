@@ -193,14 +193,25 @@ def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20)
     checkAdata(adata)
     checkBatch(batch, adata.obs)
     
-    split = splitBatches(adata, batch)
-    genes = []
-    for i in split:
-        sc.pp.filter_genes(i, min_cells=1) # remove genes unexpressed (otherwise hvg might break)
-        tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=max_genes, inplace=False)
-        hvgs = [j[0] for j in tmp]
-        genes.append(set(i.var[hvgs].index))
-    return list(genes[0].intersection(*genes[1:]))
+    intersect = None
+    enough = False
+    n_hvg = max_genes
+    
+    while not enough:
+        split = splitBatches(adata, batch)
+        genes = []
+        for i in split:
+            sc.pp.filter_genes(i, min_cells=1) # remove genes unexpressed (otherwise hvg might break)
+            tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
+            hvgs = [j[0] for j in tmp]
+            genes.append(set(i.var[hvgs].index))
+        intersect = genes[0].intersection(*genes[1:])
+        if len(intersect)>=max_genes:
+            enough=True
+        else:
+            n_hvg=n_hvg+int(max_genes/2)
+            print(n_hvg)
+    return list(intersect)
     
 def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_bins=20, inplace=False):
     
