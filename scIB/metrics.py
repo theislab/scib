@@ -299,23 +299,25 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, raw, corrected, hvg=False,
-               s_phase_key='S_score', g2m_phase_key='G2M_score'):
+def cell_cycle(adata, hvg=False, s_phase_key='S_score', g2m_phase_key='G2M_score'):
     """
     params:
         adata:
-        raw: raw count matrix
-        corrected: corrected count matrix (after integration)
         s_phase_key: key of column containing S-phase score
         g2m_phase_key: key of column containing G2M-phase score
-    returns:
-        sum of variance difference of S-phase score and G2M-phase score
-    """
     
-    s_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=s_phase_key)
-    g2m_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=g2m_phase_key)
+    """
+    s_phase = pcr(adata, adata.X, hvg=hvg, covariate=s_phase_key)
+    g2m_phase = pcr(adata, adata.X, hvg=hvg, covariate=g2m_phase_key)
+    
+    return s_phase, g2m_phase
+    
+    #returns:
+    #    sum of variance difference of S-phase score and G2M-phase score
+    #s_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=s_phase_key)
+    #g2m_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=g2m_phase_key)
         
-    return s_phase + g2m_phase
+    #return s_phase + g2m_phase
 
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
@@ -328,16 +330,33 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
 def get_hvg_indices(adata):
     if "highly_variable" not in adata.var.columns:
         print("No highly variable genes computed, continuing with full matrix")
+        return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample'):
+def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample', verbose=True):
     """
     Compare the effect before and after integration
     params:
         raw: count matrix before integration
         corrected: count matrix after correction
     return:
-        difference of pcRegscale value of pcr
+        difference of R2Var value of PCR
+    """
+    
+    pcr_before = pcr(adata, matrix=raw, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_after = pcr(adata, matrix=corrected, hvg=hvg, covariate=covariate, verbose=verbose)
+    
+    return pcr_before - pcr_after
+
+def pcr(adata, matrix=None, hvg=False, covariate='sample', verbose=True):
+    """
+    PCR for Adata object
+    params:
+        adata: Anndata object
+        matrix: if None, take adata.X else specify count matrix
+        covariate: key for adata.obs column
+    return:
+        R2Var of PCR
     """
     
     checkAdata(adata)
@@ -350,15 +369,13 @@ def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample'):
         raw = raw[:, hvg_idx]
         corrected = corrected[:, hvg_idx]
     
-    print(f"covariate: {covariate}")
+    if verbose:
+        print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    pcr_before = pc_regression(raw, batch)
-    pcr_after = pc_regression(corrected, batch)
-    
-    return pcr_before['pcRegscale'][0] - pcr_after['pcRegscale'][0]
+    return pc_regression(raw, batch, verbose)
 
-def pc_regression(data, batch, pca_sd=None, n_comps=50, svd_solver='arpack', tol=1e-16, verbose=True):
+def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=True):
     """
     params:
         data: Anndata or count matrix
@@ -386,12 +403,8 @@ def pc_regression(data, batch, pca_sd=None, n_comps=50, svd_solver='arpack', tol
         if n_comps == min(matrix.shape):
             svd_solver = 'full'
     
-        pca = sc.tl.pca(matrix,
-                        n_comps=n_comps,
-                        use_highly_variable=False,
-                        return_info=True,
-                        svd_solver=svd_solver,
-                        copy=True)
+        pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
+                        return_info=True, svd_solver=svd_solver, copy=True)
         X_pca = pca[0].copy()
         pca_sd = pca[3].copy()
         del pca
@@ -402,35 +415,24 @@ def pc_regression(data, batch, pca_sd=None, n_comps=50, svd_solver='arpack', tol
     ## PC Regression
     if verbose:
         print("PC regression")    
+                
+    batch = pd.get_dummies(batch) if 'category' == str(batch.dtype) else np.array(batch)
     
-    if sparse.issparse(X_pca):
-        X_pca = X_pca.todense()
-    batch = batch.cat.codes.values if 'category' == str(batch.dtype) else np.array(batch)
-    
-    import statsmodels as sm
     # fit linear model for n_comps PCs
-    X_pca = sm.api.add_constant(X_pca) # add bias
-    if True:
-        r2 = []
-        pvals = [] # t-test pvalues
-        for i in range(1, n_comps+1): # i=0 is bias
-            lm = sm.api.OLS(batch, X_pca[:, [0,i]]).fit()
-            pvals.append(lm.pvalues[1])
-            r2.append(lm.rsquared)
-    else:
-        lm = sm.api.OLS(batch, X_pca).fit()
-        pvals = lm.pvalues[1:]
-    # select significant fit: sig = BH-Pval < 0.05
-    signif = sm.stats.multitest.multipletests(pvals, alpha=0.05, method='fdr_bh')[0]
+    from sklearn.linear_model import LinearRegression
+    r2 = []
+    for i in range(n_comps):
+        lm = LinearRegression()
+        lm.fit(X_pca[:, [i]], batch)
+        r2.append(lm.score(X_pca[:, [i]], batch))
     
-    Var = pca_sd**2 / (100 * sum(pca_sd))
-    #R2Var = sum(r2*Var)/100
-    pcRegscale = sum(Var[signif])/sum(Var)
+    Var = pca_sd**2 / sum(pca_sd**2) * 100
+    R2Var = sum(r2*Var)/100
     
-    return pcRegscale
+    return R2Var
 
 ### kBET
-def kBET(matrix, batch, subsample=0.5, verbose=True):
+def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
         matrix: count matrix
@@ -453,20 +455,20 @@ def kBET(matrix, batch, subsample=0.5, verbose=True):
     
     if verbose:
         print("kBET estimation")
-    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, heuristic=FALSE, verbose={str(verbose).upper()})")
+    k0 = 1 if len(batch) < 50 else 'NULL'
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, k0={k0}, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
     return ro.r("batch.estimate$average.pval")[0]
 
-def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='louvain',
-                    hvg=False, subsample=0.5, verbose=True):
+def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
+                    hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
     params:
-        raw: count matrix before integration
-        corrected: count matrix after correction
+        matrix: matrix from adata to calculate on
     return:
-        difference of kBET p-value
+        pd.DataFrame with kBET p-values per cluster for batch
     """
     
     checkAdata(adata)
@@ -477,20 +479,60 @@ def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='
         hvg_idx = get_hvg_indices(adata)
         if verbose:
             print(f"subsetting to {len(hvg_idx)} highly variable genes")
-        raw = raw[:, hvg_idx]
-        corrected = corrected[:, hvg_idx]
+        matrix = matrix[:, hvg_idx]
     
-    print(f"covariate: {covariate_key}")
+    if verbose:
+        print(f"covariate: {covariate_key}")
     batch = adata.obs[covariate_key]
     
-    kBET_scores = {}
-    for cluster in adata.obs[cluster_key].unique():
-        print(f'cluster {cluster}')
-        idx = np.where((adata.obs[cluster_key] == cluster))[0]
-        kBET_before = kBET(raw[idx, :], batch[idx], subsample=subsample, verbose=verbose)
-        kBET_after = kBET(corrected[idx, :], batch[idx], subsample=subsample, verbose=verbose)
-        kBET_scores[cluster] = kBET_before - kBET_after
+    kBET_scores = {'cluster': [], 'kBET': []}
+    for clus in adata.obs[cluster_key].unique():
+        if verbose:
+            print(f'cluster {clus}')
+        idx = np.where((adata.obs[cluster_key] == clus))[0]
+        score = kBET_single(
+            matrix[idx, :],
+            batch[idx],
+            subsample=subsample,
+            verbose=verbose,
+            heuristic=heuristic
+        )
+        kBET_scores['cluster'].append(clus)
+        kBET_scores['kBET'].append(score)
     
+    kBET_scores = pd.DataFrame.from_dict(kBET_scores)
+    kBET_scores.set_index('cluster', inplace=True)
+    return kBET_scores
+
+
+def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='louvain', hvg=False, subsample=0.5, heuristic=False, verbose=False):
+    """
+    Compare the effect before and after integration
+    params:
+        raw: count matrix before integration
+        corrected: count matrix after correction
+    return:
+        pd.DataFrame with difference of kBET p-values
+    """
+    
+    checkAdata(adata)
+    checkBatch(covariate_key, adata.obs)
+    checkBatch(cluster_key, adata.obs)
+    
+    kBET_before = kBET(adata, raw, 
+                       covariate_key=covariate_key,
+                       cluster_key= cluster_key,
+                       subsample=subsample,
+                       heuristic=heuristic,
+                       verbose=verbose)
+    kBET_after = kBET(adata, corrected,
+                      covariate_key=covariate_key,
+                      cluster_key= cluster_key,
+                      subsample=subsample,
+                      heuristic=heuristic,
+                      verbose=verbose)
+    kBET_scores = kBET_before.merge(kBET_after, on='cluster', suffixes=('_before','_after'))
+    kBET_scores['difference'] = kBET_scores['kBET_before'] - kBET_scores['kBET_after']
     return kBET_scores
 
 ### Time and Memory
@@ -530,9 +572,13 @@ def metrics(adata_dict):
     
     return pd.DataFrame(metrics) #TODO: name columns
 
-def metrics_per_tool(adata,
+def metrics_per_tool(adata, matrix=None,
                      silhouette=True, si_batch='tissue', si_group='cell_type', si_embed='X_pca', 
-                     nmi=True, group1='cell_type', group2='louvain_post', nmi_method='max', nmi_dir=None):
+                     nmi=True, ari=True, group1='cell_type', group2='louvain_post', nmi_method='max', nmi_dir=None, 
+                     cell_cycle=True, s_phase_key='S_score', g2m_phase_key='G2M_score',
+                     hvg = True,
+                     kBET=True, kBET_batch='sample', kBET_cluster='louvain', kBET_sub=0.5,
+                    ):
     """
     summary of all metrics for one Anndata object
     params:
@@ -540,24 +586,25 @@ def metrics_per_tool(adata,
         silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette_score` function for details)
         nmi: compute normalized mutual information NMI
     """
-    metrics = []
+    
+    if not matrix:
+        matrix = adata.X
+    metrics = {}
     if silhouette:
-         metrics.append(
-             silhouette_score(adata,
-                              batch=si_batch,
-                              group=si_group,
-                              metric='euclidean',
-                              embed=si_embed,
-                              verbose=False)
-       )
+         metrics['silhouette'] =  silhouette_score(adata, batch=si_batch, group=si_group,
+                                         metric='euclidean', embed=si_embed, verbose=False)
     if nmi:
-        sc.adata
-        metrics.append(
-            nmi(adata,
-                group1,
-                group2,
-                method=nmi_method,
-                nmi_dir=nmi_dir))
+        metrics['NMI'] = nmi(adata, group1, group2, method=nmi_method, nmi_dir=nmi_dir)
+    if ari:
+        metrics['ARI'] = ari(adata, group1, group2, method=nmi_method)
+    if cell_cycle:
+        metrics['S-phase'], metrics['G2M-phase'] = cell_cycle(
+            adata, hvg=hvg, s_phase_key='S_score', g2m_phase_key='G2M_score')
+    if kBET:
+        kbet_scores = kBET(adata, matrix, covariate_key=kBET_batch, cluster_key=kBET_cluster,
+                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
+        metrics['kBET'] = kbet_scores['kBET'].mean()
         
-    return tuple(metrics)
+    metrics['HVG'] = hvg
+    return metrics
 
