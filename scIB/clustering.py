@@ -7,7 +7,7 @@ from scIB import utils
 from scIB import metrics
 
 
-def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolution=None, nmi_method='max', nmi_dir=None, inplace=True, plot=False, force=False, verbose=True):
+def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolutions=None, nmi_method='max', nmi_dir=None, inplace=True, plot=True, force=False, verbose=True):
     """
     returns:
         res_max: resolution of maximum NMI
@@ -24,16 +24,16 @@ def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolution=None
         else:
             raise ValueError(f"cluster key {cluster_key} already exists in adata, please remove the key or choose a different name. If you want to force overwriting the key, specify `force=True`")
     
-    if not resolution:
+    if not resolutions:
         n = 20
-        resolution = [x/n for x in range(1,n+1)]
+        resolutions = [2*x/n for x in range(1,n+1)]
     
     nmi_max = 0
-    res_max = resolution[0]
+    res_max = resolutions[0]
     clustering = None
     nmi_all = []
     
-    for res in resolution:
+    for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
         nmi = metrics.nmi(adata, group1=label, group2=cluster_key, method=nmi_method, nmi_dir=nmi_dir)
         nmi_all.append(nmi)
@@ -43,7 +43,7 @@ def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolution=None
             clustering = adata.obs[cluster_key]
         del adata.obs[cluster_key]
     
-    nmi_all = pd.DataFrame(zip(resolution, nmi_all), columns=('resolution', 'NMI'))
+    nmi_all = pd.DataFrame(zip(resolutions, nmi_all), columns=('resolution', 'NMI'))
     if plot:
         # NMI vs. resolution profile
         sns.lineplot(data= nmi_all, x='resolution', y='NMI').set_title('NMI profile')
