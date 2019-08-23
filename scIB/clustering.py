@@ -24,7 +24,7 @@ def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolutions=Non
         else:
             raise ValueError(f"cluster key {cluster_key} already exists in adata, please remove the key or choose a different name. If you want to force overwriting the key, specify `force=True`")
     
-    if not resolutions:
+    if resolutions is None:
         n = 20
         resolutions = [2*x/n for x in range(1,n+1)]
     

@@ -7,6 +7,7 @@ import scanpy as sc
 import anndata
 from scIB.utils import *
 from scIB.preprocessing import hvg_intersect
+from scIB.clustering import opt_louvain
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -16,12 +17,23 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette_score(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
+def silhouette_score(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
+    """
+    wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
+    """
+    import sklearn.metrics as scm
+    
+    if embed not in adata.obsm.keys():
+        print(adata.obsm.keys())
+        raise KeyError(f'{embed} not in obsm')
+    
+    return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+
+def silhouette_score_mix(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
                      embed='X_pca', means=False, verbose=True):
     """
     Silhouette score of batch labels subsetted for each group.
     params:
-        adata: 
         batch_key: batches to be compared against
         group_key: group labels to be subsetted by e.g. cell type
         metric: see sklearn silhouette score
@@ -41,6 +53,8 @@ def silhouette_score(adata, batch_key='study', group_key='cell_type', metric='eu
     n_batch = adata.obs[batch_key].nunique()
     groups = adata.obs.groupby(group_key)[batch_key].nunique()
     groups = groups[groups == n_batch]
+    if len(groups) == 0:
+        raise ValueError(f'not all batches are contained in all groups')
     
     sil_all = pd.DataFrame(columns=['group', 'silhouette_score'])
     for group in groups.index:
@@ -84,7 +98,6 @@ def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', 
         plt.show()
         
         if per_group:
-            print()
             for data_set, adata in adata_dict.items():
                 sil_scores = silhouette_score(adata,
                                               batch_key=batch_key,
@@ -376,7 +389,7 @@ def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample', verbose
     
     return pcr_before - pcr_after
 
-def pcr(adata, matrix=None, hvg=False, covariate='sample', verbose=True):
+def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
     """
     PCR for Adata object
     params:
@@ -401,7 +414,12 @@ def pcr(adata, matrix=None, hvg=False, covariate='sample', verbose=True):
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    return pc_regression(raw, batch, verbose)
+    if pca:
+        return pc_regression(adata.obsm['X_pca'], batch,
+                             pca_sd=adata.uns['pca']['variance'],
+                             verbose=verbose)
+    else:
+        return pc_regression(adata.X, batch, verbose=verbose)
 
 def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=True):
     """
@@ -530,6 +548,7 @@ def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
     
     kBET_scores = pd.DataFrame.from_dict(kBET_scores)
     kBET_scores = kBET_scores.reset_index(drop=True)
+    
     return kBET_scores
 
 
@@ -585,27 +604,38 @@ def measureTM(*args, **kwargs):
 
 
 ### All Metrics
-def metrics(adata_dict):
+def metrics_all(adata_dict,
+                batch_key='study', group_key='cell_type', cluster_key=None,
+                silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+                nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
+                pcr_=True, kBET_=True, kBET_sub=0.5,
+                cell_cycle_=True, hvg=True, verbose=False
+               ):#
     """
     summary of all metrics for all tools in a DataFrame
     params:
         adata_dict: list of adata results from different integration methods
             ["seurat", "scanorama", "mnn", "scGen", "Harmony", "CONOS"]
-        
     """
     
-    metrics = {}
+    results = pd.DataFrame(columns=adata_dict.keys())
     for tool, adata in adata_dict.items():
-        metrics[tool] = metrics_per_tool(adata)
+        single_result = metrics(adata, adata.X, 
+                                batch_key=batch_key, group_key=group_key, cluster_key=cluster_key,
+                                silhouette_=silhouette_,  si_embed=si_embed, si_metric=si_metric,
+                                nmi_=nmi_, ari_=ari_, nmi_method=nmi_method, nmi_dir=nmi_dir,
+                                pcr_=pcr_, kBET_=kBET_, kBET_sub=kBET_sub,
+                                cell_cycle_=cell_cycle_, hvg=hvg, verbose=verbose)
+        results[tool] = single_result.iloc[:,0]
     
-    return pd.DataFrame(metrics) #TODO: name columns
+    return results.transpose()
 
-def metrics_per_tool(adata, matrix=None,
-                     silhouette=True, si_batch='tissue', si_group='cell_type', si_embed='X_pca', 
-                     nmi=True, ari=True, group1='cell_type', group2='louvain_post', nmi_method='max', nmi_dir=None, 
-                     cell_cycle=True, s_phase_key='S_score', g2m_phase_key='G2M_score',
-                     hvg = True,
-                     kBET=True, kBET_batch='sample', kBET_cluster='louvain', kBET_sub=0.5,
+def metrics(adata, matrix=None, 
+                     batch_key='study', group_key='cell_type', cluster_key=None,
+                     silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+                     pcr_=True, kBET_=True, kBET_sub=0.5, 
+                     cell_cycle_=True, hvg=True, verbose=False
                     ):
     """
     summary of all metrics for one Anndata object
@@ -615,24 +645,49 @@ def metrics_per_tool(adata, matrix=None,
         nmi: compute normalized mutual information NMI
     """
     
-    if not matrix:
+    if matrix is None:
         matrix = adata.X
-    metrics = {}
-    if silhouette:
-         metrics['silhouette'] =  silhouette_score(adata, batch=si_batch, group=si_group,
-                                         metric='euclidean', embed=si_embed, verbose=False)
-    if nmi:
-        metrics['NMI'] = nmi(adata, group1, group2, method=nmi_method, nmi_dir=nmi_dir)
-    if ari:
-        metrics['ARI'] = ari(adata, group1, group2, method=nmi_method)
-    if cell_cycle:
-        metrics['S-phase'], metrics['G2M-phase'] = cell_cycle(
-            adata, hvg=hvg, s_phase_key='S_score', g2m_phase_key='G2M_score')
-    if kBET:
-        kbet_scores = kBET(adata, matrix, covariate_key=kBET_batch, cluster_key=kBET_cluster,
-                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
-        metrics['kBET'] = kbet_scores['kBET'].mean()
+    
+    # clustering if necessary
+    if cluster_key is None:
+        opt_clus = opt_louvain(adata, label=group_key, cluster_key=cluster_key, 
+                               plot=False, verbose=verbose)
         
-    metrics['HVG'] = hvg
-    return metrics
-
+        print(f'optimised clustering against {group_key}')
+        print(f'optimal cluster resolution: {opt_clus[0]}')
+        print(f'optimal NMI: {opt_clus[1]}')
+    
+    results = {'HVG': hvg}
+    
+    if silhouette_:
+        print('silhouette score...')
+        results['label silhouette'] =  silhouette_score(adata, group_key=group_key, 
+                                                        metric='euclidean', embed=si_embed)
+        si = silhouette_score_mix(adata, batch_key=batch_key, group_key=group_key,
+                              metric='euclidean', embed=si_embed, verbose=False)
+        results['batch silhouette per label'] =  si['silhouette_score'].mean()
+        
+    if nmi_:
+        print('NMI...')
+        results['NMI'] = nmi(adata, group1=batch_key, group2=group_key,
+                             method=nmi_method, nmi_dir=nmi_dir)
+    if ari_:
+        print('ARI...')
+        results['ARI'] = ari(adata, group1=batch_key, group2=group_key)
+    
+    if cell_cycle_:
+        print('cell cycle effect...')
+        results['S-phase'], results['G2M-phase'] = cell_cycle(
+            adata, hvg=hvg, s_phase_key='S_score', g2m_phase_key='G2M_score')
+    if pcr_:
+        print('PC regression...')
+        results['PCR batch'] = pcr(adata, covariate=batch_key, pca=True, verbose=verbose)
+        results['PCR label'] = pcr(adata, covariate=group_key, pca=True, verbose=verbose)
+    
+    if kBET_:
+        print('kBET...')
+        kbet_scores = kBET(adata, matrix, covariate_key=batch_key, cluster_key=cluster_key,
+                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
+        results['kBET'] = kbet_scores['kBET'].mean()   
+    
+    return pd.DataFrame.from_dict(results, orient='index')
