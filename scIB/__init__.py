@@ -4,3 +4,6 @@ pp = preprocessing
 ig = integration
 me = metrics
 cl = clustering
+
+import seaborn
+seaborn.set_context('talk')
