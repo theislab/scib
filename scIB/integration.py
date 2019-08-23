@@ -13,6 +13,7 @@ from scIB.utils import *
 from memory_profiler import profile
 import os
 import pandas as pd
+import anndata
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -29,10 +30,12 @@ def runScanorama(adata, batch, hvg = None):
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
     emb = np.concatenate(emb, axis=0)
+    corrected.obsm['X_pca']= emb
+    corrected.uns['emb']=True
 
-    return emb, corrected
+    return corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/batch', epochs=100, hvg=None):
+def runScGen(adata, batch='method', cell_type='louvain',  model_path='./models/batch', epochs=5, hvg=None):
     checkSanity(adata, batch, hvg)
     import scgen
     
@@ -49,6 +52,7 @@ def runScGen(adata, cell_type='louvain', batch='method', model_path='./models/ba
     network.train(train_data=adata, n_epochs=epochs)
     corrected_adata = scgen.batch_removal(network, adata)
     network.sess.close()
+    corrected_adata.uns['emb']=False
     return corrected_adata
 
 def runSeurat(adata, batch="method", hvg=None):
@@ -56,9 +60,10 @@ def runSeurat(adata, batch="method", hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
-    
-    ro.globalenv['adata'] = adata
-    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
+    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
+    print(tmp.__dict__)
+    ro.globalenv['adata'] = tmp
+    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
     ro.r('anchors = FindIntegrationAnchors('+
@@ -68,7 +73,7 @@ def runSeurat(adata, batch="method", hvg=None):
         'l2.norm = T,'+
         'dims = 1:30,'+
         'k.anchor = 5,'+
-        'k.filter = 200,'+
+        'k.filter = 2000,'+
         'k.score = 30,'+
         'max.features = 200,'+
         'eps = 0)'
@@ -90,6 +95,9 @@ def runSeurat(adata, batch="method", hvg=None):
     )
     integrated = ro.r('as.SingleCellExperiment(integrated)')
     anndata2ri.deactivate()
+    
+    integrated.uns['emb']=False
+    
     return integrated
 
 def runHarmony(adata, batch, hvg = None):
@@ -107,7 +115,11 @@ def runHarmony(adata, batch, hvg = None):
     ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
     emb = ro.r('harmonyEmb')
     ro.pandas2ri.deactivate()
-    return emb
+    out = adata.copy()
+    out.obsm['X_pca']= emb
+    out.uns['emb']=True
+    
+    return out
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
@@ -115,6 +127,7 @@ def runMNN(adata, batch, hvg = None):
     split = splitBatches(adata, batch)
 
     corrected = mnnpy.mnn_correct(*split, var_subset=hvg)
+    out.uns['emb']=False
 
     return corrected[0]
 
@@ -123,6 +136,7 @@ def runBBKNN(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
+    corrected.uns['emb']=False
     return corrected
 
 def runConos(adata, batch, hvg=None):
@@ -131,13 +145,13 @@ def runConos(adata, batch, hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     ro.r('library(conos)')
-
-    ro.globalenv['adata_c'] = adata
-    ro.r('sobj = as.Seurat(adata_c, counts = "counts", data = "X")')
+    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
+    ro.globalenv['adata_c'] = tmp
+    ro.r('sobj = as.Seurat(adata_c, counts=NULL, data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
 
     ro.r('con <- Conos$new(batch_list)')
-    ro.r('con$buildGraph(k=15, k.self=5, space="PCA", ncomps=30)')
+    ro.r('con$buildGraph(k=10, k.self=10, space="PCA", ncomps=50)')
     os.mkdir('conos_tmp')
     ro.r('saveConosForScanPy(con, output.path="conos_tmp/", verbose=T))')
 
@@ -149,7 +163,7 @@ def runConos(adata, batch, hvg=None):
     
     out = adata.copy()
     
-    out.X_pca = pca_df.values
+    out.obsm['X_pca'] = pca_df.values
     
     out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
     
