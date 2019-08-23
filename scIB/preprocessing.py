@@ -179,7 +179,8 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
-def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20, adataOut=False):
+### Feature Selection
+def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20):
     """
     params:
         adata:
@@ -209,9 +210,7 @@ def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20,
             enough=True
         else:
             n_hvg=n_hvg+int(max_genes/2)
-            #print(n_hvg)
-    if adataOut:
-        return adata[:,list(intersect)]
+            print(n_hvg)
     return list(intersect)
     
 def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_bins=20, inplace=False):
@@ -234,7 +233,7 @@ def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_b
 
 ### Feature Reduction
 def reduce_data(adata, subset=False,
-                hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=4000, n_bins=20,
+                hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
                 paga=False, paga_groups='cell_type', 
@@ -248,6 +247,7 @@ def reduce_data(adata, subset=False,
         checkBatch(batch_key, adata.obs)
     
     if hvg:
+        print("HVG")
         # quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
@@ -265,9 +265,10 @@ def reduce_data(adata, subset=False,
                   svd_solver='arpack', 
                   return_info=True)
     
-    print("Nearest Neigbours")
-    sc.pp.neighbors(adata, use_rep=use_rep)
-    
+    if neighbors:
+        print("Nearest Neigbours")
+        sc.pp.neighbors(adata, use_rep=use_rep)
+
     if tsne:
         print("tSNE")
         sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
