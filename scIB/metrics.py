@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse
 import pandas as pd
+import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
 import anndata
@@ -15,62 +16,89 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette_score(adata, batch='study', group='cell_type', metric='euclidean', embed='X_pca', verbose=True):
+def silhouette_score(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
+                     embed='X_pca', means=False, verbose=True):
     """
-    Silhouette score subsetted for each cluster (group) between batches.
-    This results in 1 score per group label
+    Silhouette score of batch labels subsetted for each group.
     params:
         adata: 
-        batch: batches to be compared against
-        group: group labels to be subsetted by e.g. cell type
-        metric: 
+        batch_key: batches to be compared against
+        group_key: group labels to be subsetted by e.g. cell type
+        metric: see sklearn silhouette score
         embed: name of column in adata.obsm
     returns:
-        per_group: scores per group label
-        sil_means: mean silhouette score of group means
+        all scores: absolute silhouette scores per group label
+        group means: if `mean=True`
     """
     import sklearn.metrics as scm
-    
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
-    checkBatch(group, adata.obs)
+
     
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
     
     # ony look at group labels that are present for all batches
-    n_batch = adata.obs[batch].nunique()
-    labels = adata.obs.groupby(group)[batch].nunique()
-    labels = labels[labels == n_batch]
+    n_batch = adata.obs[batch_key].nunique()
+    groups = adata.obs.groupby(group_key)[batch_key].nunique()
+    groups = groups[groups == n_batch]
     
-    sil_means = []
-    per_group = []
-    for j in labels.index:
-        tmp_type = adata[adata.obs[group] == j]
-        sil = scm.silhouette_score(tmp_type.obsm[embed], tmp_type.obs[batch], metric=metric)
-        sil_means.append(sil)
-        per_group.extend(scm.silhouette_samples(tmp_type.obsm[embed], tmp_type.obs[batch], metric=metric))
-    per_group = [abs(i) for i in per_group] # take only absolute value
+    sil_all = pd.DataFrame(columns=['group', 'silhouette_score'])
+    for group in groups.index:
+        adata_group = adata[adata.obs[group_key] == group]
+        sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
+                                               adata_group.obs[batch_key],
+                                               metric=metric)
+        sil_per_group = [abs(i) for i in sil_per_group] # take only absolute value
+        d = pd.DataFrame({'group' : [group]*len(sil_per_group), 'silhouette_score' : sil_per_group})
+        sil_all = sil_all.append(d)
+    sil_all = sil_all.reset_index(drop=True)
+    sil_means = sil_all.groupby('group').mean()
     
     if verbose:
-        print(f'mean silhouette over label means: {np.mean(sil_means)}')
-        print(f'mean silhouette per cell: {np.mean(per_group)}')
+        print(f'mean silhouette per cell: {sil_means}')
     
-    return per_group, sil_means
+    if means:
+        return sil_all, sil_means
+    
+    return sil_all
 
-def plot_silhouette_score(adata_dict, verbose=True):
+def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', metric='euclidean', 
+                     embed='X_pca', palette='Dark2', per_group=False, verbose=True):
     """
     params:
         adata_dict: dictionary of adata objects, each labeled by e.g. integration method name
     """
     
-    sns.set_context('talk')
-    with sns.set_palette('Dark2'):
+    with sns.color_palette(palette):
         for label, adata in adata_dict.items():
             checkAdata(adata)
-            per_group, sil_means = silhouette_score(adata, verbose=verbose)
-            sns.distplot(per_group, label=label, hist=False)
+            sil_scores = silhouette_score(adata, 
+                                          batch_key=batch_key,
+                                          group_key=group_key,
+                                          metric=metric,
+                                          embed=embed,
+                                          means=False,
+                                          verbose=verbose)
+            sns.distplot(sil_scores['silhouette_score'], label=label, hist=False)
+        plt.title('Silhouette scores per cell for all groups')
+        plt.show()
+        
+        if per_group:
+            print()
+            for data_set, adata in adata_dict.items():
+                sil_scores = silhouette_score(adata,
+                                              batch_key=batch_key,
+                                              group_key=group_key,
+                                              metric=metric,
+                                              embed=embed,
+                                              means=False,
+                                              verbose=verbose)
+                # plot for all groups
+                for group in sil_scores['group'].unique():
+                    group_scores = sil_scores[sil_scores['group'] == group]
+                    sns.distplot(group_scores['silhouette_score'], label=group, hist=False)
+                plt.title(f'Silhouette scores per cell for {data_set}')
+                plt.show()
 
 ### Naive cluster overlap
 def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
@@ -501,7 +529,7 @@ def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
         kBET_scores['kBET'].append(score)
     
     kBET_scores = pd.DataFrame.from_dict(kBET_scores)
-    kBET_scores.set_index('cluster', inplace=True)
+    kBET_scores = kBET_scores.reset_index(drop=True)
     return kBET_scores
 
 
