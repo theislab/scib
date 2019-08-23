@@ -7,7 +7,7 @@ from scIB import utils
 from scIB import metrics
 
 
-def opt_louvain(adata, label='cell_type', resolution=None, nmi_method='max', nmi_dir=None, inplace=True, plot=False):
+def opt_louvain(adata, label='cell_type', cluster_key='louvain', resolution=None, nmi_method='max', nmi_dir=None, inplace=True, plot=False, force=False, verbose=True):
     """
     returns:
         res_max: resolution of maximum NMI
@@ -16,6 +16,13 @@ def opt_louvain(adata, label='cell_type', resolution=None, nmi_method='max', nmi
         clustering: only if `inplace=False`, return cluster assingment as `pd.Series`
         plot: if `plot=True` plot the NMI profile over resolution
     """
+    
+    if cluster_key in adata.obs.columns:
+        if force:
+            if verbose:
+                print(f"Warning: cluster key {cluster_key} already exists in adata.obs and will be overwritten")
+        else:
+            raise ValueError(f"cluster key {cluster_key} already exists in adata, please remove the key or choose a different name. If you want to force overwriting the key, specify `force=True`")
     
     if not resolution:
         n = 20
@@ -27,14 +34,14 @@ def opt_louvain(adata, label='cell_type', resolution=None, nmi_method='max', nmi
     nmi_all = []
     
     for res in resolution:
-        sc.tl.louvain(adata, resolution=res, key_added='louvain')
-        nmi = metrics.nmi(adata, group1=label, group2='louvain', method=nmi_method, nmi_dir=nmi_dir)
+        sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
+        nmi = metrics.nmi(adata, group1=label, group2=cluster_key, method=nmi_method, nmi_dir=nmi_dir)
         nmi_all.append(nmi)
         if nmi_max < nmi:
             nmi_max = nmi
             res_max = res
-            clustering = adata.obs['louvain']
-        del adata.obs['louvain']
+            clustering = adata.obs[cluster_key]
+        del adata.obs[cluster_key]
     
     nmi_all = pd.DataFrame(zip(resolution, nmi_all), columns=('resolution', 'NMI'))
     if plot:
@@ -43,7 +50,7 @@ def opt_louvain(adata, label='cell_type', resolution=None, nmi_method='max', nmi
         plt.show()
     
     if inplace:
-        adata.obs['louvain'] = clustering
+        adata.obs[cluster_key] = clustering
         return res_max, nmi_max, nmi_all
     else:
         return res_max, nmi_max, nmi_all, clustering
