@@ -6,3 +6,7 @@ data
 scIB.egg-info
 *cache*
 
+.Rproj.user
+Benchmarking_data_integration.Rproj
+.DS_Store
+.Rhistory
