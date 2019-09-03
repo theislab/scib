@@ -73,7 +73,7 @@ def runSeurat(adata, batch="method", hvg=None):
         'l2.norm = T,'+
         'dims = 1:30,'+
         'k.anchor = 5,'+
-        'k.filter = 2000,'+
+        'k.filter = 200,'+
         'k.score = 30,'+
         'max.features = 200,'+
         'eps = 0)'
