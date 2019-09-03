@@ -11,8 +11,8 @@ def runIntegration(inPath, outPath, method, hvg, batch):
     adata = sc.read(inPath)
 
     if hvg:
-        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True)
-
+        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, max_genes=hvg)
+    
     integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
@@ -32,7 +32,7 @@ if __name__=='__main__':
     parser.add_argument('-i', '--input_file', required=True)
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
-    parser.add_argument('-v', '--hvgs', help='Preselect for HVGs', action='store_true')
+    parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
 
     args = parser.parse_args()
     file = args.input_file
