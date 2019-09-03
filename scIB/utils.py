@@ -36,13 +36,27 @@ def splitBatches(adata, batch, hvg= None):
         split.append(adata[adata.obs[batch]==i])
     return split
 
-# remove duplicated columns
-def merge_adata(adata_list):
+def merge_adata(adata_list, sep='-'):
+    """
+    merge adatas from list and remove duplicated obs and var columns
+    """
+    
+    if len(adata_list) == 1:
+        return adata_list[0]
+    
     adata = adata_list[0].concatenate(*adata_list[1:], index_unique=None)
-    columns_to_keep = [name.split('-')[1] == '0' for name in adata.var.columns.values]
-    clean_var = adata.var.loc[:, columns_to_keep]
-    adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
+    
+    if sum(adata.obs.columns.str.contains(sep)) > 0: # if there is a column with separator
+        columns_to_keep = [name.split(sep)[1] == '0' for name in adata.var.columns.values]
+        clean_var = adata.var.loc[:, columns_to_keep]
+    else:
+        clean_var = adata.var
+    
+    if sum(adata.var.columns.str.contains(sep)) > 0:
+        adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
+        
     return adata
+
 
 def todense(adata):
     import scipy

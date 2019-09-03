@@ -30,29 +30,34 @@ def runScanorama(adata, batch, hvg = None):
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
     emb = np.concatenate(emb, axis=0)
-    corrected.obsm['X_pca']= emb
-    corrected.uns['emb']=True
 
-    return corrected
+    return emb, corrected
 
-def runScGen(adata, batch='method', cell_type='louvain',  model_path='./models/batch', epochs=5, hvg=None):
+def runScGen(adata, cell_type='louvain', batch='method', n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
     checkSanity(adata, batch, hvg)
     import scgen
     
-    if 'cell_type' not in adata.obs:
-        adata.obs['cell_type'] = adata.obs[cell_type].copy()
-    if 'batch' not in adata.obs:
-        adata.obs['batch'] = adata.obs[batch].copy()
+    # save cell_types for later
+    cell_types = adata.obs[cell_type].copy()
+    batches = adata.obs[batch].copy()
     
-    # TODO: reduce data
-    if hvg:
-        adata = adata[:, hvg]
+    # set 'cell_type' and 'batch' for scGen
+    adata.obs['cell_type'] = adata.obs[cell_type].copy()
+    adata.obs['batch'] = adata.obs[batch].copy()
+    
+    # feature selection
+    sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
+    adata = adata[:, adata.var['highly_variable'] == True].copy()
     
     network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
     network.train(train_data=adata, n_epochs=epochs)
     corrected_adata = scgen.batch_removal(network, adata)
     network.sess.close()
-    corrected_adata.uns['emb']=False
+    
+    # reset fields (just in case they were overwritten)
+    adata.obs[cell_type] = cell_types
+    adata.obs[batch] = batches
+    
     return corrected_adata
 
 def runSeurat(adata, batch="method", hvg=None):
@@ -60,10 +65,9 @@ def runSeurat(adata, batch="method", hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
-    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
-    print(tmp.__dict__)
-    ro.globalenv['adata'] = tmp
-    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+    
+    ro.globalenv['adata'] = adata
+    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
     ro.r('anchors = FindIntegrationAnchors('+
@@ -95,9 +99,6 @@ def runSeurat(adata, batch="method", hvg=None):
     )
     integrated = ro.r('as.SingleCellExperiment(integrated)')
     anndata2ri.deactivate()
-    
-    integrated.uns['emb']=False
-    
     return integrated
 
 def runHarmony(adata, batch, hvg = None):
@@ -115,11 +116,7 @@ def runHarmony(adata, batch, hvg = None):
     ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
     emb = ro.r('harmonyEmb')
     ro.pandas2ri.deactivate()
-    out = adata.copy()
-    out.obsm['X_pca']= emb
-    out.uns['emb']=True
-    
-    return out
+    return emb
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
@@ -127,7 +124,6 @@ def runMNN(adata, batch, hvg = None):
     split = splitBatches(adata, batch)
 
     corrected = mnnpy.mnn_correct(*split, var_subset=hvg)
-    out.uns['emb']=False
 
     return corrected[0]
 
@@ -136,7 +132,6 @@ def runBBKNN(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
-    corrected.uns['emb']=False
     return corrected
 
 def runConos(adata, batch, hvg=None):
@@ -145,13 +140,13 @@ def runConos(adata, batch, hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     ro.r('library(conos)')
-    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
-    ro.globalenv['adata_c'] = tmp
-    ro.r('sobj = as.Seurat(adata_c, counts=NULL, data = "X")')
+
+    ro.globalenv['adata_c'] = adata
+    ro.r('sobj = as.Seurat(adata_c, counts = "counts", data = "X")')
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
 
     ro.r('con <- Conos$new(batch_list)')
-    ro.r('con$buildGraph(k=10, k.self=10, space="PCA", ncomps=50)')
+    ro.r('con$buildGraph(k=15, k.self=5, space="PCA", ncomps=30)')
     os.mkdir('conos_tmp')
     ro.r('saveConosForScanPy(con, output.path="conos_tmp/", verbose=T))')
 
@@ -163,7 +158,7 @@ def runConos(adata, batch, hvg=None):
     
     out = adata.copy()
     
-    out.obsm['X_pca'] = pca_df.values
+    out.X_pca = pca_df.values
     
     out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
     
