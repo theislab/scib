@@ -179,12 +179,8 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
-<<<<<<< HEAD
 def hvg_intersect(adata, batch, max_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000):
-=======
 ### Feature Selection
-def hvg_intersect(adata, batch, max_genes=4000, flavor='cell_ranger', n_bins=20):
->>>>>>> 25e41c679b1321be557815f9833120b9af75f7c4
     """
     params:
         adata:
