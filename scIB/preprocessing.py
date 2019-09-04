@@ -231,11 +231,14 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
                                     'Consider raising `n_stop` or reducing `min_genes`.')
                 break
             n_hvg=int(n_hvg+step_size)
-            print(n_hvg)
+
+    if adataOut:
+        return adata[:,list(intersect)].copy()
+
     return list(intersect)
 
 
-def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, min_genes=500, inplace=False):
+def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, min_genes=500, adataOut=False):
     """
 
     Method to select HVGs based on mean dispersions of genes that are highly 
@@ -249,7 +252,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
-    adata_hvg = adata if inplace else adata.copy()
+    adata_hvg = adata if adataOut else adata.copy()
 
     n_batches = len(adata_hvg.obs[batch_key].cat.categories)
 
@@ -292,17 +295,18 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
                 hvg.append(nbatch2_dispersions.index[:target_genes_diff])
                 enough=True
 
-            
-    if not inplace:
-        del adata_hvg
-
     if len(hvg) < min_genes:
         raise Exception(f'Only {len(hvg)} HVGs were found in the intersection.\n'
                         f'This is fewer than {min_genes} HVGs set as the minimum.\n'
                         'Consider raising reducing `min_genes`.')
 
     print(f'Using {len(hvg)} HVGs')
-    return hvg.tolist()
+
+    if not adataOut:
+        del adata_hvg
+        return hvg.tolist()
+    else:
+        return adata_hvg[:,hvg].copy()
 
 
 ### Feature Reduction
