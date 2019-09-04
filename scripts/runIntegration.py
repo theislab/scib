@@ -33,7 +33,7 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
-    parser.add_argument('-h', '--max_genes_hvg', help='Maximum number of HVGs per dataset to get the intersect value specified by --hvgs', default=8000)
+    parser.add_argument('-g', '--max_genes_hvg', help='Maximum number of HVGs per dataset to get the intersect value specified by --hvgs', default=8000)
 
     args = parser.parse_args()
     file = args.input_file
