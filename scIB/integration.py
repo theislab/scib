@@ -35,7 +35,7 @@ def runScanorama(adata, batch, hvg = None):
 
     return corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
+def runScGen(adata, batch, cell_type, n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
     checkSanity(adata, batch, hvg)
     import scgen
     
@@ -62,7 +62,7 @@ def runScGen(adata, cell_type='louvain', batch='method', n_top_genes=4000, model
     
     return corrected_adata
 
-def runSeurat(adata, batch="method", hvg=None):
+def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     ro.r('library(Seurat)')
     ro.r('library(scater)')
