@@ -11,7 +11,7 @@ def runIntegration(inPath, outPath, method, hvg, batch, max_genes_hvg):
     adata = sc.read(inPath)
 
     if hvg > 500:
-        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, target_genes=hvg, max_genes_hvg)
+        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, target_genes=hvg, n_stop=max_genes_hvg)
     
     integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
