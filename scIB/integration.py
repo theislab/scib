@@ -30,12 +30,20 @@ def runScanorama(adata, batch, hvg = None):
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
     emb = np.concatenate(emb, axis=0)
+    corrected.obsm['X_pca']= emb
+    corrected.uns['emb']=True
 
-    return emb, corrected
+    return corrected
 
-def runScGen(adata, cell_type='louvain', batch='method', n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
+def runScGen(adata, batch, cell_type, n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
     checkSanity(adata, batch, hvg)
     import scgen
+    
+    ### Edited by Kris, please verify. 04.09.2019 17:45
+    
+    sc.tl.louvain(adata, resolution=0.5)
+    
+    ### End edited by Kris
     
     # save cell_types for later
     cell_types = adata.obs[cell_type].copy()
@@ -60,14 +68,16 @@ def runScGen(adata, cell_type='louvain', batch='method', n_top_genes=4000, model
     
     return corrected_adata
 
-def runSeurat(adata, batch="method", hvg=None):
+def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
     
-    ro.globalenv['adata'] = adata
-    ro.r('sobj = as.Seurat(adata, counts = "counts", data = "X")')
+    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
+    ro.globalenv['adata'] = tmp
+    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
     ro.r('anchors = FindIntegrationAnchors('+
@@ -116,7 +126,11 @@ def runHarmony(adata, batch, hvg = None):
     ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
     emb = ro.r('harmonyEmb')
     ro.pandas2ri.deactivate()
-    return emb
+    out = adata.copy()
+    out.obsm['X_pca']= emb
+    out.uns['emb']=True
+
+    return out
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy

@@ -6,14 +6,25 @@ import scIB
 import warnings
 warnings.filterwarnings('ignore')
 
-def runIntegration(inPath, outPath, method, hvg, batch, max_genes_hvg):
+def runIntegration(inPath, outPath, method, hvg, batch, max_genes_hvg, groups=None):
+    """
+    params:
+        method: name of method
+        hvg: number of highly variable genes
+        batch: name of `adata.obs` column of the batch
+        max_genes_hvg: 
+        groups: only needed 
+    """
 
     adata = sc.read(inPath)
 
     if hvg > 500:
         adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, target_genes=hvg, n_stop=max_genes_hvg)
     
-    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+    if method == "scgen":
+        integrated_tmp = scIB.metrics.measureTM(method, adata, batch, group)
+    else:
+        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
 
@@ -39,7 +50,7 @@ if __name__=='__main__':
     file = args.input_file
     out = args.output_file
     batch = args.batch
-    hvg = args.hvgs
+    hvg = int(args.hvgs)
     max_genes_hvg = int(args.max_genes_hvg)
     method = args.method
     methods = {
