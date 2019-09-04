@@ -39,7 +39,7 @@ if __name__=='__main__':
     file = args.input_file
     out = args.output_file
     batch = args.batch
-    hvg = args.hvgs
+    hvg = int(args.hvgs)
     max_genes_hvg = int(args.max_genes_hvg)
     method = args.method
     methods = {
