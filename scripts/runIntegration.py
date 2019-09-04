@@ -40,7 +40,7 @@ if __name__=='__main__':
     out = args.output_file
     batch = args.batch
     hvg = args.hvgs
-    max_genes_hvg = args.max_genes_hvg
+    max_genes_hvg = int(args.max_genes_hvg)
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
