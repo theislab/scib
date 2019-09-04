@@ -66,9 +66,9 @@ def runSeurat(adata, batch="method", hvg=None):
     ro.r('library(scater)')
     anndata2ri.activate()
     
-        tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
-        ro.globalenv['adata'] = tmp
-        ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
+    ro.globalenv['adata'] = tmp
+    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
 
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
