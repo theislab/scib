@@ -242,10 +242,10 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     """
 
     Method to select HVGs based on mean dispersions of genes that are highly 
-    variablein at least all but one batch. Using a the top 2 * target_genes per 
+    variablein at least all but one batch. Using a the top target_genes per 
     batch. If target genes still hasn't been reached, then HVGs in all but two 
-    batches are used to fill up. This is continued until HVGs in at least half 
-    of the batches are considered.
+    batches are used to fill up. This is continued until HVGs in a single batch
+    are considered.
     """
     
     checkAdata(adata)
@@ -259,7 +259,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     # Calculate double target genes per dataset
     sc.pp.highly_variable_genes(adata_hvg,
                                 flavor=flavor, 
-                                n_top_genes=2*target_genes,
+                                n_top_genes=target_genes,
                                 n_bins=n_bins, 
                                 batch_key=batch_key)
 
@@ -277,9 +277,6 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
         not_n_batches = 2
         
         while not enough:
-            if not_n_batches > np.floor(n_batches/2):
-                break
-
             target_genes_diff = target_genes - len(hvg)
 
             tmp_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches ==
