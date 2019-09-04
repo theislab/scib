@@ -2,6 +2,8 @@
 # coding: utf-8
 
 import argparse
+import scipy
+import anndata
 
 parser = argparse.ArgumentParser(description='Normalisation with scran')
 parser.add_argument('-i', '--input_file', required=True)
@@ -15,6 +17,8 @@ sc.settings.verbosity = 0
 import scIB.preprocessing as pp
 
 adata = sc.read(args.input_file, cache=True)
+if isinstance(adata.X, scipy.sparse.csr_matrix):
+    adata = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs, var=adata.var)
 
 # Normalisation
 print("Normalisation")
