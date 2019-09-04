@@ -39,6 +39,12 @@ def runScGen(adata, batch, cell_type, n_top_genes=4000, model_path='./models/bat
     checkSanity(adata, batch, hvg)
     import scgen
     
+    ### Edited by Kris, please verify. 04.09.2019 17:45
+    
+    sc.tl.louvain(adata, resolution=0.5)
+    
+    ### End edited by Kris
+    
     # save cell_types for later
     cell_types = adata.obs[cell_type].copy()
     batches = adata.obs[batch].copy()
