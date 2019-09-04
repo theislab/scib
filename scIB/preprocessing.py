@@ -179,15 +179,17 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
-def hvg_intersect(adata, batch, max_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000):
+
+def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500):
 ### Feature Selection
     """
     params:
         adata:
         batch: adata.obs column
-        max_genes: maximum number of genes (intersection reduces the number of genes)
+        target_genes: maximum number of genes (intersection reduces the number of genes)
+        min_genes: minimum number of intersection HVGs targeted
     return:
-        list of highly variable genes less or equal to `max_genes`
+        list of highly variable genes less or equal to `target_genes`
     """
     
     checkAdata(adata)
@@ -195,26 +197,43 @@ def hvg_intersect(adata, batch, max_genes=2000, flavor='cell_ranger', n_bins=20,
     
     intersect = None
     enough = False
-    n_hvg = max_genes
+    n_hvg = target_genes
     
+    split = splitBatches(adata, batch) 
+    hvg_res = []
+
+    for i in split:
+        sc.pp.filter_genes(i, min_cells=1) # remove genes unexpressed (otherwise hvg might break)
+        hvg_res.append(sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg, inplace=False))
+
     while not enough:
-        split = splitBatches(adata, batch)
         genes = []
-        for i in split:
-            sc.pp.filter_genes(i, min_cells=1) # remove genes unexpressed (otherwise hvg might break)
-            tmp = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
-            hvgs = [j[0] for j in tmp]
-            genes.append(set(i.var[hvgs].index))
+
+        for i in range(len(split)):
+
+            dispersion_norm = hvg_res[i]['dispersions_norm']
+            dispersion_norm = dispersion_norm[~np.isnan(dispersion_norm)]
+            dispersion_norm[::-1].sort()
+            disp_cut_off = dispersion_norm[n_hvg-1]
+            gene_subset = np.nan_to_num(hvg_res[i]['dispersions_norm']) >= disp_cut_off
+
+            genes.append(set(split[i].var[gene_subset].index))
+
         intersect = genes[0].intersection(*genes[1:])
-        if len(intersect)>=max_genes:
+        if len(intersect)>=target_genes:
             enough=True
         else:
             if n_hvg>n_stop:
+                if len(intersect) < min_genes:
+                    raise Exception(f'Only {len(intersect)} HVGs were found in the intersection.\n'
+                                    f'This is fewer than {min_genes} HVGs set as the minimum.\n'
+                                    'Consider raising `n_stop` or reducing `n_genes`.')
                 break
-            n_hvg=n_hvg+int(max_genes/2)
+            n_hvg=int(n_hvg+int(target_genes)/2)
             print(n_hvg)
     return list(intersect)
-    
+
+
 def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_bins=20, inplace=False):
     
     checkAdata(adata)
