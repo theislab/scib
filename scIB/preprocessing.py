@@ -225,9 +225,9 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
         else:
             if n_hvg>n_stop:
                 if len(intersect) < min_genes:
-                    raise Exception(f'Only {len(intersect)} HVGs were found.'
-                                    'This is fewer than {min_genes} HVGs set as the minimum.'
-                                    'Consider raising `n_stop`.')
+                    raise Exception(f'Only {len(intersect)} HVGs were found in the intersection.\n'
+                                    f'This is fewer than {min_genes} HVGs set as the minimum.\n'
+                                    'Consider raising `n_stop` or reducing `n_genes`.')
                 break
             n_hvg=int(n_hvg+int(target_genes)/2)
             print(n_hvg)
