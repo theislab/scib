@@ -6,12 +6,12 @@ import scIB
 import warnings
 warnings.filterwarnings('ignore')
 
-def runIntegration(inPath, outPath, method, hvg, batch):
+def runIntegration(inPath, outPath, method, hvg, batch, max_genes_hvg):
 
     adata = sc.read(inPath)
 
     if hvg > 500:
-        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, max_genes=hvg)
+        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, target_genes=hvg, n_stop=max_genes_hvg)
     
     integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
@@ -33,12 +33,14 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
+    parser.add_argument('-g', '--max_genes_hvg', help='Maximum number of HVGs per dataset to get the intersect value specified by --hvgs', default=8000)
 
     args = parser.parse_args()
     file = args.input_file
     out = args.output_file
     batch = args.batch
     hvg = args.hvgs
+    max_genes_hvg = int(args.max_genes_hvg)
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
@@ -54,4 +56,4 @@ if __name__=='__main__':
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch)
+    runIntegration(file, out, run, hvg, batch, max_genes_hvg)
