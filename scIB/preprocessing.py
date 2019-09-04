@@ -180,7 +180,7 @@ def normalize(adata, min_mean = 0.1):
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
 
-def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500):
+def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500, step_size=1000):
 ### Feature Selection
     """
     params:
@@ -188,6 +188,7 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
         batch: adata.obs column
         target_genes: maximum number of genes (intersection reduces the number of genes)
         min_genes: minimum number of intersection HVGs targeted
+        step_size: step size to increase HVG selection per dataset
     return:
         list of highly variable genes less or equal to `target_genes`
     """
@@ -229,7 +230,7 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
                                     f'This is fewer than {min_genes} HVGs set as the minimum.\n'
                                     'Consider raising `n_stop` or reducing `n_genes`.')
                 break
-            n_hvg=int(n_hvg+int(target_genes)/2)
+            n_hvg=int(n_hvg+step_size)
             print(n_hvg)
     return list(intersect)
 
