@@ -228,30 +228,79 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
                 if len(intersect) < min_genes:
                     raise Exception(f'Only {len(intersect)} HVGs were found in the intersection.\n'
                                     f'This is fewer than {min_genes} HVGs set as the minimum.\n'
-                                    'Consider raising `n_stop` or reducing `n_genes`.')
+                                    'Consider raising `n_stop` or reducing `min_genes`.')
                 break
             n_hvg=int(n_hvg+step_size)
-            print(n_hvg)
+
+    if adataOut:
+        return adata[:,list(intersect)].copy()
+
     return list(intersect)
 
 
-def hvg_batch(adata, batch_key=None, n_top_genes=4000, flavor='cell_ranger', n_bins=20, inplace=False):
+def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
+    """
+
+    Method to select HVGs based on mean dispersions of genes that are highly 
+    variable genes in all batches. Using a the top target_genes per batch by
+    average normalize dispersion. If target genes still hasn't been reached, 
+    then HVGs in all but one batches are used to fill up. This is continued 
+    until HVGs in a single batch are considered.
+    """
     
     checkAdata(adata)
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
-    adata_hvg = adata if inplace else adata.copy()
+    adata_hvg = adata if adataOut else adata.copy()
+
+    n_batches = len(adata_hvg.obs[batch_key].cat.categories)
+
+    # Calculate double target genes per dataset
     sc.pp.highly_variable_genes(adata_hvg,
                                 flavor=flavor, 
-                                n_top_genes=n_top_genes,
+                                n_top_genes=target_genes,
                                 n_bins=n_bins, 
                                 batch_key=batch_key)
-    hvg = adata_hvg.var.index.values[adata_hvg.var["highly_variable"]]
-    if not inplace:
-        del adata_hvg
+
+    nbatch1_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches >
+                                                           len(adata_hvg.obs[batch_key].cat.categories)-1]
     
-    return hvg
+    nbatch1_dispersions.sort_values(ascending=False, inplace=True)
+
+    if len(nbatch1_dispersions) > target_genes:
+        hvg = nbatch1_dispersions.index[:target_genes]
+    
+    else:
+        enough = False
+        hvg = nbatch1_dispersions.index[:]
+        not_n_batches = 1
+        
+        while not enough:
+            target_genes_diff = target_genes - len(hvg)
+
+            tmp_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches ==
+                                                                (len(adata_hvg.obs[batch_key].cat.categories)-not_n_batches)]
+
+            if len(tmp_dispersions) < target_genes_diff:
+                print(f'Using {len(tmp_dispersions)} HVGs from n_batch-{not_n_batches} set')
+                hvg.append(tmp_dispersions.index)
+                not_n_batches += 1
+
+            else:
+                print(f'Using {target_genes_diff} HVGs from n_batch-{not_n_batches} set')
+                tmp_dispersions.sort_values(ascending=False, inplace=True)
+                hvg = hvg.append(tmp_dispersions.index[:target_genes_diff])
+                enough=True
+
+    print(f'Using {len(hvg)} HVGs')
+
+    if not adataOut:
+        del adata_hvg
+        return hvg.tolist()
+    else:
+        return adata_hvg[:,hvg].copy()
+
 
 ### Feature Reduction
 def reduce_data(adata, subset=False,

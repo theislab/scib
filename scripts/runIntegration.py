@@ -6,24 +6,24 @@ import scIB
 import warnings
 warnings.filterwarnings('ignore')
 
-def runIntegration(inPath, outPath, method, hvg, batch, max_genes_hvg, group=None):
+
+def runIntegration(inPath, outPath, method, hvg, batch):
     """
     params:
         method: name of method
         batch: name of `adata.obs` column of the batch
         max_genes_hvg: maximum number of HVG
-        groups: name of cell type or cluster column. Only needed for scGen (atm)
     """
 
     adata = sc.read(inPath)
 
     if hvg > 500:
-        adata = scIB.preprocessing.hvg_intersect(adata, batch, adataOut=True, target_genes=hvg, n_stop=max_genes_hvg)
+        adata = scIB.preprocessing.hvg_batch(adata,
+                                             batch_key=batch,
+                                             target_genes=hvg,
+                                             adataOut=True)
     
-    if group is not None:
-        integrated_tmp = scIB.metrics.measureTM(method, adata, batch, group)
-    else:
-        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
 
@@ -42,16 +42,13 @@ if __name__=='__main__':
     parser.add_argument('-i', '--input_file', required=True)
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
-    parser.add_argument('-c', '--group', default=None, help='Group variable (cell type or cluster)')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
-    parser.add_argument('-g', '--max_genes_hvg', help='Maximum number of HVGs per dataset to get the intersect value specified by --hvgs', default=8000)
 
     args = parser.parse_args()
     file = args.input_file
     out = args.output_file
     batch = args.batch
     hvg = int(args.hvgs)
-    max_genes_hvg = int(args.max_genes_hvg)
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
@@ -67,4 +64,4 @@ if __name__=='__main__':
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch, max_genes_hvg)
+    runIntegration(file, out, run, hvg, batch)
