@@ -238,7 +238,7 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
     return list(intersect)
 
 
-def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, min_genes=500, adataOut=False):
+def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
     """
 
     Method to select HVGs based on mean dispersions of genes that are highly 
@@ -291,11 +291,6 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
                 print(f'Using {target_genes_diff} HVGs from n_batch-{not_n_batches} set')
                 hvg.append(nbatch2_dispersions.index[:target_genes_diff])
                 enough=True
-
-    if len(hvg) < min_genes:
-        raise Exception(f'Only {len(hvg)} HVGs were found in the intersection.\n'
-                        f'This is fewer than {min_genes} HVGs set as the minimum.\n'
-                        'Consider raising reducing `min_genes`.')
 
     print(f'Using {len(hvg)} HVGs')
 
