@@ -264,7 +264,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
                                 batch_key=batch_key)
 
     nbatch1_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches >
-                                                           len(adata_hvg.obs[batch_key].cat.categories)-2]
+                                                           len(adata_hvg.obs[batch_key].cat.categories)-1]
     
     nbatch1_dispersions.sort_values(ascending=False, inplace=True)
 
@@ -273,14 +273,15 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     
     else:
         enough = False
-        hvg = nbatch1_dispersions.index
-        not_n_batches = 2
+        hvg = nbatch1_dispersions.index[:]
+        not_n_batches = 1
         
         while not enough:
+            print('Got in here')
             target_genes_diff = target_genes - len(hvg)
 
             tmp_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches ==
-                                                                len(adata_hvg.obs[batch_key].cat.categories)-not_n_batches]
+                                                                (len(adata_hvg.obs[batch_key].cat.categories)-not_n_batches)]
 
             if len(tmp_dispersions) < target_genes_diff:
                 print(f'Using {len(tmp_dispersions)} HVGs from n_batch-{not_n_batches} set')
@@ -289,7 +290,8 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
             else:
                 print(f'Using {target_genes_diff} HVGs from n_batch-{not_n_batches} set')
-                hvg.append(tmp_dispersions.index[:target_genes_diff])
+                tmp_dispersions.sort_values(ascending=False, inplace=True)
+                hvg = hvg.append(tmp_dispersions.index[:target_genes_diff])
                 enough=True
 
     print(f'Using {len(hvg)} HVGs')
