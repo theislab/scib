@@ -273,6 +273,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     
     else:
         enough = False
+        print(f'Using {len(nbatch1_dispersions)} HVGs from full intersect set')
         hvg = nbatch1_dispersions.index[:]
         not_n_batches = 1
         
