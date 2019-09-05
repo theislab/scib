@@ -369,7 +369,7 @@ def cc_tirosh(marker_gene_file, adata=None):
         g2m_genes: G2- and M-phase genes
     """
     cell_cycle_genes = [x.strip().lower().capitalize() for x in open(marker_gene_file)]
-    if adata:
+    if adata is not None:
         cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
     # split list into S-phase and G2/M-phase genes
     s_genes = cell_cycle_genes[:43]

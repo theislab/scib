@@ -44,19 +44,22 @@ def silhouette_score_mix(adata, batch_key='study', group_key='cell_type', metric
     """
     import sklearn.metrics as scm
 
-    
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
+    
+    sil_all = pd.DataFrame(columns=['group', 'silhouette_score'])
     
     # ony look at group labels that are present for all batches
     n_batch = adata.obs[batch_key].nunique()
     groups = adata.obs.groupby(group_key)[batch_key].nunique()
     groups = groups[groups == n_batch]
     if len(groups) == 0:
-        raise ValueError(f'not all batches are contained in all groups')
+        print(f'not all batches are contained in all groups')
+        if means:
+            return sil_all, pd.Series()
+        return sil_all
     
-    sil_all = pd.DataFrame(columns=['group', 'silhouette_score'])
     for group in groups.index:
         adata_group = adata[adata.obs[group_key] == group]
         sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
@@ -389,13 +392,14 @@ def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample', verbose
     
     return pcr_before - pcr_after
 
-def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
+def pcr(adata, use_Xpca=True, use_hvg=False, covariate='sample', verbose=True):
     """
     PCR for Adata object
     params:
         adata: Anndata object
-        matrix: if None, take adata.X else specify count matrix
-        covariate: key for adata.obs column
+        use_Xpca: specifies whether existing PCA should be used (`use_Xpca=True`) or if PCA should be recomputed (`use_Xpca=False`)
+        use_hvg: specifies whether to use precomputed HVGs
+        covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
     """
@@ -403,18 +407,17 @@ def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
     
-    if hvg:
+    if use_hvg:
         hvg_idx = get_hvg_indices(adata)
         if verbose:
             print(f"subsetting to {len(hvg_idx)} highly variable genes")
-        raw = raw[:, hvg_idx]
-        corrected = corrected[:, hvg_idx]
+        adata = adata[:, hvg_idx]
     
     if verbose:
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    if pca:
+    if use_Xpca:
         return pc_regression(adata.obsm['X_pca'], batch,
                              pca_sd=adata.uns['pca']['variance'],
                              verbose=verbose)
@@ -631,12 +634,12 @@ def metrics_all(adata_dict,
     return results.transpose()
 
 def metrics(adata, matrix=None, 
-                     batch_key='study', group_key='cell_type', cluster_key=None,
-                     silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
-                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
-                     pcr_=True, kBET_=True, kBET_sub=0.5, 
-                     cell_cycle_=True, hvg=True, verbose=False
-                    ):
+            batch_key='study', group_key='cell_type', cluster_key=None,
+            silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+            nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+            pcr_=True, kBET_=True, kBET_sub=0.5, 
+            cell_cycle_=True, hvg=True, verbose=False
+           ):
     """
     summary of all metrics for one Anndata object
     params:
@@ -650,7 +653,7 @@ def metrics(adata, matrix=None,
     
     # clustering if necessary
     if cluster_key is None:
-        opt_clus = opt_louvain(adata, label=group_key, cluster_key=cluster_key, 
+        opt_clus = opt_louvain(adata, label_key=group_key, cluster_key=cluster_key, 
                                plot=False, verbose=verbose)
         
         print(f'optimised clustering against {group_key}')
