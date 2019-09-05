@@ -280,11 +280,11 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
             target_genes_diff = target_genes - len(hvg)
 
             tmp_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches ==
-                                                                (len(adata_hvg.obs[batch_key].cat.categories)-not_n_batches)]
+                                                                (n_batches-not_n_batches)]
 
             if len(tmp_dispersions) < target_genes_diff:
                 print(f'Using {len(tmp_dispersions)} HVGs from n_batch-{not_n_batches} set')
-                hvg.append(tmp_dispersions.index)
+                hvg = hvg.append(tmp_dispersions.index)
                 not_n_batches += 1
 
             else:
