@@ -242,10 +242,10 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     """
 
     Method to select HVGs based on mean dispersions of genes that are highly 
-    variablein at least all but one batch. Using a the top target_genes per 
-    batch. If target genes still hasn't been reached, then HVGs in all but two 
-    batches are used to fill up. This is continued until HVGs in a single batch
-    are considered.
+    variable genes in all batches. Using a the top target_genes per batch by
+    average normalize dispersion. If target genes still hasn't been reached, 
+    then HVGs in all but one batches are used to fill up. This is continued 
+    until HVGs in a single batch are considered.
     """
     
     checkAdata(adata)
