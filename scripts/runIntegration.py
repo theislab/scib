@@ -7,13 +7,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runIntegration(inPath, outPath, method, hvg, batch, groups=None):
+def runIntegration(inPath, outPath, method, hvg, batch):
     """
     params:
         method: name of method
         batch: name of `adata.obs` column of the batch
         max_genes_hvg: maximum number of HVG
-        groups: name of cell type or cluster column. Only needed for scGen (atm)
     """
 
     adata = sc.read(inPath)
@@ -24,10 +23,7 @@ def runIntegration(inPath, outPath, method, hvg, batch, groups=None):
                                              target_genes=hvg,
                                              adataOut=True)
     
-    if group is not None:
-        integrated_tmp = scIB.metrics.measureTM(method, adata, batch, group)
-    else:
-        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
 
@@ -46,7 +42,6 @@ if __name__=='__main__':
     parser.add_argument('-i', '--input_file', required=True)
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
-    parser.add_argument('-c', '--group', default=None, help='Group variable (cell type or cluster)')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
 
     args = parser.parse_args()
