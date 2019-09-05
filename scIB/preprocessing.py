@@ -277,7 +277,6 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
         not_n_batches = 1
         
         while not enough:
-            print('Got in here')
             target_genes_diff = target_genes - len(hvg)
 
             tmp_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches ==
