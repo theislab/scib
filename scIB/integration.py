@@ -35,38 +35,35 @@ def runScanorama(adata, batch, hvg = None):
 
     return corrected
 
-def runScGen(adata, batch, cell_type, n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
+def runScGen(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    import scgen
+    import trvae
+
+    n_batches = len(adata.obs[batch].cat.categories)
     
-    ### Edited by Kris, please verify. 04.09.2019 17:45
+    network = trvae.archs.trVAEMulti(x_dimension=full_adata.shape[1],
+                                     n_conditions=n_batches,
+                                     output_activation='relu')
+
+    condition_encoder = trvae.utils.create_dictionary(
+        adata.obs[batch].cat.categories.tolist(), [])
+
+    network.train(train_adata=adata,
+                  valid_adata=None,   #Use default splitting of adata
+                  condition_key=batch,
+                  condition_encoder=condition_encoder,
+                  verbose=0)
+
+    labels, _ = trvae.tl.label_encoder(adata,
+                                       condition_key=batch,
+                                       label_encoder=condition_encoder)
+
+    network.get_corrected(adata, labels, return_z=False)
     
-    sc.tl.louvain(adata, resolution=0.5)
-    
-    ### End edited by Kris
-    
-    # save cell_types for later
-    cell_types = adata.obs[cell_type].copy()
-    batches = adata.obs[batch].copy()
-    
-    # set 'cell_type' and 'batch' for scGen
-    adata.obs['cell_type'] = adata.obs[cell_type].copy()
-    adata.obs['batch'] = adata.obs[batch].copy()
-    
-    # feature selection
-    sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
-    adata = adata[:, adata.var['highly_variable'] == True].copy()
-    
-    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
-    network.train(train_data=adata, n_epochs=epochs)
-    corrected_adata = scgen.batch_removal(network, adata)
     network.sess.close()
     
-    # reset fields (just in case they were overwritten)
-    adata.obs[cell_type] = cell_types
-    adata.obs[batch] = batches
-    
     return corrected_adata
+
 
 def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
