@@ -61,8 +61,12 @@ def runScGen(adata, batch, hvg=None):
     network.get_corrected(adata, labels, return_z=False)
     
     network.sess.close()
+
+    # Currently new data is stored in
+    # - adata.obsm['reconstructed'] : for batch-corrected data - this might still change
+    # - adata.obsm['mmd_latent'] : for latent space embedding
     
-    return corrected_adata
+    return adata
 
 
 def runSeurat(adata, batch, hvg=None):
