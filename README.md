@@ -6,7 +6,7 @@ This repository contains code and analysis for the benchmarking study for data i
 Tools to be compared include:
 - Seurat v2
 - [Seurat v3](https://github.com/satijalab/seurat)
-- [scGen](https://github.com/theislab/scgen)
+- [scGen 2.0](https://github.com/theislab/trvae)
 - [scVI](https://github.com/YosefLab/scVI)
 - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
 - [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
@@ -18,6 +18,7 @@ Tools to be compared include:
 - [Harmony](https://github.com/immunogenomics/harmony)
 - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign)
+- [scAEspy](https://gitlab.com/cvejic-group/scaespy)
 
 
 ## Data
