@@ -1,4 +1,4 @@
-#!/bin/env python
+`#!/bin/env python
 
 ### D. C. Strobl, M. Müller; 2019-07-23
 
@@ -38,6 +38,65 @@ def runScanorama(adata, batch, hvg = None):
 def runScGen(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import trvae
+
+    n_batches = len(adata.obs[batch].cat.categories)
+    
+    network = trvae.archs.trVAEMulti(x_dimension=full_adata.shape[1],
+                                     n_conditions=n_batches,
+                                     output_activation='relu')
+
+    condition_encoder = trvae.utils.create_dictionary(
+        adata.obs[batch].cat.categories.tolist(), [])
+
+    network.train(train_adata=adata,
+                  valid_adata=None,   #Use default splitting of adata
+                  condition_key=batch,
+                  condition_encoder=condition_encoder,
+                  verbose=0)
+
+    labels, _ = trvae.tl.label_encoder(adata,
+                                       condition_key=batch,
+                                       label_encoder=condition_encoder)
+
+    network.get_corrected(adata, labels, return_z=False)
+    
+    network.sess.close()
+
+    # Currently new data is stored in
+    # - adata.obsm['reconstructed'] : for batch-corrected data - this might still change
+    # - adata.obsm['mmd_latent'] : for latent space embedding
+    
+    return adata
+
+
+def runScvi(adata, batch, hvg=None):
+    # Use non-normalized (count) data for scvi!
+    # Expects data only on HVGs
+    
+    checkSanity(adata, batch, hvg)
+    import scvi
+
+
+
+    le = LabelEncoder()
+    net_adata.obs['labels'] = le.fit_transform(net_adata.obs[cell_type_key].values)
+    net_adata.obs['batch_indices'] = le.fit_transform(net_adata.obs[condition_key].values)
+
+    net_adata = AnnDatasetFromAnnData(net_adata)
+
+    vae = VAE(net_adata.nb_genes, reconstruction_loss='nb')
+
+    trainer = UnsupervisedTrainer(
+        vae,
+        net_adata,
+        train_size=0.8,
+        use_cuda=False,
+        frequency=1)
+
+    trainer.train(n_epochs=1000, lr=0.001)
+
+    
+
 
     n_batches = len(adata.obs[batch].cat.categories)
     
