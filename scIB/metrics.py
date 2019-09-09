@@ -377,7 +377,7 @@ def get_hvg_indices(adata):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample', verbose=True):
+def pcr_comparison(adata, raw, corrected, pca=True, hvg=False, covariate='sample', verbose=True):
     """
     Compare the effect before and after integration
     params:
@@ -387,18 +387,18 @@ def pcr_comparison(adata, raw, corrected, hvg=False, covariate='sample', verbose
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata, matrix=raw, hvg=hvg, covariate=covariate, verbose=verbose)
-    pcr_after = pcr(adata, matrix=corrected, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_before = pcr(adata, matrix=raw, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_after = pcr(adata, matrix=corrected, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
     
     return pcr_before - pcr_after
 
-def pcr(adata, use_Xpca=True, use_hvg=False, covariate='sample', verbose=True):
+def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
     """
     PCR for Adata object
     params:
         adata: Anndata object
-        use_Xpca: specifies whether existing PCA should be used (`use_Xpca=True`) or if PCA should be recomputed (`use_Xpca=False`)
-        use_hvg: specifies whether to use precomputed HVGs
+        pca: specifies whether existing PCA should be used (`use_Xpca=True`) or if PCA should be recomputed (`use_Xpca=False`)
+        hvg: specifies whether to use precomputed HVGs
         covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
@@ -407,7 +407,7 @@ def pcr(adata, use_Xpca=True, use_hvg=False, covariate='sample', verbose=True):
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
     
-    if use_hvg:
+    if hvg:
         hvg_idx = get_hvg_indices(adata)
         if verbose:
             print(f"subsetting to {len(hvg_idx)} highly variable genes")
@@ -417,7 +417,7 @@ def pcr(adata, use_Xpca=True, use_hvg=False, covariate='sample', verbose=True):
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    if use_Xpca:
+    if pca:
         return pc_regression(adata.obsm['X_pca'], batch,
                              pca_sd=adata.uns['pca']['variance'],
                              verbose=verbose)
@@ -607,29 +607,29 @@ def measureTM(*args, **kwargs):
 
 
 ### All Metrics
-def metrics_all(adata_dict,
-                batch_key='study', group_key='cell_type', cluster_key=None,
-                silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
-                nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                pcr_=True, kBET_=True, kBET_sub=0.5,
-                cell_cycle_=True, hvg=True, verbose=False
-               ):#
+def metrics_all(results_dict#,
+                #batch_key='study', group_key='cell_type', cluster_key=None,
+                #silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+                #nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
+                #pcr_=True, kBET_=True, kBET_sub=0.5,
+                #cell_cycle_=True, hvg=True, verbose=False
+               ):
     """
     summary of all metrics for all tools in a DataFrame
     params:
-        adata_dict: list of adata results from different integration methods
+        results_dict: dictionary of results as pd.DataFrame from different integration methods
             ["seurat", "scanorama", "mnn", "scGen", "Harmony", "CONOS"]
     """
     
-    results = pd.DataFrame(columns=adata_dict.keys())
-    for tool, adata in adata_dict.items():
-        single_result = metrics(adata, adata.X, 
-                                batch_key=batch_key, group_key=group_key, cluster_key=cluster_key,
-                                silhouette_=silhouette_,  si_embed=si_embed, si_metric=si_metric,
-                                nmi_=nmi_, ari_=ari_, nmi_method=nmi_method, nmi_dir=nmi_dir,
-                                pcr_=pcr_, kBET_=kBET_, kBET_sub=kBET_sub,
-                                cell_cycle_=cell_cycle_, hvg=hvg, verbose=verbose)
-        results[tool] = single_result.iloc[:,0]
+    results = pd.DataFrame(columns=results_dict.keys())
+    for tool, res in results_dict.items():
+        #single_result = metrics(res, res.X, 
+        #                        batch_key=batch_key, group_key=group_key, cluster_key=cluster_key,
+        #                        silhouette_=silhouette_,  si_embed=si_embed, si_metric=si_metric,
+        #                        nmi_=nmi_, ari_=ari_, nmi_method=nmi_method, nmi_dir=nmi_dir,
+        #                        pcr_=pcr_, kBET_=kBET_, kBET_sub=kBET_sub,
+        #                        cell_cycle_=cell_cycle_, hvg=hvg, verbose=verbose)
+        results[tool] = res.iloc[:,0]
     
     return results.transpose()
 
