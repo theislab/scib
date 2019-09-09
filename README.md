@@ -18,7 +18,7 @@ Tools to be compared include:
 - [Harmony](https://github.com/immunogenomics/harmony)
 - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign)
-- [scAEspy](https://gitlab.com/cvejic-group/scaespy)
+- BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)?
 
 
 ## Data
