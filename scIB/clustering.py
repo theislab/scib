@@ -47,6 +47,11 @@ def opt_louvain(adata, label_key='cell_type', cluster_key='louvain', resolutions
             clustering = adata.obs[cluster_key]
         del adata.obs[cluster_key]
     
+    if verbose:
+        print(f'optimised clustering against {label_key}')
+        print(f'optimal cluster resolution: {opt_clus[0]}')
+        print(f'optimal NMI: {opt_clus[1]}')
+    
     nmi_all = pd.DataFrame(zip(resolutions, nmi_all), columns=('resolution', 'NMI'))
     if plot:
         # NMI vs. resolution profile

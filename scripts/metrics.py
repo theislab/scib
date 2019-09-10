@@ -15,13 +15,14 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description='Compute all metrics')
 
-    parser.add_argument('-i', '--input_file', required=True)
+    parser.add_argument('-a', '--uncorrected', required=True)
+    parser.add_argument('-i', '--integrated', required=True)
     parser.add_argument('-m', '--metrics', required=True, help='output location of metrics csv')
     parser.add_argument('-n', '--nmi', required=True, help='output location of nmi values of optimised clustering for later plotting')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
     parser.add_argument('-c', '--cluster_key', required=True, help='Name of key to be created for cluster assignment')
-    parser.add_argument('-e', '--type', help='Type of result: full, embed, knn')
+    parser.add_argument('-t', '--type', help='Type of result: full, embed, knn')
     parser.add_argument('-s', '--s_phase', default=None, help='S-phase marker genes')
     parser.add_argument('-g', '--g2m_phase', default=None, help='G2-/M-phase marker genes')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=None, type=int)
@@ -43,15 +44,27 @@ if __name__=='__main__':
     
     ###
     
-    print("reading file")
-    adata = sc.read(args.input_file, cache=True)
+    print("reading files")
+    adata = sc.read(args.uncorrected, cache=True)
+    print("adata before integration")
     print(adata)
+    adata_int = sc.read(args.integrated, cache=True)
+    print("adata after integration")
+    print(adata_int)
+    
+    # metric flags
+    si_embed = ['X_pca']
     
     if (args.type == "embed"):
+        si_embed.append("embed")
+    elif (args.type == "knn"):
+        hvg = False
+        pca = False
+        neighbors = False
     
     print("reducing data")
-    scIB.preprocessing.reduce_data(adata,
-                                   neighbors=True, pca=True, umap=False,
+    scIB.preprocessing.reduce_data(adata, umap=False,
+                                   neighbors=neighbors, pca=pca,
                                    hvg=hvg, n_top_genes=args.hvgs)
     
     print("clustering")
@@ -74,15 +87,12 @@ if __name__=='__main__':
             sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
     
     print("computing metrics")
-    embed = (args.type == 'embed')
-    si_embed = 'X_pca'
-    
-    results = scIB.me.metrics(adata, matrix=adata.X, hvg=hvg
+    results = scIB.me.metrics(adata, adata_int, hvg=hvg
                     batch_key=batch_key, group_key=label_key, cluster_key=cluster_key,
                     silhouette_=True,  si_embed=si_embed, si_metric='euclidean',
-                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+                    nmi_=nmi_, ari_=True, nmi_method='max', nmi_dir=None, 
                     pcr_=True, kBET_=False, cell_cycle_=cc, verbose=False
-                    )
+            )
     # save metrics' results
     results.to_csv(args.metrics)
     

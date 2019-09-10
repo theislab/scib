@@ -17,7 +17,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette_score(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
+def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
@@ -29,7 +29,17 @@ def silhouette_score(adata, group_key='cell_type', metric='euclidean', embed='X_
     
     return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
 
-def silhouette_score_mix(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
+def silhouette_comp(adata_pre, adata_post, group_key='cell_type', metric='euclidean', embed='X_pca'):
+    before = silhouette_score(adata_pre, group_key=group_key, metric=metric, embed=embed)
+    after = silhouette_score(adata_post, group_key=group_key, metric=metric, embed=embed)
+    return after - before
+
+def silhouette_batch_comp(adata_pre, adata_post, batch_key, group_key, embed='X_pca'):
+    before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, embed=embed, verbose=False)
+    after = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, embed=embed, verbose=False)
+    return after - before
+
+def silhouette_batch(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
                      embed='X_pca', means=False, verbose=True):
     """
     Silhouette score of batch labels subsetted for each group.
@@ -163,8 +173,8 @@ def nmi(adata, group1, group2, method="max", nmi_dir=None):
     Normalized mutual information NMI based on 2 different cluster assignments `group1` and `group2`
     params:
         adata: Anndata object
-        group1: column name of `adata.obs`
-        group2: column name of `adata.obs`
+        group1: column name of `adata.obs` or group assignment
+        group2: column name of `adata.obs` or group assignment
         method: NMI implementation
             'max': scikit method with `average_method='max'`
             'min': scikit method with `average_method='min'`
@@ -177,41 +187,36 @@ def nmi(adata, group1, group2, method="max", nmi_dir=None):
         normalized mutual information (NMI)
     """
     
+    checkAdata(adata)
+    
+    if isinstance(group1, str):
+        checkBatch(group1, adata.obs)
+        group1 = adata.obs[group1].tolist()
+    elif isinstance(group1, pd.Series):
+        group1 = group1.tolist()
+        
+    if isinstance(group2, str):
+        checkBatch(group2, adata.obs)
+        group2 = adata.obs[group2].tolist()
+    elif isinstance(group2, pd.Series):
+        group2 = group2.tolist()
+    
+    if len(group1) != len(group2):
+        raise ValueError(f'different lengths in group1 ({len(group1)}) and group2 ({len(group2)})')
+    
+    # choose method
     if method in ['max', 'min', 'geometric', 'arithmetic']:
-        nmi_value = nmi_scikit(adata, group1, group2, average_method=method)
+        sklearn.metrics.normalized_mutual_info_score(group1, group2, average_method=method)
     elif method == "Lancichinetti":
-        nmi_value = nmi_Lanc(adata, group1, group2, nmi_dir=nmi_dir)
+        nmi_value = nmi_Lanc(group1, group2, nmi_dir=nmi_dir)
     elif method == "ONMI":
-        nmi_value = onmi(adata, group1, group2, nmi_dir=nmi_dir)
+        nmi_value = onmi(group1, group2, nmi_dir=nmi_dir)
     else:
         raise ValueError(f"Method {method} not valid")
     
     return nmi_value
 
-
-def nmi_scikit(adata, group1, group2, average_method='max'):
-    """
-    implementation from scikit-learn
-    params:
-        average_method: different ways of averaging for normalization
-            'max': scikit method with `average_method='max'`
-            'min': scikit method with `average_method='min'`
-            'geometric': scikit method with `average_method='geometric'`
-            'arithmetic': scikit method with `average_method='arithmetic'`
-    """
-    checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
-    
-    from sklearn.metrics import normalized_mutual_info_score
-    
-    group1_list = adata.obs[group1].tolist()
-    group2_list = adata.obs[group2].tolist()
-    
-    return normalized_mutual_info_score(group1_list, group2_list, average_method=average_method)
-    
-
-def onmi(adata, group1, group2, nmi_dir=None, verbose=True):
+def onmi(group1, group2, nmi_dir=None, verbose=True):
     """
     Based on implementation https://github.com/aaronmcdaid/Overlapping-NMI
     publication: Aaron F. McDaid, Derek Greene, Neil Hurley 2011
@@ -219,18 +224,14 @@ def onmi(adata, group1, group2, nmi_dir=None, verbose=True):
         nmi_dir: directory of compiled C code
     """
     
-    checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
-    
     if nmi_dir is None:
         raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
     
     import subprocess
     import os
     
-    group1_file = write_tmp_labels(adata, group1, to_int=False)
-    group2_file = write_tmp_labels(adata, group2, to_int=False)
+    group1_file = write_tmp_labels(group1, to_int=False)
+    group2_file = write_tmp_labels(group2, to_int=False)
     
     nmi_call = subprocess.Popen(
         [nmi_dir+"onmi", group1_file, group2_file], 
@@ -255,14 +256,12 @@ def onmi(adata, group1, group2, nmi_dir=None, verbose=True):
     return nmi_max
 
 
-def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/", verbose=True):
+def nmi_Lanc(group1, group2, nmi_dir="external/mutual3/", verbose=True):
     """
     paper by A. Lancichinetti 2009
     https://sites.google.com/site/andrealancichinetti/mutual
     recommended by Malte
     """
-    
-    checkAdata(adata)
     
     if nmi_dir is None:
         raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
@@ -270,8 +269,8 @@ def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/", verbose=True):
     import subprocess
     import os
     
-    group1_file = write_tmp_labels(adata, group1, to_int=False)
-    group2_file = write_tmp_labels(adata, group2, to_int=False)
+    group1_file = write_tmp_labels(group1, to_int=False)
+    group2_file = write_tmp_labels(group2, to_int=False)
     
     nmi_call = subprocess.Popen(
         [nmi_dir+"mutual", group1_file, group2_file], 
@@ -285,31 +284,26 @@ def nmi_Lanc(adata, group1, group2, nmi_dir="external/mutual3/", verbose=True):
     
     return float(nmi_out.split('\t')[1])
 
-def write_tmp_labels(adata, group_name, to_int=False, delim='\n'):
+def write_tmp_labels(group_assignments, to_int=False, delim='\n'):
     """
     write the values of a specific obs column into a temporary file in text format
     params:
-        adata: anndata object
-        group_name: name of column to be saved
-        to_int: rename the unique column entries by integers in range(1,len(adata.obs[group_name])+1)
+        to_int: rename the unique column entries by integers in range(1,len(group_assignments)+1)
     """
     import tempfile
-    
-    checkAdata(adata)
-    checkBatch(group_name, adata.obs)
     
     if to_int:
         label_map = {}
         i = 1
-        for label in adata.obs[group_name].unique():
+        for label in set(group_assignments):
             label_map[label] = i
             i += 1
-        labels = delim.join([str(label_map[name]) for name in adata.obs[group_name]])
+        labels = delim.join([str(label_map[name]) for name in group_assignments])
     else:
-        labels = delim.join([str(name) for name in adata.obs[group_name]])
+        labels = delim.join([str(name) for name in group_assignments])
         
-    clusters = {label:[] for label in adata.obs[group_name].unique()}
-    for i, label in enumerate(adata.obs[group_name]):
+    clusters = {label:[] for label in set(group_assignments)}
+    for i, label in enumerate(group_assignments):
         clusters[label].append(str(i))
     
     output = '\n'.join([' '.join(c) for c in clusters.values()])
@@ -330,16 +324,25 @@ def ari(adata, group1, group2):
         group1: "true" cluster assignments
         group2: "predicted" cluster assignments
     """
-    from sklearn.metrics.cluster import adjusted_rand_score
     
     checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
     
-    group1_list = adata.obs[group1].tolist()
-    group2_list = adata.obs[group2].tolist()
+    if isinstance(group1, str):
+        checkBatch(group1, adata.obs)
+        group1 = adata.obs[group1].tolist()
+    elif isinstance(group1, pd.Series):
+        group1 = group1.tolist()
+        
+    if isinstance(group2, str):
+        checkBatch(group2, adata.obs)
+        group2 = adata.obs[group2].tolist()
+    elif isinstance(group2, pd.Series):
+        group2 = group2.tolist()
     
-    return adjusted_rand_score(group1_list, group2_list)
+    if len(group1) != len(group2):
+        raise ValueError(f'different lengths in group1 ({len(group1)}) and group2 ({len(group2)})')
+    
+    return sklearn.metrics.cluster.adjusted_rand_score(group1, group2)
 
 
 ### Cell cycle effect
@@ -365,8 +368,8 @@ def cell_cycle(adata, hvg=False, s_phase_key='S_score', g2m_phase_key='G2M_score
 
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
-    hvg_pre= set(hvg_intersect(adata_pre, batch=batch, max_genes=n_hvg))
-    hvg_post= set(hvg_intersect(adata_post, batch=batch, max_genes=n_hvg))
+    hvg_pre= set(hvg_intersect(adata_pre, batch=batch, target_genes=n_hvg))
+    hvg_post= set(hvg_intersect(adata_post, batch=batch, target_genes=n_hvg))
     jaccard = len(hvg_pre.intersection(hvg_post))/len(hvg_pre.union(hvg_post))
     return jaccard
 
@@ -633,7 +636,7 @@ def metrics_all(results_dict#,
     
     return results.transpose()
 
-def metrics(adata, matrix=None, 
+def metrics(adata, adata_int,
             batch_key='study', group_key='cell_type', cluster_key=None,
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
@@ -648,44 +651,75 @@ def metrics(adata, matrix=None,
         nmi: compute normalized mutual information NMI
     """
     
-    if matrix is None:
-        matrix = adata.X
+    checkAdata(adata)
+    checkBatch(batch_key, adata.obs)
+    checkBatch(group_key, adata.obs)
+    
+    checkAdata(adata_int)
+    checkBatch(batch_key, adata_int.obs)
+    checkBatch(group_key, adata_int.obs)
+    
     
     # clustering if necessary
     if cluster_key is None:
-        opt_clus = opt_louvain(adata, label_key=group_key, cluster_key=cluster_key, 
-                               plot=False, verbose=verbose)
-        
-        print(f'optimised clustering against {group_key}')
-        print(f'optimal cluster resolution: {opt_clus[0]}')
-        print(f'optimal NMI: {opt_clus[1]}')
+        cluster_key = 'louvain'
+        opt_louvain(adata, label_key=group_key, cluster_key=cluster_key,
+                    plot=False, verbose=verbose, inplace=True, force=True)
     
     results = {'HVG': hvg}
     
     if silhouette_:
         print('silhouette score...')
-        results['label silhouette'] =  silhouette_score(adata, group_key=group_key, 
-                                                        metric='euclidean', embed=si_embed)
-        si = silhouette_score_mix(adata, batch_key=batch_key, group_key=group_key,
-                              metric='euclidean', embed=si_embed, verbose=False)
-        results['batch silhouette per label'] =  si['silhouette_score'].mean()
+        for emb in si_embed:
+            for group in [group_key, cluster_key]:
+                # global silhouette coefficient
+                sil = silhouette_comp(adata, adata_int, group_key=group, embed=emb)
+                results[f'sil_{group}_{emb})'] = sil
+                # silhouette coefficient per batch
+                sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=group, embed=emb)
+                results[f'sil_{batch_key}_{group}_{emb}'] = sil['silhouette_score'].mean()
         
     if nmi_:
         print('NMI...')
-        results['NMI'] = nmi(adata, group1=batch_key, group2=group_key,
-                             method=nmi_method, nmi_dir=nmi_dir)
+        before = nmi(adata, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
+        after = nmi(adata_int, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
+        results[f'NMI_{batch_key}_{group_key}'] = after - before
+        # batch_key
+        results[f'NMI_{batch_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
+                                          group1=adata.obs[batch_key],
+                                          group2=adata_int.obs[batch_key])
+        # group/label_key
+        results[f'NMI_{group_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
+                                          group1=adata.obs[group_key],
+                                          group2=adata_int.obs[group_key])
+        
     if ari_:
         print('ARI...')
-        results['ARI'] = ari(adata, group1=batch_key, group2=group_key)
+        before = ari(adata, group1=batch_key, group2=group_key)
+        after = ari(adata_int, group1=batch_key, group2=group_key)
+        results[f'ARI_{batch_key}_{group_key}'] = after - before
+        # batch_key
+        results[f'ARI_{batch_key}'] = nmi(adata,
+                                          group1=adata.obs[batch_key],
+                                          group2=adata_int.obs[batch_key])
+        # group/label_key
+        results[f'ARI_{group_key}'] = nmi(adata,
+                                          group1=adata.obs[group_key],
+                                          group2=adata_int.obs[group_key])
     
     if cell_cycle_:
         print('cell cycle effect...')
-        results['S-phase'], results['G2M-phase'] = cell_cycle(
-            adata, hvg=hvg, s_phase_key='S_score', g2m_phase_key='G2M_score')
+        before = cell_cycle(adata, hvg=hvg)
+        after = cell_cycle(adata_int, hvg=hvg)
+        results['S-phase'] = after[0] - before[0]
+        results['G2M-phase'] = after[1] - before[1]
+    
     if pcr_:
         print('PC regression...')
-        results['PCR batch'] = pcr(adata, covariate=batch_key, pca=True, verbose=verbose)
-        results['PCR label'] = pcr(adata, covariate=group_key, pca=True, verbose=verbose)
+        # batch key
+        results[f'PCR {batch_key}'] = pcr(adata, covariate=batch_key, pca=True, verbose=verbose) - pcr(adata_int, covariate=batch_key, pca=True, verbose=verbose)
+        # group key
+        results[f'PCR {group_key}'] = pcr(adata, covariate=group_key, pca=True, verbose=verbose) - pcr(adata_int, covariate=group_key, pca=True, verbose=verbose)
     
     if kBET_:
         print('kBET...')
