@@ -320,12 +320,15 @@ def reduce_data(adata, subset=False,
     
     if hvg:
         print("HVG")
-        # quick fix: HVG doesn't work on dense matrix
-        if not sparse.issparse(adata.X):
-            adata.X = sparse.csr_matrix(adata.X)
-        if filter:
-            sc.pp.filter_genes(adata, min_cells=1)
-        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
+        ## quick fix: HVG doesn't work on dense matrix
+        #if not sparse.issparse(adata.X):
+        #    adata.X = sparse.csr_matrix(adata.X)
+        #if filter:
+        #    sc.pp.filter_genes(adata, min_cells=1)
+        #sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
+        
+        hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
+        adata.var['highly_variable'] = adata.var_names in hvg_list
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
         
