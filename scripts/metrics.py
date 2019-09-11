@@ -54,13 +54,15 @@ if __name__=='__main__':
     print(adata_int)
     
     # metric flags
-    si_embed = ['X_pca']
+    si_embed_before = si_embed_after = 'X_pca'
     neighbors = True
     pca = True
     pcr_ = True
     
     if (args.type == "embed"):
-        si_embed.append("embed")
+        si_embed_after = "embed"
+        adata_int.obsm["embed"] = adata_int.obsm["X_pca"].copy()
+        print(adata)
     elif (args.type == "knn"):
         hvg = False
         neighbors = False
@@ -98,8 +100,8 @@ if __name__=='__main__':
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
                     batch_key=batch_key, group_key=label_key, cluster_key=cluster_key,
-                    silhouette_=True,  si_embed=si_embed, si_metric='euclidean',
-                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+                    silhouette_=True,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
+                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
             )
     # save metrics' results

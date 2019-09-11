@@ -29,14 +29,14 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     
     return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
 
-def silhouette_comp(adata_pre, adata_post, group_key, metric='euclidean', embed='X_pca'):
-    before = silhouette(adata_pre, group_key=group_key, metric=metric, embed=embed)
-    after = silhouette(adata_post, group_key=group_key, metric=metric, embed=embed)
+def silhouette_comp(adata_pre, adata_post, group_key, metric='euclidean', embed_pre='X_pca', embed_post='X_pca'):
+    before = silhouette(adata_pre, group_key=group_key, metric=metric, embed=embed_pre)
+    after = silhouette(adata_post, group_key=group_key, metric=metric, embed=embed_post)
     return after - before
 
-def silhouette_batch_comp(adata_pre, adata_post, batch_key, group_key, embed='X_pca'):
-    _, before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed, verbose=False)
-    _, after = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed, verbose=False)
+def silhouette_batch_comp(adata_pre, adata_post, batch_key, group_key, embed_pre='X_pca', embed_post='X_pca'):
+    _, before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed_pre, verbose=False)
+    _, after = silhouette_batch(adata_post, batch_key=batch_key, group_key=group_key, means=True, embed=embed_post, verbose=False)
     return np.mean(after['silhouette_score']) - np.mean(before['silhouette_score'])
 
 def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
@@ -633,7 +633,7 @@ def metrics_all(results_dict#,
     return results.transpose()
 
 def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
-            silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+            silhouette_=True,  si_embed_pre='X_pca', si_embed_post='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
             cell_cycle_=True, hvg=True, verbose=False
@@ -664,16 +664,15 @@ def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
     
     if silhouette_:
         print('silhouette score...')
-        if isinstance(si_embed, str):
-            si_embed = [si_embed]
-        for emb in si_embed:
-            for group in [group_key, cluster_key]:
-                # global silhouette coefficient
-                sil = silhouette_comp(adata, adata_int, group_key=group, embed=emb)
-                results[f'sil {group}/{emb}'] = sil
-                # silhouette coefficient per batch
-                sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=group, embed=emb)
-                results[f'sil {batch_key}/{group}/{emb}'] = sil
+        for group in [group_key, cluster_key]:
+            # global silhouette coefficient
+            sil = silhouette_comp(adata, adata_int, group_key=group,
+                    embed_pre=si_embed_pre, embed_post=si_embed_post)
+            results[f'sil {group}/{si_embed_post}'] = sil
+            # silhouette coefficient per batch
+            sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=group,
+                    embed_pre=si_embed_pre, embed_post=si_embed_post)
+            results[f'sil {batch_key}/{group}/{si_embed_post}'] = sil
         
     if nmi_:
         print('NMI...')
