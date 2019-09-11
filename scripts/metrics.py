@@ -73,7 +73,7 @@ if __name__=='__main__':
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
                                    hvg=hvg, n_top_genes=args.hvgs)
-    scIB.preprocessing.reduce_data(adata_int, batch_key=None, umap=False,
+    scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
                                    hvg=hvg, n_top_genes=args.hvgs)
     
