@@ -35,7 +35,7 @@ def runScanorama(adata, batch, hvg = None):
 
     return corrected
 
-def runScGen(adata, batch, hvg=None):
+def runTrVae(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import trvae
 
@@ -71,8 +71,6 @@ def runScGen(adata, batch, hvg=None):
 
     network.get_corrected(adata, labels, return_z=False)
     
-    network.sess.close()
-
     adata.obsm['X_emb'] = adata.obsm['mmd_latent']
     del adata.obsm['mmd_latent']
     adata.X = adata.obsm['reconstructed']
