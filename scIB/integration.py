@@ -30,8 +30,8 @@ def runScanorama(adata, batch, hvg = None):
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
     emb = np.concatenate(emb, axis=0)
-    corrected.obsm['X_pca']= emb
-    corrected.uns['emb']=True
+    corrected.obsm['X_emb']= emb
+    #corrected.uns['emb']=True
 
     return corrected
 
@@ -40,31 +40,42 @@ def runScGen(adata, batch, hvg=None):
     import trvae
 
     n_batches = len(adata.obs[batch].cat.categories)
-    
-    network = trvae.archs.trVAEMulti(x_dimension=full_adata.shape[1],
-                                     n_conditions=n_batches,
-                                     output_activation='relu')
+
+    train_adata, valid_adata = trvae.utils.train_test_split(
+        adata,
+        train_frac=0.80
+    )
 
     condition_encoder = trvae.utils.create_dictionary(
         adata.obs[batch].cat.categories.tolist(), [])
 
-    network.train(train_adata=adata,
-                  valid_adata=None,   #Use default splitting of adata
-                  condition_key=batch,
-                  condition_encoder=condition_encoder,
-                  verbose=0)
+    network = trvae.archs.trVAEMulti(
+        x_dimension=train_adata.shape[1],
+        n_conditions=n_batches,
+        output_activation='relu'
+    )
 
-    labels, _ = trvae.tl.label_encoder(adata,
-                                       condition_key=batch,
-                                       label_encoder=condition_encoder)
+    network.train(
+        train_adata,
+        valid_adata,
+        condition_key=batch,
+        condition_encoder=condition_encoder,
+        verbose=0,
+    )
+
+    labels, _ = trvae.tl.label_encoder(
+        adata,
+        condition_key=batch,
+        label_encoder=condition_encoder,
+    )
 
     network.get_corrected(adata, labels, return_z=False)
     
     network.sess.close()
 
-    # Currently new data is stored in
-    # - adata.obsm['reconstructed'] : for batch-corrected data - this might still change
-    # - adata.obsm['mmd_latent'] : for latent space embedding
+    adata.obsm['X_emb'] = adata.obsm['mmd_latent']
+    del adata.obsm['mmd_latent']
+    adata.X = adata.obsm['reconstructed']
     
     return adata
 
@@ -128,8 +139,8 @@ def runHarmony(adata, batch, hvg = None):
     emb = ro.r('harmonyEmb')
     ro.pandas2ri.deactivate()
     out = adata.copy()
-    out.obsm['X_pca']= emb
-    out.uns['emb']=True
+    out.obsm['X_emb']= emb
+    #out.uns['emb']=True
 
     return out
 
