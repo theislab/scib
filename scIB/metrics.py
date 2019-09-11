@@ -60,18 +60,10 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
     
     sil_all = pd.DataFrame(columns=['group', 'silhouette_score'])
     
-    # ony look at group labels that are present for all batches
-    n_batch = adata.obs[batch_key].nunique()
-    groups = adata.obs.groupby(group_key)[batch_key].nunique()
-    groups = groups[groups == n_batch]
-    if len(groups) == 0:
-        print(f'not all batches are contained in all groups')
-        if means:
-            return sil_all, pd.Series()
-        return sil_all
-    
-    for group in groups.index:
+    for group in adata.obs[group_key].unique():
         adata_group = adata[adata.obs[group_key] == group]
+        if adata_group.obs[batch_key].nunique() == 1:
+            continue
         sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
                                                adata_group.obs[batch_key],
                                                metric=metric)
