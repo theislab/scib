@@ -29,17 +29,17 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     
     return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
 
-def silhouette_comp(adata_pre, adata_post, group_key='cell_type', metric='euclidean', embed='X_pca'):
-    before = silhouette_score(adata_pre, group_key=group_key, metric=metric, embed=embed)
-    after = silhouette_score(adata_post, group_key=group_key, metric=metric, embed=embed)
+def silhouette_comp(adata_pre, adata_post, group_key, metric='euclidean', embed='X_pca'):
+    before = silhouette(adata_pre, group_key=group_key, metric=metric, embed=embed)
+    after = silhouette(adata_post, group_key=group_key, metric=metric, embed=embed)
     return after - before
 
 def silhouette_batch_comp(adata_pre, adata_post, batch_key, group_key, embed='X_pca'):
-    before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, embed=embed, verbose=False)
-    after = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, embed=embed, verbose=False)
-    return after - before
+    _, before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed, verbose=False)
+    _, after = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed, verbose=False)
+    return np.mean(after['silhouette_score']) - np.mean(before['silhouette_score'])
 
-def silhouette_batch(adata, batch_key='study', group_key='cell_type', metric='euclidean', 
+def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
                      embed='X_pca', means=False, verbose=True):
     """
     Silhouette score of batch labels subsetted for each group.
@@ -89,7 +89,7 @@ def silhouette_batch(adata, batch_key='study', group_key='cell_type', metric='eu
     
     return sil_all
 
-def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', metric='euclidean', 
+def plot_silhouette_score(adata_dict, batch_key, group_key, metric='euclidean', 
                      embed='X_pca', palette='Dark2', per_group=False, verbose=True):
     """
     params:
@@ -99,7 +99,7 @@ def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', 
     with sns.color_palette(palette):
         for label, adata in adata_dict.items():
             checkAdata(adata)
-            sil_scores = silhouette_score(adata, 
+            sil_scores = silhouette(adata, 
                                           batch_key=batch_key,
                                           group_key=group_key,
                                           metric=metric,
@@ -112,7 +112,7 @@ def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', 
         
         if per_group:
             for data_set, adata in adata_dict.items():
-                sil_scores = silhouette_score(adata,
+                sil_scores = silhouette(adata,
                                               batch_key=batch_key,
                                               group_key=group_key,
                                               metric=metric,
@@ -127,7 +127,7 @@ def plot_silhouette_score(adata_dict, batch_key='study', group_key='cell_type', 
                 plt.show()
 
 ### Naive cluster overlap
-def cluster_overlap(adata, group1='louvain', group2='louvain_post'):
+def cluster_overlap(adata, group1, group2):
     
     checkAdata(adata)
     checkBatch(group1, adata.obs)
@@ -206,7 +206,8 @@ def nmi(adata, group1, group2, method="max", nmi_dir=None):
     
     # choose method
     if method in ['max', 'min', 'geometric', 'arithmetic']:
-        sklearn.metrics.normalized_mutual_info_score(group1, group2, average_method=method)
+        from sklearn.metrics import normalized_mutual_info_score
+        nmi_value = normalized_mutual_info_score(group1, group2, average_method=method)
     elif method == "Lancichinetti":
         nmi_value = nmi_Lanc(group1, group2, nmi_dir=nmi_dir)
     elif method == "ONMI":
@@ -342,7 +343,8 @@ def ari(adata, group1, group2):
     if len(group1) != len(group2):
         raise ValueError(f'different lengths in group1 ({len(group1)}) and group2 ({len(group2)})')
     
-    return sklearn.metrics.cluster.adjusted_rand_score(group1, group2)
+    from sklearn.metrics.cluster import adjusted_rand_score
+    return adjusted_rand_score(group1, group2)
 
 
 ### Cell cycle effect
@@ -354,8 +356,8 @@ def cell_cycle(adata, hvg=False, s_phase_key='S_score', g2m_phase_key='G2M_score
         g2m_phase_key: key of column containing G2M-phase score
     
     """
-    s_phase = pcr(adata, adata.X, hvg=hvg, covariate=s_phase_key)
-    g2m_phase = pcr(adata, adata.X, hvg=hvg, covariate=g2m_phase_key)
+    s_phase = pcr(adata, hvg=hvg, covariate=s_phase_key)
+    g2m_phase = pcr(adata, hvg=hvg, covariate=g2m_phase_key)
     
     return s_phase, g2m_phase
     
@@ -513,7 +515,7 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     anndata2ri.deactivate()
     return ro.r("batch.estimate$average.pval")[0]
 
-def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
+def kBET(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
@@ -526,6 +528,9 @@ def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
     checkAdata(adata)
     checkBatch(covariate_key, adata.obs)
     checkBatch(cluster_key, adata.obs)
+    
+    if matrix is None:
+        matrix = adata.X
     
     if hvg:
         hvg_idx = get_hvg_indices(adata)
@@ -556,7 +561,6 @@ def kBET(adata, matrix, covariate_key='sample', cluster_key='louvain',
     kBET_scores = kBET_scores.reset_index(drop=True)
     
     return kBET_scores
-
 
 def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='louvain', hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
@@ -611,7 +615,7 @@ def measureTM(*args, **kwargs):
 
 ### All Metrics
 def metrics_all(results_dict#,
-                #batch_key='study', group_key='cell_type', cluster_key=None,
+                #batch_key, group_key, cluster_key=None,
                 #silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
                 #nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                 #pcr_=True, kBET_=True, kBET_sub=0.5,
@@ -636,8 +640,7 @@ def metrics_all(results_dict#,
     
     return results.transpose()
 
-def metrics(adata, adata_int,
-            batch_key='study', group_key='cell_type', cluster_key=None,
+def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
@@ -647,7 +650,7 @@ def metrics(adata, adata_int,
     summary of all metrics for one Anndata object
     params:
         adata:
-        silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette_score` function for details)
+        silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette` function for details)
         nmi: compute normalized mutual information NMI
     """
     
@@ -661,8 +664,7 @@ def metrics(adata, adata_int,
     
     
     # clustering if necessary
-    if cluster_key is None:
-        cluster_key = 'louvain'
+    if cluster_key not in adata.obs:
         opt_louvain(adata, label_key=group_key, cluster_key=cluster_key,
                     plot=False, verbose=verbose, inplace=True, force=True)
     
@@ -670,26 +672,28 @@ def metrics(adata, adata_int,
     
     if silhouette_:
         print('silhouette score...')
+        if isinstance(si_embed, str):
+            si_embed = [si_embed]
         for emb in si_embed:
             for group in [group_key, cluster_key]:
                 # global silhouette coefficient
                 sil = silhouette_comp(adata, adata_int, group_key=group, embed=emb)
-                results[f'sil_{group}_{emb})'] = sil
+                results[f'sil {group}/{emb}'] = sil
                 # silhouette coefficient per batch
                 sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=group, embed=emb)
-                results[f'sil_{batch_key}_{group}_{emb}'] = sil['silhouette_score'].mean()
+                results[f'sil {batch_key}/{group}/{emb}'] = sil
         
     if nmi_:
         print('NMI...')
         before = nmi(adata, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
         after = nmi(adata_int, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
-        results[f'NMI_{batch_key}_{group_key}'] = after - before
+        results[f'NMI {batch_key}/{group_key}'] = after - before
         # batch_key
-        results[f'NMI_{batch_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
+        results[f'NMI {batch_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
                                           group1=adata.obs[batch_key],
                                           group2=adata_int.obs[batch_key])
         # group/label_key
-        results[f'NMI_{group_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
+        results[f'NMI {group_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
                                           group1=adata.obs[group_key],
                                           group2=adata_int.obs[group_key])
         
@@ -697,13 +701,13 @@ def metrics(adata, adata_int,
         print('ARI...')
         before = ari(adata, group1=batch_key, group2=group_key)
         after = ari(adata_int, group1=batch_key, group2=group_key)
-        results[f'ARI_{batch_key}_{group_key}'] = after - before
+        results[f'ARI {batch_key}/{group_key}'] = after - before
         # batch_key
-        results[f'ARI_{batch_key}'] = nmi(adata,
+        results[f'ARI {batch_key}'] = nmi(adata,
                                           group1=adata.obs[batch_key],
                                           group2=adata_int.obs[batch_key])
         # group/label_key
-        results[f'ARI_{group_key}'] = nmi(adata,
+        results[f'ARI {group_key}'] = nmi(adata,
                                           group1=adata.obs[group_key],
                                           group2=adata_int.obs[group_key])
     
@@ -723,7 +727,7 @@ def metrics(adata, adata_int,
     
     if kBET_:
         print('kBET...')
-        kbet_scores = kBET(adata, matrix, covariate_key=batch_key, cluster_key=cluster_key,
+        kbet_scores = kBET(adata, covariate_key=batch_key, cluster_key=cluster_key,
                            hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
         results['kBET'] = kbet_scores['kBET'].mean()   
     

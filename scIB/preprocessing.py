@@ -249,7 +249,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     """
     
     checkAdata(adata)
-    if batch_key:
+    if batch_key is not None:
         checkBatch(batch_key, adata.obs)
     
     adata_hvg = adata if adataOut else adata.copy()
@@ -304,8 +304,8 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 
 ### Feature Reduction
-def reduce_data(adata, subset=False,
-                hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
+def reduce_data(adata, batch_key, subset=False,
+                hvg=True, filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
                 paga=False, paga_groups='cell_type', 
