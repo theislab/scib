@@ -33,7 +33,7 @@ def splitBatches(adata, batch, hvg= None):
     if hvg is not None:
         adata = adata[:, hvg]
     for i in adata.obs[batch].unique():
-        split.append(adata[adata.obs[batch]==i])
+        split.append(adata[adata.obs[batch]==i].copy())
     return split
 
 def merge_adata(adata_list, sep='-'):
