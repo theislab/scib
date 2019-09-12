@@ -50,7 +50,7 @@ if __name__=='__main__':
     print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
     print(adata)
-    if adata.n_vars < args.hvgs:
+    if (adata.n_vars < args.hvgs) and (args.hvgs is not None):
         raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
 
     print("reading adata after integration")
@@ -112,7 +112,8 @@ if __name__=='__main__':
                     silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
-            )
+                    )
+    results.columns['']
     # save metrics' results
     results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'), header=False)
     
