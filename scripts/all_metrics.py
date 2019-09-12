@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import scanpy as sc
+import pandas as pd
 import scIB
 import warnings
 warnings.filterwarnings('ignore')
@@ -18,21 +18,23 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Collect all metrics')
 
     parser.add_argument('-i', '--input', required=True, help='input directory')
-    parser.add_argument('-i', '--input', required=True, help='file')
+    parser.add_argument('-o', '--output', required=True, help='output file')
     args = parser.parse_args()
     
     ##
     
-    adata_dict = {}
+    res_dict = {}
     files = glob.glob(f'{args.input}*metrics*')
+    print(files)
     for file in files:
-        adata = sc.read(file)
-        nice_name = '_'.join(file.split('_')[2:3])
-        adata_dict[nice_name] = adata
+        res = pd.read_csv(file)
+        nice_name = '_'.join(file.split('_')[2:4])
+        print(nice_name)
+        res_dict[nice_name] = res
     
-    print(adata_dict)
+    print(res_dict)
     
     # call all_metrics function
-    results = scIB.me.all_metrics(adata_dict)
+    results = scIB.me.metrics_all(res_dict)
     results.to_csv(args.output)
     
