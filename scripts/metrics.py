@@ -104,7 +104,7 @@ if __name__=='__main__':
     
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
-                    batch_key=batch_key, group_key=label_key, cluster_key=cluster_key,
+                    batch_key=batch_key, label_key=label_key, cluster_key=cluster_key,
                     silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False

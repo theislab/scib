@@ -41,6 +41,7 @@ def opt_louvain(adata, label_key='cell_type', cluster_key='louvain', resolutions
     try:
         adata.uns['neighbors']
     except KeyError:
+        print('computing neigbours for opt_cluster')
         sc.pp.neighbors(adata)
 
     for res in resolutions:
