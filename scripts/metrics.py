@@ -86,7 +86,7 @@ if __name__=='__main__':
                         label_key=label_key, cluster_key=cluster_key, 
                         plot=False, force=True, inplace=True)
         # save data for NMI profile plot
-        nmi_all.to_csv(os.path.join(args.output, f'{key}_nmi.txt'), index=False)
+        nmi_all.to_csv(os.path.join(args.output, f'{key}_nmi.txt'), header=False)
     
     if cc:
         print("scoring cell cycle genes")
@@ -108,7 +108,7 @@ if __name__=='__main__':
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
             )
     # save metrics' results
-    results.to_csv(os.path.join(args.output, 'metrics.csv'), index=False)
+    results.to_csv(os.path.join(args.output, 'metrics.csv'), header=False)
     
     print("done")
 
