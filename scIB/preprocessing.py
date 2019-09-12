@@ -305,7 +305,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 ### Feature Reduction
 def reduce_data(adata, batch_key, subset=False,
-                hvg=True, filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
+                filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
                 paga=False, paga_groups='cell_type', 
@@ -318,6 +318,7 @@ def reduce_data(adata, batch_key, subset=False,
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
+    hvg = n_top_genes is not None
     if hvg:
         print("HVG")
         ## quick fix: HVG doesn't work on dense matrix

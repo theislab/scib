@@ -387,7 +387,7 @@ def pcr_comparison(adata, raw, corrected, pca=True, hvg=False, covariate='sample
     pcr_before = pcr(adata, matrix=raw, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
     pcr_after = pcr(adata, matrix=corrected, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
     
-    return pcr_before - pcr_after
+    return pcr_after - pcr_before
 
 def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
     """
@@ -676,9 +676,8 @@ def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
         
     if nmi_:
         print('NMI...')
-        before = nmi(adata, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
         after = nmi(adata_int, group1=batch_key, group2=group_key, method=nmi_method, nmi_dir=nmi_dir)
-        results[f'NMI_{batch_key}/{group_key}'] = after - before
+        results[f'NMI_{batch_key}/{group_key}'] = after
         # batch_key
         results[f'NMI_{batch_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
                                           group1=adata.obs[batch_key],
@@ -690,15 +689,14 @@ def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
         
     if ari_:
         print('ARI...')
-        before = ari(adata, group1=batch_key, group2=group_key)
         after = ari(adata_int, group1=batch_key, group2=group_key)
-        results[f'ARI {batch_key}/{group_key}'] = after - before
+        results[f'ARI {batch_key}/{group_key}'] = after
         # batch_key
-        results[f'ARI {batch_key}'] = nmi(adata,
+        results[f'ARI {batch_key}'] = ari(adata,
                                           group1=adata.obs[batch_key],
                                           group2=adata_int.obs[batch_key])
         # group/label_key
-        results[f'ARI {group_key}'] = nmi(adata,
+        results[f'ARI {group_key}'] = ari(adata,
                                           group1=adata.obs[group_key],
                                           group2=adata_int.obs[group_key])
     
@@ -711,15 +709,15 @@ def metrics(adata, adata_int, batch_key, group_key, cluster_key='louvain',
     
     if pcr_:
         print('PC regression...')
-        # batch key
-        results[f'PCR {batch_key}'] = pcr(adata, covariate=batch_key, pca=True, verbose=verbose) - pcr(adata_int, covariate=batch_key, pca=True, verbose=verbose)
-        # group key
-        results[f'PCR {group_key}'] = pcr(adata, covariate=group_key, pca=True, verbose=verbose) - pcr(adata_int, covariate=group_key, pca=True, verbose=verbose)
+        before = pcr(adata, covariate=batch_key, pca=True, verbose=verbose)
+        after = pcr(adata_int, covariate=batch_key, pca=True, verbose=verbose)
+        results[f'PCR {batch_key}'] = after - before
     
     if kBET_:
         print('kBET...')
-        kbet_scores = kBET(adata, covariate_key=batch_key, cluster_key=cluster_key,
+        kbet_scores = kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
                            hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
-        results['kBET'] = kbet_scores['kBET'].mean()   
+        results['kBET'] = kbet_scores['kBET'].mean()
+    #if hvg:
     
     return pd.DataFrame.from_dict(results, orient='index')
