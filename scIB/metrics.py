@@ -664,50 +664,59 @@ def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
     
     if silhouette_:
         print('silhouette score...')
-        for label in [label_key, cluster_key]:
-            # global silhouette coefficient
-            sil = silhouette_comp(adata, adata_int, group_key=label,
-                    embed_pre=si_embed_pre, embed_post=si_embed_post)
-            results[f'ASW_{label}/{si_embed_post}'] = sil
-            # silhouette coefficient per batch
-            sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, label_key=label,
-                    embed_pre=si_embed_pre, embed_post=si_embed_post)
-            results[f'ASW_{batch_key}/{label}/{si_embed_post}'] = sil
-        
+        # global silhouette coefficient
+        sil_global = silhouette_comp(adata, adata_int, group_key=label,
+                embed_pre=si_embed_pre, embed_post=si_embed_post)
+        # silhouette coefficient per batch
+        sil_clus = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, label_key=label,
+                embed_pre=si_embed_pre, embed_post=si_embed_post)
+    else:
+        sil_global = None
+        sil_clus = None
+    results[f'ASW_{label_key}/{si_embed_post}'] = sil_global
+    results[f'ASW_{label_key}/{batch_key}/{si_embed_post}'] = sil_clus
+
     if nmi_:
         print('NMI...')
-        after = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
-        results[f'NMI_{cluster_key}/{label_key}'] = after
-        #results[f'NMI_{label_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
-        #                                  group1=adata.obs[label_key],
-        #                                  group2=adata_int.obs[label_key])
-        
+        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
+    else:
+        nmi_score = None
+    results[f'NMI_{cluster_key}/{label_key}'] = nmi_score
+
     if ari_:
         print('ARI...')
-        after = ari(adata_int, group1=cluster_key, group2=label_key)
-        results[f'ARI {cluster_key}/{label_key}'] = after
-        #results[f'ARI {label_key}'] = ari(adata,
-        #                                  group1=adata.obs[label_key],
-        #                                  group2=adata_int.obs[label_key])
-    
+        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+    else:
+        ari_score = None
+    results[f'ARI {cluster_key}/{label_key}'] = ari_score
+
     if cell_cycle_:
         print('cell cycle effect...')
         before = cell_cycle(adata, hvg=hvg)
         after = cell_cycle(adata_int, hvg=hvg)
-        results['S-phase'] = after[0] - before[0]
-        results['G2M-phase'] = after[1] - before[1]
+        s_phase = after[0] - before[0]
+        g2m_phase = after[1] - before[1]
+    else:
+        s_phase = None
+        g2m_phase = None
+    results['S-phase'] = s_phase
+    results['G2M-phase'] = g2m_phase
     
     if pcr_:
         print('PC regression...')
         before = pcr(adata, covariate=batch_key, pca=True, verbose=verbose)
         after = pcr(adata_int, covariate=batch_key, pca=True, verbose=verbose)
-        results[f'PCR {batch_key}'] = after - before
+        pcr_score = after - before
+    else:
+        pcr_score = None
+    results[f'PCR {batch_key}'] = pcr_score
     
     if kBET_:
         print('kBET...')
-        kbet_scores = kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
-                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)
-        results['kBET'] = kbet_scores['kBET'].mean()
-    #if hvg:
+        kbet_score = np.mean(kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
+                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
+    else:
+        kbet_score = None
+    results['kBET'] = kbet_score
     
     return pd.DataFrame.from_dict(results, orient='index')
