@@ -45,14 +45,14 @@ if __name__=='__main__':
     
     ###
     
-    print("reading files")
+    print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
-    print("adata before integration")
     print(adata)
     if adata.n_vars < args.hvgs:
         raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+
+    print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
-    print("adata after integration")
     print(adata_int)
 
     # metric flags
@@ -61,6 +61,7 @@ if __name__=='__main__':
     pca = True
     pcr_ = True
     hvg = adata.n_vars == adata_int.n_vars
+    silhouette_ = True
     
     if (args.type == "embed"):
         si_embed_after = "embed"
@@ -70,13 +71,14 @@ if __name__=='__main__':
         hvg = False
         neighbors = False
         pcr_ = False
+        silhouette_ = False
     
     print("reducing data before integration")
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
                                    neighbors=True, pca=True, n_top_genes=args.hvgs)
     scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
-                                   hvg=hvg, n_top_genes=args.hvgs if hvg else None)
+                                   n_top_genes=args.hvgs if hvg else None)
     
     print("clustering")
     for key, data in {'uncorrected':adata, 'integrated':adata_int}.items():
