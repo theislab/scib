@@ -37,6 +37,9 @@ def opt_louvain(adata, label_key='cell_type', cluster_key='louvain', resolutions
     clustering = None
     nmi_all = []
     
+    #maren's edit
+    sc.pp.neighbors(adata)
+
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
         nmi = metrics.nmi(adata, group1=label_key, group2=cluster_key, method=nmi_method, nmi_dir=nmi_dir)
