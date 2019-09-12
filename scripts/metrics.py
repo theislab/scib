@@ -71,9 +71,9 @@ if __name__=='__main__':
     
     print("reducing data")
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
-                                   neighbors=neighbors, pca=pca,
+                                   neighbors=True, pca=pca,
                                    hvg=hvg, n_top_genes=args.hvgs)
-    scIB.preprocessing.reduce_data(adata_int, batch_key=None, umap=False,
+    scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
                                    hvg=hvg, n_top_genes=args.hvgs)
     
@@ -83,7 +83,7 @@ if __name__=='__main__':
                         label_key=label_key, cluster_key=cluster_key, 
                         plot=False, force=True, inplace=True)
         # save data for NMI profile plot
-        nmi_all.to_csv(os.path.join(args.output, f'{key}_nmi.txt'))
+        nmi_all.to_csv(os.path.join(args.output, f'{key}_nmi.txt'), index=False)
     
     if cc:
         print("scoring cell cycle genes")
@@ -105,7 +105,7 @@ if __name__=='__main__':
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
             )
     # save metrics' results
-    results.to_csv(os.path.join(args.output, 'metrics.tsv'))
+    results.to_csv(os.path.join(args.output, 'metrics.csv'), index=False)
     
     print("done")
 
