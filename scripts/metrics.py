@@ -12,6 +12,7 @@ if __name__=='__main__':
     """
     
     import argparse
+    import os
 
     parser = argparse.ArgumentParser(description='Compute all metrics')
 
@@ -20,14 +21,12 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
-    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn')
+    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn\n full: scnaorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('-c', '--cluster_key', default='louvain', help='Name of cluster key, use it for new clustering if key is not present')
     parser.add_argument('-s', '--s_phase', default=None, help='S-phase marker genes')
     parser.add_argument('-g', '--g2m_phase', default=None, help='G2-/M-phase marker genes')
     parser.add_argument('-v', '--hvgs', default=None, help='Number of highly variable genes', type=int)
     args = parser.parse_args()
-    
-    import os
     
     result_types = [
         "full", # reconstructed expression data
@@ -43,37 +42,45 @@ if __name__=='__main__':
     cc = (args.s_phase is not None) and (args.g2m_phase is not None)
     hvg = args.hvgs is not None
     
+    base = os.path.basename(args.integrated)
+    out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
+
     ###
     
-    print("reading files")
+    print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
-    print("adata before integration")
     print(adata)
+    if adata.n_vars < args.hvgs:
+        raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+
+    print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
-    print("adata after integration")
     print(adata_int)
-    
+
     # metric flags
-    si_embed = ['X_pca']
+    si_embed_before = si_embed_after = 'X_pca'
     neighbors = True
     pca = True
     pcr_ = True
+    hvg = adata.n_vars == adata_int.n_vars
+    silhouette_ = True
     
     if (args.type == "embed"):
-        si_embed.append("embed")
+        si_embed_after = "embed"
+        adata_int.obsm["embed"] = adata_int.obsm["X_pca"].copy()
+        hvg = False
     elif (args.type == "knn"):
         hvg = False
         neighbors = False
-        pca = False
         pcr_ = False
+        silhouette_ = False
     
-    print("reducing data")
+    print("reducing data before integration")
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
+                                   neighbors=True, pca=True, n_top_genes=args.hvgs)
+    scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
-                                   hvg=hvg, n_top_genes=args.hvgs)
-    scIB.preprocessing.reduce_data(adata_int, batch_key=None, umap=False,
-                                   neighbors=neighbors, pca=pca,
-                                   hvg=hvg, n_top_genes=args.hvgs)
+                                   n_top_genes=args.hvgs if hvg else None)
     
     print("clustering")
     for key, data in {'uncorrected':adata, 'integrated':adata_int}.items():
@@ -81,7 +88,7 @@ if __name__=='__main__':
                         label_key=label_key, cluster_key=cluster_key, 
                         plot=False, force=True, inplace=True)
         # save data for NMI profile plot
-        nmi_all.to_csv(os.path.join(args.output, f'{key}_nmi.txt'))
+        nmi_all.to_csv(os.path.join(args.output, f'{out_prefix}_{key}_nmi.txt'), header=False)
     
     if cc:
         print("scoring cell cycle genes")
@@ -102,12 +109,12 @@ if __name__=='__main__':
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
                     batch_key=batch_key, group_key=label_key, cluster_key=cluster_key,
-                    silhouette_=True,  si_embed=si_embed, si_metric='euclidean',
-                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+                    silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
+                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
             )
     # save metrics' results
-    results.to_csv(os.path.join(args.output, 'metrics.tsv'))
+    results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'), header=False)
     
     print("done")
 

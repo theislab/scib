@@ -305,7 +305,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 ### Feature Reduction
 def reduce_data(adata, batch_key, subset=False,
-                hvg=True, filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
+                filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
                 paga=False, paga_groups='cell_type', 
@@ -318,6 +318,7 @@ def reduce_data(adata, batch_key, subset=False,
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
+    hvg = n_top_genes is not None
     if hvg:
         print("HVG")
         ## quick fix: HVG doesn't work on dense matrix
@@ -328,7 +329,7 @@ def reduce_data(adata, batch_key, subset=False,
         #sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
         
         hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
-        adata.var['highly_variable'] = adata.var_names in hvg_list
+        adata.var['highly_variable'] = np.in1d(adata.var_names,hvg_list)
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
         
