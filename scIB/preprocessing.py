@@ -328,7 +328,7 @@ def reduce_data(adata, batch_key, subset=False,
         #sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
         
         hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
-        adata.var['highly_variable'] = adata.var_names in hvg_list
+        adata.var['highly_variable'] = np.in1d(adata.var_names,hvg_list)
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
         
