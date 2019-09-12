@@ -43,7 +43,7 @@ if __name__=='__main__':
     hvg = args.hvgs is not None
     
     base = os.path.basename(args.integrated)
-    out_prefix = os.path.splitext(base)[0]
+    out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
 
     ###
     
