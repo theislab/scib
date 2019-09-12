@@ -101,6 +101,10 @@ if __name__=='__main__':
             cc = False
         else:
             sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+    elif ('G2M_score' in adata.obs.columns) and ('S_score' in adata.obs.columns):
+        cc = True
+    else:
+        cc = False
     
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
