@@ -668,37 +668,27 @@ def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
             # global silhouette coefficient
             sil = silhouette_comp(adata, adata_int, group_key=label,
                     embed_pre=si_embed_pre, embed_post=si_embed_post)
-            results[f'sil_{label}/{si_embed_post}'] = sil
+            results[f'ASW_{label}/{si_embed_post}'] = sil
             # silhouette coefficient per batch
             sil = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, label_key=label,
                     embed_pre=si_embed_pre, embed_post=si_embed_post)
-            results[f'sil_{batch_key}/{label}/{si_embed_post}'] = sil
+            results[f'ASW_{batch_key}/{label}/{si_embed_post}'] = sil
         
     if nmi_:
         print('NMI...')
-        after = nmi(adata_int, group1=batch_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
-        results[f'NMI_{batch_key}/{label_key}'] = after
-        # batch_key
-        #results[f'NMI_{batch_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
-        #                                  group1=adata.obs[batch_key],
-        #                                  group2=adata_int.obs[batch_key])
-        # label_key
-        results[f'NMI_{label_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
-                                          group1=adata.obs[label_key],
-                                          group2=adata_int.obs[label_key])
+        after = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
+        results[f'NMI_{cluster_key}/{label_key}'] = after
+        #results[f'NMI_{label_key}'] = nmi(adata, method=nmi_method, nmi_dir=nmi_dir,
+        #                                  group1=adata.obs[label_key],
+        #                                  group2=adata_int.obs[label_key])
         
     if ari_:
         print('ARI...')
-        after = ari(adata_int, group1=batch_key, group2=label_key)
-        results[f'ARI {batch_key}/{label_key}'] = after
-        # batch_key
-        #results[f'ARI {batch_key}'] = ari(adata,
-        #                                  group1=adata.obs[batch_key],
-        #                                  group2=adata_int.obs[batch_key])
-        # label_key
-        results[f'ARI {label_key}'] = ari(adata,
-                                          group1=adata.obs[label_key],
-                                          group2=adata_int.obs[label_key])
+        after = ari(adata_int, group1=cluster_key, group2=label_key)
+        results[f'ARI {cluster_key}/{label_key}'] = after
+        #results[f'ARI {label_key}'] = ari(adata,
+        #                                  group1=adata.obs[label_key],
+        #                                  group2=adata_int.obs[label_key])
     
     if cell_cycle_:
         print('cell cycle effect...')
