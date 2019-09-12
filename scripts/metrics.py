@@ -20,7 +20,7 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
-    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn')
+    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn\n full: scnaorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('-c', '--cluster_key', default='louvain', help='Name of cluster key, use it for new clustering if key is not present')
     parser.add_argument('-s', '--s_phase', default=None, help='S-phase marker genes')
     parser.add_argument('-g', '--g2m_phase', default=None, help='G2-/M-phase marker genes')
@@ -49,33 +49,34 @@ if __name__=='__main__':
     adata = sc.read(args.uncorrected, cache=True)
     print("adata before integration")
     print(adata)
+    if adata.n_vars < args.hvgs:
+        raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
     adata_int = sc.read(args.integrated, cache=True)
     print("adata after integration")
     print(adata_int)
-    
+
     # metric flags
     si_embed_before = si_embed_after = 'X_pca'
     neighbors = True
     pca = True
     pcr_ = True
+    hvg = adata.n_vars == adata_int.n_vars
     
     if (args.type == "embed"):
         si_embed_after = "embed"
         adata_int.obsm["embed"] = adata_int.obsm["X_pca"].copy()
-        print(adata)
+        hvg = False
     elif (args.type == "knn"):
         hvg = False
         neighbors = False
-        pca = False
         pcr_ = False
     
-    print("reducing data")
+    print("reducing data before integration")
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
-                                   neighbors=True, pca=pca,
-                                   hvg=hvg, n_top_genes=args.hvgs)
+                                   neighbors=True, pca=True, n_top_genes=args.hvgs)
     scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
-                                   hvg=hvg, n_top_genes=args.hvgs)
+                                   hvg=hvg, n_top_genes=args.hvgs if hvg else None)
     
     print("clustering")
     for key, data in {'uncorrected':adata, 'integrated':adata_int}.items():
@@ -100,7 +101,7 @@ if __name__=='__main__':
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
                     batch_key=batch_key, group_key=label_key, cluster_key=cluster_key,
-                    silhouette_=True,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
+                    silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
             )
