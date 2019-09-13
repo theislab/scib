@@ -66,9 +66,9 @@ if __name__=='__main__':
     silhouette_ = True
     
     if (args.type == "embed"):
-        si_embed = "X_embed"
+        si_embed = "X_emb"
         if ('emb' in adata_int.uns) and (adata_int.uns['emb']): # legacy check
-            adata_int.obsm["X_embed"] = adata_int.obsm["X_pca"].copy()
+            adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
         hvg = False
     elif (args.type == "knn"):
         hvg = False
@@ -103,8 +103,8 @@ if __name__=='__main__':
     results = scIB.me.metrics(adata, adata_int, hvg=hvg, cluster_nmi=cluster_nmi,
                     batch_key=batch_key, label_key=label_key,
                     silhouette_=silhouette_, si_embed=si_embed,
-                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                    pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
+                    nmi_=False, ari_=False, nmi_method='max', nmi_dir=None,
+                    pcr_=pcr_, kBET_=True, cell_cycle_=cc, verbose=True
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
