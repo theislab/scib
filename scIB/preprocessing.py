@@ -304,15 +304,11 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 
 ### Feature Reduction
-def reduce_data(adata, batch_key, subset=False,
+def reduce_data(adata, batch_key=None, subset=False,
                 filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
-                paga=False, paga_groups='cell_type', 
-                umap=True,
-                tsne=False,
-                diffmap=False,
-                draw_graph=False):
+                umap=True):
     
     checkAdata(adata)
     if batch_key:
@@ -327,9 +323,17 @@ def reduce_data(adata, batch_key, subset=False,
         #if filter:
         #    sc.pp.filter_genes(adata, min_cells=1)
         #sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
-        
-        hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
-        adata.var['highly_variable'] = np.in1d(adata.var_names,hvg_list)
+
+        if batch_key is not None:
+            hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
+            adata.var['highly_variable'] = np.in1d(adata.var_names,hvg_list)
+
+        else:
+            sc.pp.highly_variable_genes(adata,
+                                        n_top_genes=n_top_genes,
+                                        n_bins=n_bins,
+                                        flavor='cell_ranger')
+
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
         
@@ -344,25 +348,11 @@ def reduce_data(adata, batch_key, subset=False,
     if neighbors:
         print("Nearest Neigbours")
         sc.pp.neighbors(adata, use_rep=use_rep)
-
-    if tsne:
-        print("tSNE")
-        sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
     
     if umap:
         print("UMAP")
         sc.tl.umap(adata)
     
-    if paga:
-        print(f'PAGA by group "{paga_groups}"')
-        checkBatch(paga_groups, adata.obs)
-        sc.tl.paga(adata, groups=paga_groups)
-    
-    if diffmap:
-        sc.tl.diffmap(adata)
-    
-    if draw_graph:
-        sc.tl.draw_graph(adata)
         
 ### Cell Cycle
 def score_cell_cycle(adata, organism='mouse'):
