@@ -1,0 +1,436 @@
+---
+title: "Visualization scIB"
+author: "Marta Interlandi"
+date: "9/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup_environment, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(cowplot)
+library(fmsb)
+library(dplyr)
+library(tidyr)
+library(ggforce)
+library(tibble)
+library(RColorBrewer)
+
+setwd("/home/python_scRNA/Munich/visualization/")
+#source("./funky_heatmap.R")
+
+
+```
+
+# Read output dataframe of summary metrics
+
+```{r read}
+
+metrics_tab_lab <- read.csv("./summary_tab.csv")
+mat <- matrix(round(runif(length(metrics_tab_lab[,-1])), digits = 2), nrow = nrow(metrics_tab_lab), ncol = ncol(metrics_tab_lab)-1)
+
+metrics_tab <- metrics_tab_lab
+metrics_tab[,-1] <- as.data.frame(mat)
+
+score_group1 <- rowMeans(metrics_tab[, 2:6])
+score_group2 <- rowMeans(metrics_tab[, 7:9])
+score_all <- rowMeans(metrics_tab[, -1]) 
+metrics_tab <- add_column(metrics_tab, score_all, .after = "method")
+metrics_tab <- add_column(metrics_tab, score_group1, .before = "kBet")
+metrics_tab <- add_column(metrics_tab, score_group2, .before = "normalized.mutual.information")
+
+# order methods by the overall score
+if(length(unique(score_all))!= 1){
+  metrics_tab <- metrics_tab[rank(metrics_tab$score_all), ]
+}
+```
+
+
+# Defining column_info and row_info
+
+```{r cndio}
+
+row_height <- 1
+row_space <- .1
+row_bigspace <- .5
+col_width <- 1
+col_space <- .1
+col_bigspace <- .5
+
+
+process_geom_params <- function(column_info) {
+  bind_cols(
+    column_info %>% dplyr::select(-options),
+    column_info %>% pull(options) %>% purrr::map_df(function(l) {
+      if (length(l) == 0 || (length(l) == 1) && is.na(l)) {
+        tibble(a = 1)[,integer(0)]
+      } else {
+        as_data_frame(l)
+      }
+    })
+  )
+}
+
+
+add_column_if_missing <- function(df, ...) {
+  column_values <- list(...)
+  for (column_name in names(column_values)) {
+    default_val <- rep(column_values[[column_name]], nrow(df))
+    
+    if (column_name %in% colnames(df)) {
+      df[[column_name]] <- ifelse(is.na(df[[column_name]]), default_val, df[[column_name]])
+    } else {
+      df[[column_name]] <- default_val
+    }
+  }
+  df
+}
+
+segment_data <- NULL
+
+palettes <- list("Score overall" = rev(brewer.pal(nrow(metrics_tab), "YlGn")),
+                 "Removal of batch effects" = rev(brewer.pal(nrow(metrics_tab), "BuPu")),
+                 "Cell type label variance" = rev(brewer.pal(nrow(metrics_tab), "RdPu"))
+)
+
+
+
+
+column_info <- data.frame(id = colnames(metrics_tab), name = c("Method", "Score overall", "Score","kBet", "PC regression", "Sihlouette coefficient", "iLISI", "DE between batches post integration",  "Score", "Normalized Mutual Information", "Adjusted Rank Index", "cLISI"), group = c("Method", "Score overall", rep("Removal of batch effects", 6), rep("Cell type label variance", 4)), geom = c("text", "bar", "bar", rep("circle", 5), "bar", rep("circle", 3)))
+                          
+                          
+                          
+column_info$options <- list(list(width = 1, overlay = F, legend = F), list(width = 2, overlay = F, legend = T), list(width = 2, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 2, overlay = F, legend = T), list(width = 1, overlay = F, legend = T), list(width = 1, overlay = F, legend = F), list(width = 1, overlay = F, legend = F))
+
+
+
+row_info <- data.frame(id =metrics_tab$method)
+
+# DETERMINE ROW POSITIONS
+if (!"group" %in% colnames(row_info) || all(is.na(row_info$group))) {
+  row_info$group <- ""
+  row_groups <- tibble(group = "")
+  plot_row_annotation <- FALSE
+} else {
+  plot_row_annotation <- TRUE
+}
+
+row_pos <-
+  row_info %>%
+  group_by(group) %>%
+  mutate(group_i = row_number()) %>%
+  ungroup() %>%
+  mutate(
+    row_i = row_number(),
+    colour_background = group_i %% 2 == 1,
+    do_spacing = c(FALSE, diff(as.integer(factor(group))) != 0),
+    ysep = ifelse(do_spacing, row_height + 2 * row_space, row_space),
+    y = - (row_i * row_height + cumsum(ysep)),
+    ymin = y - row_height / 2,
+    ymax = y + row_height / 2
+  )
+
+# DETERMINE COLUMN POSITIONS
+if (!"group" %in% colnames(column_info) || all(is.na(column_info$group))) {
+  column_info$group <- ""
+  plot_column_annotation <- FALSE
+} else {
+  plot_column_annotation <- TRUE
+}
+
+column_info <-
+  column_info %>%
+  process_geom_params() %>%
+  add_column_if_missing(width = col_width, overlay = FALSE, legend = TRUE)
+
+
+column_pos <-
+  column_info %>%
+  mutate(
+    do_spacing = c(FALSE, diff(as.integer(factor(group))) != 0),
+    xsep = case_when(
+      overlay ~ c(0, -head(width, -1)),
+      do_spacing ~ col_bigspace,
+      TRUE ~ col_space
+    ),
+    xwidth = case_when(
+      overlay & width < 0 ~ width - xsep,
+      overlay ~ -xsep,
+      TRUE ~ width
+    ),
+    xmax = cumsum(xwidth + xsep),
+    xmin = xmax - xwidth,
+    x = xmin + xwidth / 2
+  )
+
+  
+g <-
+  ggplot() +
+  coord_equal(expand = FALSE) +
+  scale_alpha_identity() +
+  scale_colour_identity() +
+  scale_fill_identity() +
+  scale_size_identity() +
+  scale_linetype_identity() +
+  cowplot::theme_nothing()
+
+# PLOT ROW BACKGROUNDS
+df <- row_pos %>% filter(colour_background)
+if (nrow(df) > 0) {
+  g <- g + geom_rect(aes(xmin = min(column_pos$xmin)-.25, xmax = max(column_pos$xmax)+.25, ymin = ymin - (row_space / 2), ymax = ymax + (row_space / 2)), df, fill = "#DDDDDD")
+}
+
+# gather circle data
+ind_circle <- which(column_info$geom == "circle")
+dat_mat <- as.matrix(metrics_tab[, ind_circle])
+col_palette <- data.frame(metric = colnames(dat_mat), group = column_info[match(colnames(dat_mat), column_info$id), "group"])
+
+col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
+
+circle_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
+                                                function(x) rep(x, nrow(dat_mat)))), 
+                          x0 = unlist(lapply(column_pos$x[ind_circle], 
+                                             function(x) rep(x, nrow(dat_mat)))), 
+                          y0 = rep(row_pos$y, ncol(dat_mat)),
+                          r = row_height/2*as.vector(dat_mat)
+                          )
+colors <- NULL
+for(i in 1:ncol(dat_mat)){
+  palette <- col_palette$palette[[i]]
+  colors <- c(colors, palette[rank(dat_mat[,i])])
+}
+
+circle_data$colors <- colors
+
+
+# PLOT CIRCLES
+if (nrow(circle_data) > 0) {
+  g <- g + ggforce::geom_circle(aes(x0 = x0, y0 = y0, fill= colors, r = r), circle_data, size=.25)
+}
+
+
+
+# gather bar data
+ind_bar <- which(column_info$geom == "bar")
+dat_mat <- as.matrix(metrics_tab[, ind_bar])
+
+col_palette <- data.frame(metric = colnames(dat_mat), group = column_info[match(colnames(dat_mat), column_info$id), "group"])
+
+col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
+
+
+rect_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
+                                                function(x) rep(x, nrow(dat_mat)))),
+                        method = rep(row_info$id, ncol(dat_mat)),
+                        value = as.vector(dat_mat),
+                        xmin = unlist(lapply(column_pos[ind_bar, "xmin"], 
+                                             function(x) rep(x, nrow(dat_mat)))),
+                        xmax = unlist(lapply(column_pos[ind_bar, "xmax"], 
+                                             function(x) rep(x, nrow(dat_mat)))),
+                        ymin = rep(row_pos$ymin, ncol(dat_mat)),
+                        ymax = rep(row_pos$ymax, ncol(dat_mat)),
+                        xwidth = unlist(lapply(column_pos[ind_bar, "xwidth"], 
+                                             function(x) rep(x, nrow(dat_mat))))
+                        )
+rect_data <- rect_data %>%
+  add_column_if_missing(hjust = 0) %>%
+    mutate(
+      xmin = xmin + (1 - value) * xwidth * hjust,
+      xmax = xmax - (1 - value) * xwidth * (1 - hjust)
+    )
+
+colors <- NULL
+for(i in 1:ncol(dat_mat)){
+  palette <- col_palette$palette[[i]]
+  colors <- c(colors, palette[rank(dat_mat[,i])])
+}
+
+rect_data$colors <- colors
+
+
+# PLOT RECTANGLES
+if (nrow(rect_data) > 0) {
+  # add defaults for optional values
+  rect_data <- rect_data %>%
+    add_column_if_missing(alpha = 1, border = TRUE, border_colour = "black") %>%
+    mutate(border_colour = ifelse(border, border_colour, NA))
+  
+  g <- g + geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = colors, colour = border_colour, alpha = alpha), rect_data, size = .25)
+}
+
+# gather text data
+ind_text <- which(column_info$geom == "text")
+dat_mat <- as.matrix(metrics_tab[, ind_text])
+
+text_data <- data.frame(label_value = metrics_tab$method, xmin= rep(column_pos[column_pos$id == "method", "xmin"], nrow(metrics_tab)), xmax=  rep(column_pos[column_pos$id == "method", "xmax"], nrow(metrics_tab)), ymin=row_pos$ymin, ymax=row_pos$ymax)
+
+
+
+# ADD COLUMN NAMES
+df <- column_pos %>% filter(name != "Method")
+if (nrow(df) > 0) {
+  segment_data <- segment_data %>% bind_rows(
+    df %>% transmute(x = x, xend = x, y = -.3, yend = -.1, size = .5)
+  )
+  text_data <-
+    bind_rows(
+      text_data,
+      df %>% transmute(
+        xmin = x, xmax = x, ymin = 0, ymax = -0.5,
+        angle = 30, vjust = 0, hjust = 0,
+        label_value = name
+      )
+    )
+}
+
+# PLOT TEXT
+if (nrow(text_data) > 0) {
+  # add defaults for optional values
+  text_data <- text_data %>%
+    add_column_if_missing(
+      hjust = .5,
+      vjust = .5,
+      size = 4,
+      fontface = "plain",
+      colour = "black",
+      lineheight = 1,
+      angle = 0
+    ) %>%
+    mutate(
+      angle2 = angle / 360 * 2 * pi,
+      cosa = cos(angle2) %>% round(2),
+      sina = sin(angle2) %>% round(2),
+      alphax = ifelse(cosa < 0, 1 - hjust, hjust) * abs(cosa) + ifelse(sina > 0, 1 - vjust, vjust) * abs(sina),
+      alphay = ifelse(sina < 0, 1 - hjust, hjust) * abs(sina) + ifelse(cosa < 0, 1 - vjust, vjust) * abs(cosa),
+      x = (1 - alphax) * xmin + alphax * xmax,
+      y = (1 - alphay) * ymin + alphay * ymax
+    ) %>%
+    filter(label_value != "")
+  
+  g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colour, hjust = hjust, vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data)
+}
+
+
+# PLOT SEGMENTS
+if (nrow(segment_data) > 0) {
+  # add defaults for optional values
+  segment_data <- segment_data %>% add_column_if_missing(size = .5, colour = "black", linetype = "solid")
+  
+  g <- g + geom_segment(aes(x = x, xend = xend, y = y, yend = yend, size = size, colour = colour, linetype = linetype), segment_data)
+}
+
+# plot_column_annotation <- T
+# 
+# column_groups <- data.frame(level = , name = , group = , palette = )
+
+#  
+#  
+# 
+# # GENERATE COLUMN ANNOTATION
+# if (plot_column_annotation) {
+#   col_join <- column_groups %>%
+#     tidyr::gather(level, name, -group, -palette) %>%
+#     left_join(column_pos %>% select(group, xmin, xmax), by = "group")
+#   
+#   text_pct <- .9
+#   level_heights <-
+#     col_join %>%
+#     group_by(level) %>%
+#     summarise(max_newlines = max(str_count(name, "\n"))) %>%
+#     mutate(
+#       height = (max_newlines + 1) * text_pct + (1 - text_pct),
+#       levelmatch = match(level, colnames(column_groups))
+#     ) %>%
+#     arrange(desc(levelmatch)) %>%
+#     mutate(
+#       ysep = row_space,
+#       ymax = col_annot_offset + cumsum(height + ysep) - ysep,
+#       ymin = ymax - height,
+#       y = (ymin + ymax) / 2
+#     )
+#   
+#   column_annotation <-
+#     col_join %>%
+#     group_by(level) %>%
+#     mutate(max_newlines = max(str_count(name, "\n"))) %>%
+#     group_by(level, name, palette) %>%
+#     summarise(
+#       xmin = min(xmin),
+#       xmax = max(xmax),
+#       x = (xmin + xmax) / 2
+#     ) %>%
+#     ungroup() %>%
+#     left_join(level_heights, by = "level") %>%
+#     filter(!is.na(name), grepl("[A-Za-z]", name)) %>%
+#     mutate(colour = palette_list$column_annotation[palette])
+#   
+#   rect_data <- rect_data %>% bind_rows(
+#     column_annotation %>%
+#       transmute(xmin, xmax, ymin, ymax, colour, alpha = ifelse(levelmatch == 1, 1, .25), border = FALSE)
+#   )
+#   
+#   text_data <- text_data %>% bind_rows(
+#     column_annotation %>%
+#       transmute(
+#         xmin, xmax, ymin, ymax,
+#         hjust = 0.5, vjust = 0.5,
+#         fontface = ifelse(levelmatch == 1, "bold", NA),
+#         colour = ifelse(levelmatch == 1, "white", "black"),
+#         label_value = name
+#       )
+#   )
+#   
+#   if (add_abc) {
+#     text_data <- text_data %>% bind_rows(
+#       column_annotation %>%
+#         filter(levelmatch == 1) %>%
+#         arrange(x) %>%
+#         transmute(
+#           xmin = xmin + col_space, xmax = xmax - col_space, ymin, ymax,
+#           hjust = 0, vjust = 0.5,
+#           fontface = "bold",
+#           colour = "white",
+#           label_value = paste0(letters[row_number()], ")")
+#         )
+#     )
+#   }
+# }
+# determine dsize of current geoms
+suppressWarnings({
+  minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, circle_data$x - circle_data$r, text_data$xmin, na.rm = TRUE)
+  maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, circle_data$x + circle_data$r, text_data$xmax, na.rm = TRUE)
+  minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend, circle_data$y - circle_data$r,  text_data$ymin, na.rm = TRUE)
+  maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend,circle_data$y + circle_data$r,  text_data$ymax, na.rm = TRUE)
+})
+
+
+
+# ADD SIZE
+# reserve a bit more room for text that wants to go outside the frame
+minimum_x <- minimum_x - 2
+maximum_x <- maximum_x + 2
+#if ("qc_cat_documentation" %in% column_info$id) maximum_x <- maximum_x + 2
+minimum_y <- minimum_y - 2
+maximum_y <- maximum_y + 2
+
+g$width <- maximum_x - minimum_x
+g$height <- maximum_y - minimum_y
+
+g <- g + expand_limits(x = c(minimum_x, maximum_x), y = c(minimum_y, maximum_y))
+
+
+  
+plot(g)
+  
+png("summary_metrics.png", width = 600, height = 600)
+plot(g)
+dev.off()
+
+ggsave("summary_metrics.pdf", g, device = cairo_pdf, width = g$width, height = g$height)
+
+
+```
