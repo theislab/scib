@@ -622,11 +622,11 @@ def metrics_all(results_dict#,
     
     return results.transpose()
 
-def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
-            silhouette_=True,  si_embed_pre='X_pca', si_embed_post='X_pca', si_metric='euclidean',
+def metrics(adata, adata_int, batch_key, label_key,
+            silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
-            cell_cycle_=True, hvg=True, verbose=False
+            cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None
            ):
     """
     summary of all metrics for one Anndata object
@@ -645,25 +645,29 @@ def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
     checkBatch(label_key, adata_int.obs)
     
     
-    # clustering if necessary
-    if cluster_key not in adata.obs:
-        opt_louvain(adata, label_key=label_key, cluster_key=cluster_key,
-                    plot=False, verbose=verbose, inplace=True, force=True)
+    # clustering
+    print('clustering...')
+    cluster_key = 'cluster'
+    res_max, nmi_max, nmi_all = opt_louvain(adata_int, label_key=label_key, cluster_key=cluster_key,
+            plot=False, verbose=verbose, inplace=True, force=True)
+    if cluster_nmi is not None:
+        nmi_all.to_csv(cluster_nmi, header=False)
+        print(f'saved clustering NMI values to {cluster_nmi}')
     
     results = {}
     
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed_post)
+        sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed)
         # silhouette coefficient per batch
         sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
-                embed=si_embed_post, verbose=False)
+                embed=si_embed, verbose=False)
     else:
         sil_global = None
         sil_clus = None
-    results[f'ASW_{label_key}/{si_embed_post}'] = sil_global
-    results[f'ASW_{label_key}/{batch_key}/{si_embed_post}'] = sil_clus
+    results[f'ASW_{label_key}/{si_embed}'] = sil_global
+    results[f'ASW_{label_key}/{batch_key}/{si_embed}'] = sil_clus
 
     if nmi_:
         print('NMI...')

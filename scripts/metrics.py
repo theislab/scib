@@ -42,6 +42,7 @@ if __name__=='__main__':
     
     base = os.path.basename(args.integrated)
     out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
+    cluster_nmi = os.path.join(args.output, f'{out_prefix}_int_nmi.txt')
 
     ###
     
@@ -57,7 +58,7 @@ if __name__=='__main__':
     print(adata_int)
 
     # metric flags
-    si_embed_before = si_embed_after = 'X_pca'
+    si_embed = 'X_pca'
     neighbors = True
     pca = True
     pcr_ = True
@@ -65,7 +66,7 @@ if __name__=='__main__':
     silhouette_ = True
     
     if (args.type == "embed"):
-        si_embed_after = "X_embed"
+        si_embed = "X_embed"
         if ('emb' in adata_int.uns) and (adata_int.uns['emb']): # legacy check
             adata_int.obsm["X_embed"] = adata_int.obsm["X_pca"].copy()
         hvg = False
@@ -81,13 +82,6 @@ if __name__=='__main__':
     scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
                                    neighbors=neighbors, pca=pca,
                                    n_top_genes=args.hvgs if hvg else None)
-    
-    print("clustering")
-    res_max, nmi_max, nmi_all = scIB.cl.opt_louvain(adata_int,
-            label_key=label_key, cluster_key='louvain',
-            plot=False, force=True, inplace=True)
-    # save data for NMI profile plot
-    nmi_all.to_csv(os.path.join(args.output, f'{out_prefix}_int_nmi.txt'), header=False)
     
     if cc:
         print("scoring cell cycle genes")
@@ -106,9 +100,9 @@ if __name__=='__main__':
         cc = False
     
     print("computing metrics")
-    results = scIB.me.metrics(adata, adata_int, hvg=hvg,
-                    batch_key=batch_key, label_key=label_key, cluster_key='louvain',
-                    silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
+    results = scIB.me.metrics(adata, adata_int, hvg=hvg, cluster_nmi=cluster_nmi,
+                    batch_key=batch_key, label_key=label_key,
+                    silhouette_=silhouette_, si_embed=si_embed,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
                     )
