@@ -303,10 +303,24 @@ def cell_cycle(adata, organism='mouse'):
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
-    hvg_pre= set(hvg_intersect(adata_pre, batch=batch, target_genes=n_hvg))
-    hvg_post= set(hvg_intersect(adata_post, batch=batch, target_genes=n_hvg))
-    jaccard = len(hvg_pre.intersection(hvg_post))/len(hvg_pre.union(hvg_post))
-    return jaccard
+    hvg_post = adata_post.var.index
+    
+    adata_pre_list = scIB.utils.splitBatches(adata_pre, batch, hvg=hvg_post)
+    adata_post_list = scIB.utils.splitBatches(adata_post, batch)
+    overlap = []
+    
+    for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
+        sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(adata_post_list[i], min_cells=1)
+        hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
+        tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
+        hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
+        tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
+        #print(len(set(tmp_pre).intersection(set(tmp_post))))
+        overlap.append(len(set(tmp_pre).intersection(set(tmp_post))))
+    mean = np.mean(overlap)
+    return mean/float(n_hvg)
+
 
 ### PC Regression
 def get_hvg_indices(adata):
