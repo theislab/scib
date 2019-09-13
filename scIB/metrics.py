@@ -29,16 +29,6 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     
     return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
 
-def silhouette_comp(adata_pre, adata_post, group_key, metric='euclidean', embed_pre='X_pca', embed_post='X_pca'):
-    before = silhouette(adata_pre, group_key=group_key, metric=metric, embed=embed_pre)
-    after = silhouette(adata_post, group_key=group_key, metric=metric, embed=embed_post)
-    return after - before
-
-def silhouette_batch_comp(adata_pre, adata_post, batch_key, group_key, embed_pre='X_pca', embed_post='X_pca'):
-    _, before = silhouette_batch(adata_pre, batch_key=batch_key, group_key=group_key, means=True, embed=embed_pre, verbose=False)
-    _, after = silhouette_batch(adata_post, batch_key=batch_key, group_key=group_key, means=True, embed=embed_post, verbose=False)
-    return np.mean(after['silhouette_score']) - np.mean(before['silhouette_score'])
-
 def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
                      embed='X_pca', means=False, verbose=True):
     """
@@ -660,16 +650,15 @@ def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
         opt_louvain(adata, label_key=label_key, cluster_key=cluster_key,
                     plot=False, verbose=verbose, inplace=True, force=True)
     
-    results = {'HVG': hvg}
+    results = {}
     
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette_comp(adata, adata_int, group_key=label_key,
-                embed_pre=si_embed_pre, embed_post=si_embed_post)
+        sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed_post)
         # silhouette coefficient per batch
-        sil_clus = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=label_key,
-                embed_pre=si_embed_pre, embed_post=si_embed_post)
+        sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
+                embed=si_embed_post, verbose=False)
     else:
         sil_global = None
         sil_clus = None

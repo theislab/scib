@@ -16,7 +16,7 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description='Compute all metrics')
 
-    parser.add_argument('-a', '--uncorrected', required=True)
+    parser.add_argument('-u', '--uncorrected', required=True)
     parser.add_argument('-i', '--integrated', required=True)
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
@@ -65,8 +65,9 @@ if __name__=='__main__':
     silhouette_ = True
     
     if (args.type == "embed"):
-        si_embed_after = "embed"
-        adata_int.obsm["embed"] = adata_int.obsm["X_pca"].copy()
+        si_embed_after = "X_embed"
+        if ('emb' in adata_int.uns) and (adata_int.uns['emb']): # legacy check
+            adata_int.obsm["X_embed"] = adata_int.obsm["X_pca"].copy()
         hvg = False
     elif (args.type == "knn"):
         hvg = False
