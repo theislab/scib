@@ -365,7 +365,7 @@ def reduce_data(adata, batch_key, subset=False,
         sc.tl.draw_graph(adata)
         
 ### Cell Cycle
-def cc_tirosh(marker_gene_file, adata=None):
+def score_cell_cycle(adata, organism='mouse'):
     """
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
@@ -373,11 +373,12 @@ def cc_tirosh(marker_gene_file, adata=None):
         s_genes: S-phase genes
         g2m_genes: G2- and M-phase genes
     """
-    cell_cycle_genes = [x.strip().lower().capitalize() for x in open(marker_gene_file)]
-    if adata is not None:
-        cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
-    # split list into S-phase and G2/M-phase genes
-    s_genes = cell_cycle_genes[:43]
-    g2m_genes = cell_cycle_genes[43:]
+    cc_files = {'mouse': ['scIB/resources/s_genes_tirosh.txt', 'scIB/resources/g2m_genes_tirosh.txt'],
+                'human': ['scIB/resources/s_genes_tirosh_hm.txt', 'scIB/resources/g2m_genes_tirosh_hm.txt']}
     
-    return s_genes, g2m_genes
+    s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
+    g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
+    if (len(s_genes) == 0) or (len(g2m_genes) == 0):
+        raise ValueError("cell cycle genes not in adata")
+
+    sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
