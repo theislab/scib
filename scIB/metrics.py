@@ -432,8 +432,10 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
         kBET p-value
     """
     if isinstance(subsample, float):
-        matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
-        batch = batch[indices]
+        #perform subsampling for large clusters, but not for small clusters (boundary is currently set to 50)
+        if np.floor(matrix.shape[0]*subsample) >= 50:
+            matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
+            batch = batch[indices]
     
     anndata2ri.activate()
     ro.r("library(kBET)")
@@ -637,7 +639,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = np.mean(kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
+        kbet_score = np.nanmean(kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
                            hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
     else:
         kbet_score = None
