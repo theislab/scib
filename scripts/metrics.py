@@ -48,8 +48,9 @@ if __name__=='__main__':
     print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
     print(adata)
-    if (adata.n_vars < args.hvgs) and (args.hvgs is not None):
-        raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+    if (args.hvgs is not None):
+        if (adata.n_vars < args.hvgs):
+            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
 
     print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
