@@ -94,6 +94,7 @@ if __name__=='__main__':
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
     results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
-    
+    print(results)
+
     print("done")
 

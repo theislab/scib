@@ -30,7 +30,7 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
 
 def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
-                     embed='X_pca', means=False, verbose=True):
+                     embed='X_pca', verbose=True):
     """
     Silhouette score of batch labels subsetted for each group.
     params:
@@ -65,11 +65,7 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
     
     if verbose:
         print(f'mean silhouette per cell: {sil_means}')
-    
-    if means:
-        return sil_all, sil_means
-    
-    return sil_all
+    return sil_all, sil_means
 
 def plot_silhouette_score(adata_dict, batch_key, group_key, metric='euclidean', 
                      embed='X_pca', palette='Dark2', per_group=False, verbose=True):
@@ -291,7 +287,7 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, organism='mouse', hvg=False):
+def cell_cycle(adata, organism='mouse'):
     """
     params:
         adata:
@@ -300,8 +296,8 @@ def cell_cycle(adata, organism='mouse', hvg=False):
     # get cell cycle scores
     score_cell_cycle(adata, organism=organism)
 
-    s_phase = pcr(adata, hvg=hvg, covariate='S_score')
-    g2m_phase = pcr(adata, hvg=hvg, covariate='G2M_score')
+    s_phase = pcr(adata, covariate='S_score')
+    g2m_phase = pcr(adata, covariate='G2M_score')
     
     return s_phase, g2m_phase
     
@@ -319,7 +315,7 @@ def get_hvg_indices(adata):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, hvg=False, covariate='sample', verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False):
     """
     Compare the effect before and after integration
     params:
@@ -329,8 +325,8 @@ def pcr_comparison(adata_pre, adata_post, hvg=False, covariate='sample', verbose
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata_pre, hvg=hvg, covariate=covariate, verbose=verbose)
-    pcr_after = pcr(adata_post, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_before = pcr(adata_pre, covariate=covariate, verbose=verbose)
+    pcr_after = pcr(adata_post, covariate=covariate, verbose=verbose)
     
     return pcr_after - pcr_before
 
@@ -447,8 +443,8 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     
     if verbose:
         print("kBET estimation")
-    k0 = len(batch) if len(batch) < 50 else 'NULL'
-    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, k0={k0}, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+    #k0 = len(batch) if len(batch) < 50 else 'NULL'
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
     try:
@@ -458,7 +454,7 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     else:
         return ro.r("batch.estimate$average.pval")[0]
 
-def kBET(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
+def kBET(adata, batch_key, label_key, embed='X_pca',
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
@@ -469,27 +465,18 @@ def kBET(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
     """
     
     checkAdata(adata)
-    checkBatch(covariate_key, adata.obs)
-    checkBatch(cluster_key, adata.obs)
+    checkBatch(batch_key, adata.obs)
+    checkBatch(label_key, adata.obs)
     
-    if matrix is None:
-        matrix = adata.X
-    
-    if hvg:
-        hvg_idx = get_hvg_indices(adata)
-        if verbose:
-            print(f"subsetting to {len(hvg_idx)} highly variable genes")
-        matrix = matrix[:, hvg_idx]
+    matrix = adata.obsm[embed]
     
     if verbose:
-        print(f"covariate: {covariate_key}")
-    batch = adata.obs[covariate_key]
+        print(f"batch: {batch_key}")
+    batch = adata.obs[batch_key]
     
     kBET_scores = {'cluster': [], 'kBET': []}
-    for clus in adata.obs[cluster_key].unique():
-        if verbose:
-            print(f'cluster {clus}')
-        idx = np.where((adata.obs[cluster_key] == clus))[0]
+    for clus in adata.obs[label_key].unique():
+        idx = np.where((adata.obs[label_key] == clus))[0]
         score = kBET_single(
             matrix[idx, :],
             batch[idx],
@@ -503,36 +490,6 @@ def kBET(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
     kBET_scores = pd.DataFrame.from_dict(kBET_scores)
     kBET_scores = kBET_scores.reset_index(drop=True)
     
-    return kBET_scores
-
-def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='louvain', hvg=False, subsample=0.5, heuristic=False, verbose=False):
-    """
-    Compare the effect before and after integration
-    params:
-        raw: expression matrix before integration
-        corrected: expression matrix after correction
-    return:
-        pd.DataFrame with difference of kBET p-values
-    """
-    
-    checkAdata(adata)
-    checkBatch(covariate_key, adata.obs)
-    checkBatch(cluster_key, adata.obs)
-    
-    kBET_before = kBET(adata, raw, 
-                       covariate_key=covariate_key,
-                       cluster_key= cluster_key,
-                       subsample=subsample,
-                       heuristic=heuristic,
-                       verbose=verbose)
-    kBET_after = kBET(adata, corrected,
-                      covariate_key=covariate_key,
-                      cluster_key= cluster_key,
-                      subsample=subsample,
-                      heuristic=heuristic,
-                      verbose=verbose)
-    kBET_scores = kBET_before.merge(kBET_after, on='cluster', suffixes=('_before','_after'))
-    kBET_scores['difference'] = kBET_scores['kBET_before'] - kBET_scores['kBET_after']
     return kBET_scores
 
 ### Time and Memory
@@ -558,7 +515,7 @@ def measureTM(*args, **kwargs):
 
 def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
-            nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
+            nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
             cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
            ):
@@ -595,12 +552,12 @@ def metrics(adata, adata_int, batch_key, label_key,
         # global silhouette coefficient
         sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed)
         # silhouette coefficient per batch
-        sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
+        _, sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
                 embed=si_embed, verbose=False)
-        sil_clus = np.mean(sil_clus['silhouette_score'])
+        sil_clus = sil_clus['silhouette_score'].mean()
     else:
-        sil_global = None
-        sil_clus = None
+        sil_global = np.nan
+        sil_clus =np.nan
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
@@ -608,25 +565,25 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('NMI...')
         nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
     else:
-        nmi_score = None
+        nmi_score = np.nan
     results['NMI_cluster/label'] = nmi_score
 
     if ari_:
         print('ARI...')
         ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
     else:
-        ari_score = None
+        ari_score = np.nan
     results['ARI cluster/label'] = ari_score
 
     if cell_cycle_:
         print('cell cycle effect...')
-        before = cell_cycle(adata, hvg=hvg, organism=organism)
-        after = cell_cycle(adata_int, hvg=hvg, organism=organism)
+        before = cell_cycle(adata, organism=organism)
+        after = cell_cycle(adata_int, organism=organism)
         s_phase = after[0] - before[0]
         g2m_phase = after[1] - before[1]
     else:
-        s_phase = None
-        g2m_phase = None
+        s_phase = np.nan
+        g2m_phase = np.nan
     results['S-phase'] = s_phase
     results['G2M-phase'] = g2m_phase
     
@@ -634,15 +591,15 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('PC regression...')
         pcr_score = pcr_comparison(adata, adata_int, covariate=batch_key, verbose=verbose)
     else:
-        pcr_score = None
+        pcr_score = np.nan
     results['PCR batch'] = pcr_score
     
     if kBET_:
         print('kBET...')
         kbet_score = np.nanmean(kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
-                           hvg=hvg, subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
+                           subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
     else:
-        kbet_score = None
+        kbet_score = np.nan
     results['kBET'] = kbet_score
     
     return pd.DataFrame.from_dict(results, orient='index')
