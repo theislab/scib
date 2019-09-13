@@ -485,11 +485,16 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     
     if verbose:
         print("kBET estimation")
-    k0 = 1 if len(batch) < 50 else 'NULL'
+    k0 = len(batch) if len(batch) < 50 else 'NULL'
     batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, k0={k0}, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
-    return ro.r("batch.estimate$average.pval")[0]
+    try:
+        ro.r("batch.estimate$average.pval")[0]
+    except ValueError:
+        return NaN
+    else:
+        return ro.r("batch.estimate$average.pval")[0]
 
 def kBET(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
