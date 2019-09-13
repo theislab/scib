@@ -77,12 +77,15 @@ if __name__=='__main__':
         silhouette_ = False
         cc = False
     
-    print("reducing data before integration")
-    scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
-                                   neighbors=True, pca=True, n_top_genes=args.hvgs)
-    scIB.preprocessing.reduce_data(adata_int, batch_key=batch_key, umap=False,
+    print("reducing integrated and uncorrected data")
+    scIB.preprocessing.reduce_data(adata_int, umap=False,
                                    neighbors=neighbors, pca=pca,
-                                   n_top_genes=args.hvgs if hvg else None)
+                                   n_top_genes=args.hvgs if hvg else None,
+                                   use_rep='X_emb' if 'X_emb' in adata_int.obsm else 'X_pca')
+
+    adata=adata[:,adata_int.var_names].copy()
+    scIB.preprocessing.reduce_data(adata, umap=False,
+                                   neighbors=True, pca=True, n_top_genes=None)
     
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg, cluster_nmi=cluster_nmi,
