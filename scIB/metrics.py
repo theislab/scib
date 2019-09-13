@@ -150,7 +150,7 @@ def plot_cluster_overlap(adata_dict, group1, group2, df=False):
 
 
 ### NMI normalised mutual information
-def nmi(adata, group1, group2, method="max", nmi_dir=None):
+def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     """
     Normalized mutual information NMI based on 2 different cluster assignments `group1` and `group2`
     params:
@@ -270,6 +270,7 @@ def nmi_Lanc(group1, group2, nmi_dir="external/mutual3/", verbose=True):
 def write_tmp_labels(group_assignments, to_int=False, delim='\n'):
     """
     write the values of a specific obs column into a temporary file in text format
+    needed for external C NMI implementations (onmi and nmi_Lanc functions), because they require files as input
     params:
         to_int: rename the unique column entries by integers in range(1,len(group_assignments)+1)
     """
@@ -304,8 +305,9 @@ def ari(adata, group1, group2):
     """
     params:
         adata: anndata object
-        group1: "true" cluster assignments
+        group1: ground-truth cluster assignments (e.g. cell type labels)
         group2: "predicted" cluster assignments
+    The function is symmetric, so group1 and group2 can be switched
     """
     
     checkAdata(adata)
@@ -358,22 +360,22 @@ def get_hvg_indices(adata):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata, raw, corrected, pca=True, hvg=False, covariate='sample', verbose=True):
+def pcr_comparison(adata_pre, adata_post, pca=True, hvg=False, covariate='sample', verbose=False):
     """
     Compare the effect before and after integration
     params:
-        raw: count matrix before integration
-        corrected: count matrix after correction
+        adata_pre: integration adata
+        adata_post: integrated adata
     return:
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata, matrix=raw, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
-    pcr_after = pcr(adata, matrix=corrected, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_before = pcr(adata_pre, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_after = pcr(adata_post, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
     
     return pcr_after - pcr_before
 
-def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
+def pcr(adata, pca=True, n_comps=None, hvg=False, covariate='sample', verbose=True):
     """
     PCR for Adata object
     params:
@@ -401,17 +403,19 @@ def pcr(adata, pca=True, hvg=False, covariate='sample', verbose=True):
     if pca:
         return pc_regression(adata.obsm['X_pca'], batch,
                              pca_sd=adata.uns['pca']['variance'],
+                             n_comps=n_comps,
                              verbose=verbose)
     else:
-        return pc_regression(adata.X, batch, verbose=verbose)
+        return pc_regression(adata.X, batch, n_comps=n_comps, verbose=verbose)
 
 def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=True):
     """
     params:
-        data: Anndata or count matrix
+        data: Anndata or expression matrix
         batch: series or list of batch assignemnts
-        n_comps: number of PCA components, only when PCA is not yet computed
+        n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
         pca_sd: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
+    PCA is only computed, if variance contribution is not given (pca_sd).
     """
     
     if isinstance(data, anndata.AnnData):
@@ -422,7 +426,7 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     else:
         raise TypeError(f'invalid type {data.__class__} for data')
     
-    # perform PCA if necessary
+    # perform PCA if no variance contributions are given
     if pca_sd is None:
         if verbose:
             print("PCA")
@@ -465,7 +469,7 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
 def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
-        matrix: count matrix
+        matrix: expression matrix
         batch: series or list of batch assignemnts
         subsample: fraction to be subsampled. No subsampling if `subsample=None`
     returns:
@@ -479,7 +483,7 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     ro.r("library(kBET)")
     
     if verbose:
-        print("importing count matrix")
+        print("importing expression matrix")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['batch'] = batch
     
@@ -547,8 +551,8 @@ def kBET_comparison(adata, raw, corrected, covariate_key='sample', cluster_key='
     """
     Compare the effect before and after integration
     params:
-        raw: count matrix before integration
-        corrected: count matrix after correction
+        raw: expression matrix before integration
+        corrected: expression matrix after correction
     return:
         pd.DataFrame with difference of kBET p-values
     """
@@ -696,9 +700,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if pcr_:
         print('PC regression...')
-        before = pcr(adata, covariate=batch_key, pca=True, verbose=verbose)
-        after = pcr(adata_int, covariate=batch_key, pca=True, verbose=verbose)
-        pcr_score = after - before
+        pcr_score = pcr_comparison(adata, adata_int, covariate=batch_key, pca=True, verbose=verbose)
     else:
         pcr_score = None
     results[f'PCR {batch_key}'] = pcr_score
