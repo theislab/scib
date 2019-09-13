@@ -665,10 +665,10 @@ def metrics(adata, adata_int, batch_key, label_key, cluster_key='louvain',
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette_comp(adata, adata_int, group_key=label,
+        sil_global = silhouette_comp(adata, adata_int, group_key=label_key,
                 embed_pre=si_embed_pre, embed_post=si_embed_post)
         # silhouette coefficient per batch
-        sil_clus = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, label_key=label,
+        sil_clus = silhouette_batch_comp(adata, adata_int, batch_key=batch_key, group_key=label_key,
                 embed_pre=si_embed_pre, embed_post=si_embed_post)
     else:
         sil_global = None

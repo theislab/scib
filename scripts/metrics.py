@@ -21,8 +21,7 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
-    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn\n full: scnaorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
-    parser.add_argument('-c', '--cluster_key', default='louvain', help='Name of cluster key, use it for new clustering if key is not present')
+    parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('-s', '--s_phase', default=None, help='S-phase marker genes')
     parser.add_argument('-g', '--g2m_phase', default=None, help='G2-/M-phase marker genes')
     parser.add_argument('-v', '--hvgs', default=None, help='Number of highly variable genes', type=int)
@@ -38,7 +37,6 @@ if __name__=='__main__':
     
     batch_key = args.batch_key
     label_key = args.label_key
-    cluster_key = args.cluster_key
     cc = (args.s_phase is not None) and (args.g2m_phase is not None)
     hvg = args.hvgs is not None
     
@@ -83,12 +81,11 @@ if __name__=='__main__':
                                    n_top_genes=args.hvgs if hvg else None)
     
     print("clustering")
-    for key, data in {'uncorrected':adata, 'integrated':adata_int}.items():
-        res_max, nmi_max, nmi_all = scIB.cl.opt_louvain(data, 
-                        label_key=label_key, cluster_key=cluster_key, 
-                        plot=False, force=True, inplace=True)
-        # save data for NMI profile plot
-        nmi_all.to_csv(os.path.join(args.output, f'{out_prefix}_{key}_nmi.txt'), header=False)
+    res_max, nmi_max, nmi_all = scIB.cl.opt_louvain(adata_int,
+            label_key=label_key, cluster_key='louvain',
+            plot=False, force=True, inplace=True)
+    # save data for NMI profile plot
+    nmi_all.to_csv(os.path.join(args.output, f'{out_prefix}_int_nmi.txt'), header=False)
     
     if cc:
         print("scoring cell cycle genes")
@@ -108,15 +105,14 @@ if __name__=='__main__':
     
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg,
-                    batch_key=batch_key, label_key=label_key, cluster_key=cluster_key,
+                    batch_key=batch_key, label_key=label_key, cluster_key='louvain',
                     silhouette_=silhouette_,  si_embed_pre=si_embed_before, si_embed_post=si_embed_after,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
                     pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
-    print(results)
     # save metrics' results
-    results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'), header=False)
+    results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
     
     print("done")
 
