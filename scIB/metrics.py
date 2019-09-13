@@ -6,7 +6,7 @@ import seaborn as sns
 import scanpy as sc
 import anndata
 from scIB.utils import *
-from scIB.preprocessing import hvg_intersect
+from scIB.preprocessing import hvg_intersect, score_cell_cycle
 from scIB.clustering import opt_louvain
 
 import rpy2.rinterface_lib.callbacks
@@ -330,26 +330,20 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, hvg=False, s_phase_key='S_score', g2m_phase_key='G2M_score'):
+def cell_cycle(adata, organism='mouse', hvg=False):
     """
     params:
         adata:
-        s_phase_key: key of column containing S-phase score
-        g2m_phase_key: key of column containing G2M-phase score
-    
+        organism: 'mouse' or 'human' for choosing cell cycle genes 
     """
-    s_phase = pcr(adata, hvg=hvg, covariate=s_phase_key)
-    g2m_phase = pcr(adata, hvg=hvg, covariate=g2m_phase_key)
+    # get cell cycle scores
+    score_cell_cycle(adata, organism=organism)
+
+    s_phase = pcr(adata, hvg=hvg, covariate='S_score')
+    g2m_phase = pcr(adata, hvg=hvg, covariate='G2M_score')
     
     return s_phase, g2m_phase
     
-    #returns:
-    #    sum of variance difference of S-phase score and G2M-phase score
-    #s_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=s_phase_key)
-    #g2m_phase = pcr_comparison(adata, raw, corrected, hvg=hvg, covariate=g2m_phase_key)
-        
-    #return s_phase + g2m_phase
-
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     hvg_pre= set(hvg_intersect(adata_pre, batch=batch, target_genes=n_hvg))
@@ -631,7 +625,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
-            cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None
+            cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
            ):
     """
     summary of all metrics for one Anndata object
@@ -690,8 +684,8 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if cell_cycle_:
         print('cell cycle effect...')
-        before = cell_cycle(adata, hvg=hvg)
-        after = cell_cycle(adata_int, hvg=hvg)
+        before = cell_cycle(adata, hvg=hvg, organism=organism)
+        after = cell_cycle(adata_int, hvg=hvg, organism=organism)
         s_phase = after[0] - before[0]
         g2m_phase = after[1] - before[1]
     else:

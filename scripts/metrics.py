@@ -21,9 +21,8 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
+    parser.add_argument('-g', '--organism', required=True)
     parser.add_argument('-t', '--type', required=True, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
-    parser.add_argument('-s', '--s_phase', default=None, help='S-phase marker genes')
-    parser.add_argument('-g', '--g2m_phase', default=None, help='G2-/M-phase marker genes')
     parser.add_argument('-v', '--hvgs', default=None, help='Number of highly variable genes', type=int)
     args = parser.parse_args()
     
@@ -37,8 +36,9 @@ if __name__=='__main__':
     
     batch_key = args.batch_key
     label_key = args.label_key
-    cc = (args.s_phase is not None) and (args.g2m_phase is not None)
+    organism = args.organism
     hvg = args.hvgs is not None
+    cc = True
     
     base = os.path.basename(args.integrated)
     out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
@@ -75,6 +75,7 @@ if __name__=='__main__':
         neighbors = False
         pcr_ = False
         silhouette_ = False
+        cc = False
     
     print("reducing data before integration")
     scIB.preprocessing.reduce_data(adata, batch_key=batch_key, umap=False,
@@ -83,28 +84,12 @@ if __name__=='__main__':
                                    neighbors=neighbors, pca=pca,
                                    n_top_genes=args.hvgs if hvg else None)
     
-    if cc:
-        print("scoring cell cycle genes")
-        s_genes = open(args.s_phase).read().split('\n')
-        s_genes = [gene for gene in s_genes if gene in adata.var_names]
-        g2m_genes = open(args.g2m_phase).read().split('\n')
-        g2m_genes = [gene for gene in g2m_genes if gene in adata.var_names]
-        if len(s_genes)+len(g2m_genes) == 0:
-            print('no cell cycle genes in adata, skipping cell cycle effect')
-            cc = False
-        else:
-            sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
-    elif ('G2M_score' in adata.obs.columns) and ('S_score' in adata.obs.columns):
-        cc = True
-    else:
-        cc = False
-    
     print("computing metrics")
     results = scIB.me.metrics(adata, adata_int, hvg=hvg, cluster_nmi=cluster_nmi,
                     batch_key=batch_key, label_key=label_key,
                     silhouette_=silhouette_, si_embed=si_embed,
-                    nmi_=False, ari_=False, nmi_method='max', nmi_dir=None,
-                    pcr_=pcr_, kBET_=True, cell_cycle_=cc, verbose=True
+                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
+                    pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False, organism=organism
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
