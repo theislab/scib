@@ -417,6 +417,53 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     
     return R2Var
 
+### lisi score
+def lisi_score(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
+               hvg=False, verbose=False):
+    """
+    Compute lisi score (after integration)
+    params:
+        matrix: matrix from adata to calculate on
+        covariate_key: variable to compute iLISI on
+        cluster_key: variable to compute cLISI on
+    return:
+        pd.DataFrame with median cLISI and median iLISI scores (following the harmony paper)
+    """
+    
+    checkAdata(adata)
+    checkBatch(covariate_key, adata.obs)
+    checkBatch(cluster_key, adata.obs)
+
+    if matrix is None:
+        matrix = adata.X
+
+    if hvg:
+        hvg_idx = get_hvg_indices(adata)
+        if verbose:
+            print(f"subsetting to {len(hvg_idx)} highly variable genes")
+        matrix = matrix[:, hvg_idx]
+
+    if verbose:
+        print(f"covariates: {covariate_key} and {cluster_key}")
+    metadata = adata.obs[[covariate_key, cluster_key]]
+
+    anndata2ri.activate()
+    ro.r("library(lisi)")
+
+    if verbose:
+        print("importing count matrix")
+    ro.globalenv['data_mtrx'] = matrix
+    ro.globalenv['metadata'] =metadata
+
+    if verbose:
+        print("LISI score estimation")
+    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, c({covariate_key},{cluster_key}))")
+
+    anndata2ri.deactivate()
+    return None
+
+
+
 ### kBET
 def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     """
@@ -449,8 +496,8 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     anndata2ri.deactivate()
     try:
         ro.r("batch.estimate$average.pval")[0]
-    except ValueError:
-        return NaN
+    except rpy2.rinterface_lib.embedded.RRuntimeError:
+        return np.nan
     else:
         return ro.r("batch.estimate$average.pval")[0]
 
