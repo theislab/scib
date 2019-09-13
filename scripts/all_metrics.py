@@ -14,6 +14,7 @@ if __name__=='__main__':
     import argparse
     import os
     import glob
+    from functools import reduce
 
     parser = argparse.ArgumentParser(description='Collect all metrics')
 
@@ -23,18 +24,13 @@ if __name__=='__main__':
     
     ##
     
-    res_dict = {}
+    res_list = []
+    results = pd.DataFrame()
     files = glob.glob(f'{args.input}*metrics*')
-    print(files)
-    for file in files:
-        res = pd.read_csv(file)
-        nice_name = '_'.join(file.split('_')[2:4])
-        print(nice_name)
-        res_dict[nice_name] = res
+    for file_ in files:
+        res = pd.read_csv(file_, index_col=0)
+        res_list.append(res)
     
-    print(res_dict)
-    
-    # call all_metrics function
-    results = scIB.me.metrics_all(res_dict)
+    results = reduce(lambda  left,right: pd.merge(left, right, left_index=True, right_index=True), res_list)
     results.to_csv(args.output)
     
