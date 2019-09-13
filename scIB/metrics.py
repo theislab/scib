@@ -108,47 +108,6 @@ def plot_silhouette_score(adata_dict, batch_key, group_key, metric='euclidean',
                 plt.title(f'Silhouette scores per cell for {data_set}')
                 plt.show()
 
-### Naive cluster overlap
-def cluster_overlap(adata, group1, group2):
-    
-    checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
-    
-    cluster_ov = {}
-    louv_post_sizes = adata.obs.groupby(group1).size()
-    for i in adata.obs[group2].cat.categories:
-        a = adata.obs[adata.obs[group2] == i]
-        overlap = a.groupby(group1).size()
-        cluster_ov[i] = (overlap / louv_post_sizes).sum() / len(overlap[overlap > 0])
-    return cluster_ov
-
-def plot_cluster_overlap(adata_dict, group1, group2, df=False):
-    """
-    params:
-        adata_dict: dictionary of adata objects, each labeled by e.g. integration method name
-        group1: column containing cluster assignments
-        group2: column containing cluster assignments
-    return:
-        clust_df: dataframe with plotted data points
-    """
-    series = []
-    dict_keys = list(adata_dict.keys())
-    for i in dict_keys:
-        c_ov = cluster_overlap(adata_dict[i], group1=group1, group2=group2)
-        series.append(pd.Series(c_ov))
-    clust_df = pd.DataFrame(series).transpose()
-    clust_df.columns = dict_keys
-    
-    with sns.set_palette('Dark2'):
-        sns.boxplot(data=clust_df)
-        sns.swarmplot(data=clust_df, color=".25")
-    
-    if df:
-        return clust_df
-    return None
-
-
 ### NMI normalised mutual information
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     """
@@ -360,7 +319,7 @@ def get_hvg_indices(adata):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, pca=True, hvg=False, covariate='sample', verbose=False):
+def pcr_comparison(adata_pre, adata_post, hvg=False, covariate='sample', verbose=False):
     """
     Compare the effect before and after integration
     params:
@@ -370,12 +329,12 @@ def pcr_comparison(adata_pre, adata_post, pca=True, hvg=False, covariate='sample
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata_pre, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
-    pcr_after = pcr(adata_post, pca=pca, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_before = pcr(adata_pre, hvg=hvg, covariate=covariate, verbose=verbose)
+    pcr_after = pcr(adata_post, hvg=hvg, covariate=covariate, verbose=verbose)
     
     return pcr_after - pcr_before
 
-def pcr(adata, pca=True, n_comps=None, hvg=False, covariate='sample', verbose=True):
+def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
     """
     PCR for Adata object
     params:
@@ -400,7 +359,7 @@ def pcr(adata, pca=True, n_comps=None, hvg=False, covariate='sample', verbose=Tr
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    if pca:
+    if 'X_pca' in adata.obsm:
         return pc_regression(adata.obsm['X_pca'], batch,
                              pca_sd=adata.uns['pca']['variance'],
                              n_comps=n_comps,
@@ -411,17 +370,14 @@ def pcr(adata, pca=True, n_comps=None, hvg=False, covariate='sample', verbose=Tr
 def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=True):
     """
     params:
-        data: Anndata or expression matrix
+        data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
         batch: series or list of batch assignemnts
         n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
         pca_sd: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     PCA is only computed, if variance contribution is not given (pca_sd).
     """
     
-    if isinstance(data, anndata.AnnData):
-        matrix = adata.X
-        pca_sd = None
-    elif isinstance(data, (np.matrix, np.ndarray, sparse.csr_matrix)):
+    if isinstance(data, (np.ndarray, sparse.csr_matrix)):
         matrix = data
     else:
         raise TypeError(f'invalid type {data.__class__} for data')
@@ -598,33 +554,6 @@ def measureTM(*args, **kwargs):
     return mem, Stats(prof).total_tt, out[1:]
 
 
-### All Metrics
-def metrics_all(results_dict#,
-                #batch_key, group_key, cluster_key=None,
-                #silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
-                #nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                #pcr_=True, kBET_=True, kBET_sub=0.5,
-                #cell_cycle_=True, hvg=True, verbose=False
-               ):
-    """
-    summary of all metrics for all tools in a DataFrame
-    params:
-        results_dict: dictionary of results as pd.DataFrame from different integration methods
-            ["seurat", "scanorama", "mnn", "scGen", "Harmony", "CONOS"]
-    """
-    
-    results = pd.DataFrame(columns=results_dict.keys())
-    for tool, res in results_dict.items():
-        #single_result = metrics(res, res.X, 
-        #                        batch_key=batch_key, group_key=group_key, cluster_key=cluster_key,
-        #                        silhouette_=silhouette_,  si_embed=si_embed, si_metric=si_metric,
-        #                        nmi_=nmi_, ari_=ari_, nmi_method=nmi_method, nmi_dir=nmi_dir,
-        #                        pcr_=pcr_, kBET_=kBET_, kBET_sub=kBET_sub,
-        #                        cell_cycle_=cell_cycle_, hvg=hvg, verbose=verbose)
-        results[tool] = res.iloc[:,0]
-    
-    return results.transpose()
-
 def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='max', nmi_dir=None, 
@@ -666,25 +595,26 @@ def metrics(adata, adata_int, batch_key, label_key,
         # silhouette coefficient per batch
         sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
                 embed=si_embed, verbose=False)
+        sil_clus = np.mean(sil_clus['silhouette_score'])
     else:
         sil_global = None
         sil_clus = None
-    results[f'ASW_{label_key}/{si_embed}'] = sil_global
-    results[f'ASW_{label_key}/{batch_key}/{si_embed}'] = sil_clus
+    results['ASW_label'] = sil_global
+    results['ASW_label/batch'] = sil_clus
 
     if nmi_:
         print('NMI...')
         nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
     else:
         nmi_score = None
-    results[f'NMI_{cluster_key}/{label_key}'] = nmi_score
+    results['NMI_cluster/label'] = nmi_score
 
     if ari_:
         print('ARI...')
         ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
     else:
         ari_score = None
-    results[f'ARI {cluster_key}/{label_key}'] = ari_score
+    results['ARI cluster/label'] = ari_score
 
     if cell_cycle_:
         print('cell cycle effect...')
@@ -700,10 +630,10 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if pcr_:
         print('PC regression...')
-        pcr_score = pcr_comparison(adata, adata_int, covariate=batch_key, pca=True, verbose=verbose)
+        pcr_score = pcr_comparison(adata, adata_int, covariate=batch_key, verbose=verbose)
     else:
         pcr_score = None
-    results[f'PCR {batch_key}'] = pcr_score
+    results['PCR batch'] = pcr_score
     
     if kBET_:
         print('kBET...')
