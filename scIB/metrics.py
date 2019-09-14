@@ -577,7 +577,7 @@ def measureTM(*args, **kwargs):
 def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
-            pcr_=True, kBET_=True, kBET_sub=0.5, 
+            pcr_=True, kBET_=True, kBET_sub=0.5, lisi_=False, 
             cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
            ):
     """
@@ -657,10 +657,23 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = np.nanmean(kBET(adata_int, covariate_key=batch_key, cluster_key=label_key,
+        kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key,
                            subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
     else:
         kbet_score = np.nan
     results['kBET'] = kbet_score
+
+    if lisi_:
+        print('LISI score...')
+        lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key,
+                                       verbose=False), axis=1)
+        ilisi_score = lisi_score[0]
+        clisi_score = lisi_score[1]
+
+    else:
+        ilisi_score = np.nan
+        clisi_score = np.nan
+    results['iLISI'] = ilisi_score
+    results['cLISI'] = clisi_score
     
     return pd.DataFrame.from_dict(results, orient='index')
