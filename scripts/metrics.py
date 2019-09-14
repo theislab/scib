@@ -63,7 +63,7 @@ if __name__=='__main__':
     pca = True
     pcr_ = True
     kBET_ = False #ready to use for embedded and full matrix
-    lisi_ = False
+    lisi_ = True
     hvg = adata.n_vars == adata_int.n_vars
     silhouette_ = True
     
