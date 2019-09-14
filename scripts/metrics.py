@@ -37,8 +37,7 @@ if __name__=='__main__':
     batch_key = args.batch_key
     label_key = args.label_key
     organism = args.organism
-    hvg = args.hvgs is not None
-    cc = True
+    n_hvgs = args.hvgs
     
     base = os.path.basename(args.integrated)
     out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
@@ -49,55 +48,69 @@ if __name__=='__main__':
     print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
     print(adata)
-    if (args.hvgs is not None):
-        if (adata.n_vars < args.hvgs):
-            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
-
     print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
     print(adata_int)
+    if (n_hvgs is not None):
+        if (adata_int.n_vars < n_hvgs):
+            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
 
-    # metric flags
-    si_embed = 'X_pca'
-    neighbors = True
+    # preprocessing
+    if adata.n_vars > adata_int.n_vars: # no HVG selection if output is not already subsetted
+        n_hvgs = None
     pca = True
-    pcr_ = True
-    hvg = adata.n_vars == adata_int.n_vars
+    neighbors = True
+    embed = 'X_pca'
+    
+    # default metric flags
     silhouette_ = True
+    nmi_ = True
+    ari_ = True
+    pcr_ = True
+    kBET_ = False
+    cell_cycle_ = True
     
     if (args.type == "embed"):
-        si_embed = "X_emb"
-        if ('emb' in adata_int.uns) and (adata_int.uns['emb']): # legacy check
+        n_hvgs = None
+        embed = "X_emb"
+        # legacy check
+        if ('emb' in adata_int.uns) and (adata_int.uns['emb']):
             adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
-        hvg = False
     elif (args.type == "knn"):
-        hvg = False
+        n_hvgs = None
+        pca = False
         neighbors = False
-        pcr_ = False
         silhouette_ = False
-        cc = False
+        pcr_ = False
+        cell_cycle_ = False
     
     print("reducing integrated and uncorrected data")
-    scIB.preprocessing.reduce_data(adata_int, umap=False,
-                                   neighbors=neighbors, pca=pca,
-                                   n_top_genes=args.hvgs if hvg else None,
-                                   use_rep='X_emb' if 'X_emb' in adata_int.obsm else 'X_pca')
-
-    adata=adata[:,adata_int.var_names].copy()
-    scIB.preprocessing.reduce_data(adata, umap=False,
-                                   neighbors=True, pca=True, n_top_genes=None)
+    scIB.preprocessing.reduce_data(adata_int,
+                                   n_top_genes=n_hvgs,
+                                   neighbors=neighbors, use_rep=embed,
+                                   pca=pca, umap=False)
+    # select HVGs according to corrected data
+    adata = adata[:,adata_int.var_names].copy()
+    scIB.preprocessing.reduce_data(adata,
+                                   n_top_genes=None,
+                                   neighbors=True,
+                                   pca=True, umap=False)
     
     print("computing metrics")
-    results = scIB.me.metrics(adata, adata_int, hvg=hvg, cluster_nmi=cluster_nmi,
-                    batch_key=batch_key, label_key=label_key,
-                    silhouette_=silhouette_, si_embed=si_embed,
-                    nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                    pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False, organism=organism
+    results = scIB.me.metrics(adata, adata_int,
+                              hvg=n_hvgs is not None, cluster_nmi=cluster_nmi,
+                              batch_key=batch_key, label_key=label_key,
+                              silhouette_=silhouette_, embed=embed,
+                              nmi_=nmi_, nmi_method='arithmetic', nmi_dir=None,
+                              ari_=ari_,
+                              pcr_=pcr_,
+                              kBET_=kBET_,
+                              cell_cycle_=cell_cycle_, organism=organism,
+                              verbose=False
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
     results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
-    print(results)
 
     print("done")
 

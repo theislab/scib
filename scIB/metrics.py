@@ -561,17 +561,13 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+            silhouette_=True,  embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, 
             cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
            ):
     """
     summary of all metrics for one Anndata object
-    params:
-        adata:
-        silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette` function for details)
-        nmi: compute normalized mutual information NMI
     """
     
     checkAdata(adata)
@@ -597,10 +593,10 @@ def metrics(adata, adata_int, batch_key, label_key,
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed)
+        sil_global = silhouette(adata_int, group_key=label_key, embed=embed)
         # silhouette coefficient per batch
         _, sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
-                embed=si_embed, verbose=False)
+                embed=embed, verbose=False)
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
