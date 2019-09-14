@@ -67,8 +67,9 @@ if __name__=='__main__':
     nmi_ = True
     ari_ = True
     pcr_ = True
-    kBET_ = False
     cell_cycle_ = True
+    kBET_ = False #ready to use for embedded and full matrix
+    lisi_ = True
     
     if (args.type == "embed"):
         n_hvgs = None
@@ -83,7 +84,9 @@ if __name__=='__main__':
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
-    
+        kBET_ = False #until we have determined how to convert the bbknn knn-graph to FNN format, which kBET uses
+        lisi_ = False
+
     print("reducing integrated and uncorrected data")
     scIB.preprocessing.reduce_data(adata_int,
                                    n_top_genes=n_hvgs,
@@ -97,17 +100,17 @@ if __name__=='__main__':
                                    pca=True, umap=False)
     
     print("computing metrics")
-    results = scIB.me.metrics(adata, adata_int,
+    results = scIB.me.metrics(adata, adata_int, verbose=False,
                               hvg=n_hvgs is not None, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
                               nmi_=nmi_, nmi_method='arithmetic', nmi_dir=None,
                               ari_=ari_,
                               pcr_=pcr_,
-                              kBET_=kBET_,
                               cell_cycle_=cell_cycle_, organism=organism,
-                              verbose=False
-                    )
+                              kBET_=kBET_,
+                              lisi_ = lisi_
+                             )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
     results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
