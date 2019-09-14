@@ -432,8 +432,8 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     return R2Var
 
 ### lisi score
-def lisi_score(adata, matrix=None, covariate_key='sample', cluster_key='louvain',
-               hvg=False, verbose=False):
+def lisi(adata, matrix=None, batch_key='sample', label_key='louvain',
+         subsample = 0.5, hvg=False, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -445,8 +445,8 @@ def lisi_score(adata, matrix=None, covariate_key='sample', cluster_key='louvain'
     """
     
     checkAdata(adata)
-    checkBatch(covariate_key, adata.obs)
-    checkBatch(cluster_key, adata.obs)
+    checkBatch(batch_key, adata.obs)
+    checkBatch(label_key, adata.obs)
 
     if matrix is None:
         matrix = adata.X
@@ -456,25 +456,29 @@ def lisi_score(adata, matrix=None, covariate_key='sample', cluster_key='louvain'
         if verbose:
             print(f"subsetting to {len(hvg_idx)} highly variable genes")
         matrix = matrix[:, hvg_idx]
+    
+    if sparse.issparse(matrix): #lisi score runs only on dense matrices (knn search)
+        matrix = matrix.todense()
+
 
     if verbose:
-        print(f"covariates: {covariate_key} and {cluster_key}")
-    metadata = adata.obs[[covariate_key, cluster_key]]
-
+        print(f"covariates: {batch_key} and {label_key}")
+    metadata = adata.obs[[batch_key, label_key]]
     anndata2ri.activate()
     ro.r("library(lisi)")
 
     if verbose:
         print("importing count matrix")
     ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['metadata'] =metadata
-
+    ro.globalenv['metadata'] = metadata
+    batch_label_keys = ro.StrVector([batch_key, label_key])
+    ro.globalenv['batch_label_keys'] = batch_label_keys
     if verbose:
         print("LISI score estimation")
-    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, c({covariate_key},{cluster_key}))")
-
+    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
+    print(lisi_estimate)
     anndata2ri.deactivate()
-    return None
+    return lisi_estimate
 
 
 
@@ -482,7 +486,7 @@ def lisi_score(adata, matrix=None, covariate_key='sample', cluster_key='louvain'
 def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
-        matrix: expression matrix
+        matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
         batch: series or list of batch assignemnts
         subsample: fraction to be subsampled. No subsampling if `subsample=None`
     returns:
@@ -505,7 +509,7 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     if verbose:
         print("kBET estimation")
     #k0 = len(batch) if len(batch) < 50 else 'NULL'
-    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
     
     anndata2ri.deactivate()
     try:

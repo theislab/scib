@@ -38,7 +38,7 @@ if __name__=='__main__':
     label_key = args.label_key
     organism = args.organism
     hvg = args.hvgs is not None
-    cc = True
+    cc = False
     
     base = os.path.basename(args.integrated)
     out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
@@ -62,6 +62,8 @@ if __name__=='__main__':
     neighbors = True
     pca = True
     pcr_ = True
+    kBET_ = False #ready to use for embedded and full matrix
+    lisi_ = False
     hvg = adata.n_vars == adata_int.n_vars
     silhouette_ = True
     
@@ -76,7 +78,9 @@ if __name__=='__main__':
         pcr_ = False
         silhouette_ = False
         cc = False
-    
+        kBET_ = False #until we have determined how to convert the bbknn knn-graph to FNN format, which kBET uses
+        lisi_ = False
+
     print("reducing integrated and uncorrected data")
     scIB.preprocessing.reduce_data(adata_int, umap=False,
                                    neighbors=neighbors, pca=pca,
@@ -92,7 +96,7 @@ if __name__=='__main__':
                     batch_key=batch_key, label_key=label_key,
                     silhouette_=silhouette_, si_embed=si_embed,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                    pcr_=pcr_, kBET_=False, cell_cycle_=cc, verbose=False, organism=organism
+                    pcr_=pcr_, kBET_=kBET_, lisi_ = lisi_, cell_cycle_=cc, verbose=False, organism=organism
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
