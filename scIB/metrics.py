@@ -17,7 +17,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
+def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca', scale=True):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
@@ -26,11 +26,13 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
-    
-    return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+    asw = scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+    if scale:
+        asw = (asw + 1)/2
+    return asw
 
 def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
-                     embed='X_pca', verbose=True):
+                     embed='X_pca', verbose=True, scale=True):
     """
     Silhouette score of batch labels subsetted for each group.
     params:
@@ -57,9 +59,13 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
         sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
                                                adata_group.obs[batch_key],
                                                metric=metric)
-        sil_per_group = [abs(i) for i in sil_per_group] # take only absolute value
+        # take only absolute value
+        sil_per_group = [abs(i) for i in sil_per_group]
+        if scale:
+            # scale s.t. highest number is optimal
+            sil_per_group = [1 - i for i in sil_per_group]
         d = pd.DataFrame({'group' : [group]*len(sil_per_group), 'silhouette_score' : sil_per_group})
-        sil_all = sil_all.append(d)
+        sil_all = sil_all.append(d)    
     sil_all = sil_all.reset_index(drop=True)
     sil_means = sil_all.groupby('group').mean()
     
@@ -329,7 +335,7 @@ def get_hvg_indices(adata, verbose=True):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False, scale=True):
     """
     Compare the effect before and after integration
     params:
@@ -341,8 +347,11 @@ def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False):
     
     pcr_before = pcr(adata_pre, covariate=covariate, verbose=verbose)
     pcr_after = pcr(adata_post, covariate=covariate, verbose=verbose)
-    
-    return pcr_after - pcr_before
+
+    if scale:
+        return 1 - abs(pcr_after - pcr_before)
+    else:
+        return pcr_after - pcr_before
 
 def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
     """
@@ -468,7 +477,7 @@ def lisi(adata, matrix=None, batch_key='sample', label_key='louvain',
     ro.r("library(lisi)")
 
     if verbose:
-        print("importing count matrix")
+        print("importing expression matrix")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['metadata'] = metadata
     batch_label_keys = ro.StrVector([batch_key, label_key])

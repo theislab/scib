@@ -116,7 +116,6 @@ if __name__=='__main__':
                                    n_top_genes=n_hvgs, batch_key=batch_key,
                                    neighbors=True,
                                    pca=True, umap=False)
-    print(adata)
     
     # METRICS
     print("computing metrics")
