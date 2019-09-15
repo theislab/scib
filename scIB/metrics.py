@@ -287,7 +287,7 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, organism='mouse'):
+def cell_cycle(adata, organism='mouse', verbose=False):
     """
     params:
         adata:
@@ -321,11 +321,11 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     mean = np.mean(overlap)
     return mean/float(n_hvg)
 
-
 ### PC Regression
-def get_hvg_indices(adata):
+def get_hvg_indices(adata, verbose=True):
     if "highly_variable" not in adata.var.columns:
-        print("No highly variable genes computed, continuing with full matrix")
+        if verbose:
+            print("No highly variable genes computed, continuing with full matrix")
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
@@ -638,7 +638,7 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if cell_cycle_:
         print('cell cycle effect...')
-        before = cell_cycle(adata, organism=organism)
+        before = cell_cycle(adata, organism=organism, verbose=verbose)
         after = cell_cycle(adata_int, organism=organism)
         s_phase = after[0] - before[0]
         g2m_phase = after[1] - before[1]
@@ -658,7 +658,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if kBET_:
         print('kBET...')
         kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key,
-                           subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
+                           subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
     results['kBET'] = kbet_score
@@ -666,7 +666,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if lisi_:
         print('LISI score...')
         lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key,
-                                       verbose=False), axis=1)
+                                       verbose=verbose), axis=1)
         ilisi_score = lisi_score[0]
         clisi_score = lisi_score[1]
 
