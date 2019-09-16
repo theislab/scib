@@ -315,6 +315,10 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     adata_post_list = scIB.utils.splitBatches(adata_post, batch)
     overlap = []
     
+    for i in adata_post_list:
+        n_hvg = np.minimum(n_hvg, int(0.5*len(i.var)))
+    print('Use '+str(n_hvg)+' HVGs')
+    
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
@@ -324,8 +328,7 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
         #print(len(set(tmp_pre).intersection(set(tmp_post))))
         overlap.append(len(set(tmp_pre).intersection(set(tmp_post))))
-    mean = np.mean(overlap)
-    return mean/float(n_hvg)
+    return np.mean(overlap/n_hvg)
 
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
