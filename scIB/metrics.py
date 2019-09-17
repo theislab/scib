@@ -495,7 +495,7 @@ def lisi(adata, matrix=None, batch_key='sample', label_key='louvain', type_ = No
 
 
 ### kBET
-def kBET_single(matrix, batch, type_ = None, subsample=0.5, heuristic=True, verbose=False):
+def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
         matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
@@ -504,11 +504,12 @@ def kBET_single(matrix, batch, type_ = None, subsample=0.5, heuristic=True, verb
     returns:
         kBET p-value
     """
-    if isinstance(subsample, float):
-        #perform subsampling for large clusters, but not for small clusters (boundary is currently set to 50)
-        if np.floor(matrix.shape[0]*subsample) >= 50:
-            matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
-            batch = batch[indices]
+    if type_ != 'knn':
+        if isinstance(subsample, float):
+            #perform subsampling for large clusters, but not for small clusters (boundary is currently set to 50)
+            if np.floor(matrix.shape[0]*subsample) >= 50:
+                matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
+                batch = batch[indices]
     
     anndata2ri.activate()
     ro.r("library(kBET)")
@@ -518,11 +519,17 @@ def kBET_single(matrix, batch, type_ = None, subsample=0.5, heuristic=True, verb
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['batch'] = batch
     
+    if type_ == 'knn':
+        ro.globalenv['knn_graph'] = nn_index
+        ro.globalenv['k0'] = nn_index.shape[1]
+
     if verbose:
         print("kBET estimation")
     #k0 = len(batch) if len(batch) < 50 else 'NULL'
     batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
-    
+    if type_ == 'knn':
+        batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, verbose={str(verbose).upper()})")
+
     anndata2ri.deactivate()
     try:
         ro.r("batch.estimate$average.pval")[0]
@@ -544,8 +551,16 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
-    
-    matrix = adata.obsm[embed]
+    if type_ =='knn':
+        if verbose:
+            print("Convert nearest neighbor matrix for kBET.")
+        dist_mat = sparse.find(adata_norm.uns['neighbors']['distances'])
+        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape))
+        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+            get_idx = dist_mat[0] == cell_id
+            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+    else:
+        matrix = adata.obsm[embed]
     
     if verbose:
         print(f"batch: {batch_key}")
@@ -554,13 +569,25 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     kBET_scores = {'cluster': [], 'kBET': []}
     for clus in adata.obs[label_key].unique():
         idx = np.where((adata.obs[label_key] == clus))[0]
-        score = kBET_single(
-            matrix[idx, :],
-            batch[idx],
-            subsample=subsample,
-            verbose=verbose,
-            heuristic=heuristic
-        )
+        if type_ == 'knn':
+            nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
+            nn_index_tmp[np.invert(np.in1d(nn_index_tmp, idx))] = np.nan #set the rest nan
+            score = kBET_single(
+                matrix[idx, :],
+                batch[idx],
+                knn = nn_index_tmp,
+                subsample=subsample,
+                verbose=verbose,
+                heuristic=heuristic
+                )
+        else:
+            score = kBET_single(
+                matrix[idx, :],
+                batch[idx],
+                subsample=subsample,
+                verbose=verbose,
+                heuristic=heuristic
+                )
         kBET_scores['cluster'].append(clus)
         kBET_scores['kBET'].append(score)
     
