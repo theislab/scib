@@ -444,7 +444,7 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     return R2Var
 
 ### lisi score
-def lisi(adata, matrix=None, batch_key='sample', label_key='louvain',
+def lisi(adata, matrix=None, batch_key='sample', label_key='louvain', type_ = None,
          subsample = 0.5, hvg=False, verbose=False):
     """
     Compute lisi score (after integration)
@@ -495,7 +495,7 @@ def lisi(adata, matrix=None, batch_key='sample', label_key='louvain',
 
 
 ### kBET
-def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
+def kBET_single(matrix, batch, type_ = None, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
         matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
@@ -531,7 +531,7 @@ def kBET_single(matrix, batch, subsample=0.5, heuristic=True, verbose=False):
     else:
         return ro.r("batch.estimate$average.pval")[0]
 
-def kBET(adata, batch_key, label_key, embed='X_pca',
+def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
@@ -669,7 +669,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key,
+        kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
@@ -677,7 +677,7 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if lisi_:
         print('LISI score...')
-        lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key,
+        lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                                        verbose=verbose), axis=1)
         ilisi_score = lisi_score[0]
         clisi_score = lisi_score[1]
