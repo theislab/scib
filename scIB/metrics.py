@@ -17,7 +17,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
+def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca', scale=True):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
@@ -26,11 +26,13 @@ def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca'):
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
-    
-    return scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+    asw = scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+    if scale:
+        asw = (asw + 1)/2
+    return asw
 
 def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
-                     embed='X_pca', verbose=True):
+                     embed='X_pca', verbose=True, scale=True):
     """
     Silhouette score of batch labels subsetted for each group.
     params:
@@ -57,9 +59,13 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
         sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
                                                adata_group.obs[batch_key],
                                                metric=metric)
-        sil_per_group = [abs(i) for i in sil_per_group] # take only absolute value
+        # take only absolute value
+        sil_per_group = [abs(i) for i in sil_per_group]
+        if scale:
+            # scale s.t. highest number is optimal
+            sil_per_group = [1 - i for i in sil_per_group]
         d = pd.DataFrame({'group' : [group]*len(sil_per_group), 'silhouette_score' : sil_per_group})
-        sil_all = sil_all.append(d)
+        sil_all = sil_all.append(d)    
     sil_all = sil_all.reset_index(drop=True)
     sil_means = sil_all.groupby('group').mean()
     
@@ -287,7 +293,7 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, organism='mouse'):
+def cell_cycle(adata, organism='mouse', verbose=False):
     """
     params:
         adata:
@@ -309,6 +315,10 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     adata_post_list = scIB.utils.splitBatches(adata_post, batch)
     overlap = []
     
+    for i in adata_post_list:
+        n_hvg = np.minimum(n_hvg, int(0.5*len(i.var)))
+    print('Use '+str(n_hvg)+' HVGs')
+    
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
@@ -318,18 +328,17 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
         #print(len(set(tmp_pre).intersection(set(tmp_post))))
         overlap.append(len(set(tmp_pre).intersection(set(tmp_post))))
-    mean = np.mean(overlap)
-    return mean/float(n_hvg)
-
+    return np.mean(overlap/n_hvg)
 
 ### PC Regression
-def get_hvg_indices(adata):
+def get_hvg_indices(adata, verbose=True):
     if "highly_variable" not in adata.var.columns:
-        print("No highly variable genes computed, continuing with full matrix")
+        if verbose:
+            print("No highly variable genes computed, continuing with full matrix")
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False, scale=True):
     """
     Compare the effect before and after integration
     params:
@@ -341,8 +350,11 @@ def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False):
     
     pcr_before = pcr(adata_pre, covariate=covariate, verbose=verbose)
     pcr_after = pcr(adata_post, covariate=covariate, verbose=verbose)
-    
-    return pcr_after - pcr_before
+
+    if scale:
+        return 1 - abs(pcr_after - pcr_before)
+    else:
+        return pcr_after - pcr_before
 
 def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
     """
@@ -468,7 +480,7 @@ def lisi(adata, matrix=None, batch_key='sample', label_key='louvain',
     ro.r("library(lisi)")
 
     if verbose:
-        print("importing count matrix")
+        print("importing expression matrix")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['metadata'] = metadata
     batch_label_keys = ro.StrVector([batch_key, label_key])
@@ -579,17 +591,13 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            silhouette_=True,  si_embed='X_pca', si_metric='euclidean',
+            silhouette_=True,  embed='X_pca', si_metric='euclidean',
             nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, lisi_=False, 
             cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
            ):
     """
     summary of all metrics for one Anndata object
-    params:
-        adata:
-        silhouette: compute silhouette score on batch `si_batch`, `si_group` using the embedding `si_embed` (check `silhouette` function for details)
-        nmi: compute normalized mutual information NMI
     """
     
     checkAdata(adata)
@@ -615,10 +623,10 @@ def metrics(adata, adata_int, batch_key, label_key,
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(adata_int, group_key=label_key, embed=si_embed)
+        sil_global = silhouette(adata_int, group_key=label_key, embed=embed)
         # silhouette coefficient per batch
         _, sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
-                embed=si_embed, verbose=False)
+                embed=embed, verbose=False)
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
@@ -642,7 +650,7 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if cell_cycle_:
         print('cell cycle effect...')
-        before = cell_cycle(adata, organism=organism)
+        before = cell_cycle(adata, organism=organism, verbose=verbose)
         after = cell_cycle(adata_int, organism=organism)
         s_phase = after[0] - before[0]
         g2m_phase = after[1] - before[1]
@@ -662,7 +670,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if kBET_:
         print('kBET...')
         kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key,
-                           subsample=kBET_sub, heuristic=True, verbose=False)['kBET'])
+                           subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
     results['kBET'] = kbet_score
@@ -670,7 +678,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if lisi_:
         print('LISI score...')
         lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key,
-                                       verbose=False), axis=1)
+                                       verbose=verbose), axis=1)
         ilisi_score = lisi_score[0]
         clisi_score = lisi_score[1]
 
