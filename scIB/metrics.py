@@ -591,7 +591,7 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            silhouette_=True,  embed='X_pca', si_metric='euclidean',
+            silhouette_=True,  embed='X_pca', si_metric='euclidean', type_ = None,
             nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
             pcr_=True, kBET_=True, kBET_sub=0.5, lisi_=False, 
             cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
