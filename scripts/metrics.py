@@ -96,7 +96,7 @@ if __name__=='__main__':
                     batch_key=batch_key, label_key=label_key,
                     silhouette_=silhouette_, si_embed=si_embed,
                     nmi_=True, ari_=True, nmi_method='max', nmi_dir=None,
-                    pcr_=pcr_, kBET_=kBET_, lisi_ = lisi_, cell_cycle_=cc, verbose=False, organism=organism
+                    pcr_=pcr_, kBET_=kBET_, lisi_ = lisi_, cell_cycle_=cc, metric_type = args.type, verbose=False, organism=organism
                     )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     # save metrics' results
