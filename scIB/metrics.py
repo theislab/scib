@@ -290,29 +290,6 @@ def ari(adata, group1, group2):
     
     from sklearn.metrics.cluster import adjusted_rand_score
     return adjusted_rand_score(group1, group2)
-
-
-### Cell cycle effect
-def cell_cycle(adata_pre, adata_post, batch_key, agg_func=np.mean, organism='mouse',  verbose=False):
-    """
-    params:
-        adata_pre, adata_post: adatas before and after integration
-        organism: 'mouse' or 'human' for choosing cell cycle genes 
-    """
-    score_cell_cycle(adata_pre, organism=organism)
-
-    scores = {'S_score': [], 'G2M_score': []}
-    for phase in scores:
-        # copy cell cycle phase scores to adata_post
-        adata_post.obs[phase] = adata_pre.obs[phase]
-        for batch in adata_pre.obs[batch_key].unique():
-            # perform PCR per batch
-            adata_sub_pre = adata_pre[adata_pre.obs[batch_key] == batch]
-            adata_sub_post = adata_post[adata_post.obs[batch_key] == batch]
-            print(adata_sub_pre)
-            print(adata_sub_post)
-            scores[phase] = pcr_comparison(adata_sub_pre, adata_sub_post, covariate=phase, scale=True)
-    return agg_func(scores['S_score']), agg_func(scores['G2M_score'])
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
@@ -337,15 +314,53 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
         overlap.append(len(set(tmp_pre).intersection(set(tmp_post))))
     return np.mean(overlap/n_hvg)
 
+### Cell cycle effect
+def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger', embed=None, agg_func=np.mean, organism='mouse', n_comps=50):
+    """
+    params:
+        adata_pre, adata_post: adatas before and after integration
+        organism: 'mouse' or 'human' for choosing cell cycle genes
+        agg_func: any function that takes a list of numbers and aggregates them into a single number
+    """
+    checkAdata(adata_pre)
+    checkAdata(adata_post)
+    
+    score_cell_cycle(adata_pre, organism=organism)
+
+    scores = {'S_score': [], 'G2M_score': []}
+    for phase in scores:
+        for batch in adata_pre.obs[batch_key].unique():
+            # perform PCR per batch
+            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+            
+            # select highly variable genes from non-integrated
+            sc.pp.highly_variable_genes(raw_sub, n_top_genes=hvgs, flavor=flavor)
+            raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
+            # select HVG or take embedding from integrated
+            if embed is None:
+                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
+            else:
+                int_sub = int_sub.obsm[embed] 
+            
+            covariate = raw_sub.obs[phase]
+            
+            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+            
+            scores[phase] = 1 - abs(after - before)/before # scaled result
+    
+    return agg_func(scores['S_score']), agg_func(scores['G2M_score'])
+
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
     if "highly_variable" not in adata.var.columns:
         if verbose:
-            print("No highly variable genes computed, continuing with full matrix")
+            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, covariate, hvg=True, n_comps=None, scale=True, verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ranger', embed=None, n_comps=None, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     params:
@@ -355,21 +370,24 @@ def pcr_comparison(adata_pre, adata_post, covariate, hvg=True, n_comps=None, sca
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata_pre, covariate=covariate, hvg=True, n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, hvg=hvg, n_comps=n_comps, verbose=verbose)
+    pcr_before = pcr(adata_pre, covariate=covariate, hvgs=hvgs, flavor=flavor, n_comps=n_comps, verbose=verbose)
+    if embed is None:
+        adata_post = adata_post[:, adata_post.var['highly_variable']]
+    pcr_after = pcr(adata_post, covariate=covariate, hvgs=None, embed=embed, n_comps=n_comps, verbose=verbose)
 
     if scale:
-        return 1 - abs(pcr_after - pcr_before)
+        return 1 - abs(pcr_after - pcr_before)/pcr_before
     else:
         return pcr_after - pcr_before
 
-def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
+def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_ranger', verbose=False):
     """
     PCR for Adata object
     params:
         adata: Anndata object
-        pca: specifies whether existing PCA should be used (`use_Xpca=True`) or if PCA should be recomputed (`use_Xpca=False`)
-        hvg: specifies whether to use precomputed HVGs
+        embed: name of embedding in adata.obsm to use. No HVG selection, PCA will be computed on the embedding
+        hvgs: specifies number of highly variable genes to compute. If None, no HVGs will be computed, else HVG selection and PCA on these HVGs will be computed
+        n_comps: number of PCs if PCA should be computed. None will assume that PCA has been already computed
         covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
@@ -378,25 +396,25 @@ def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
     
-    if hvg:
-        hvg_idx = get_hvg_indices(adata)
-        if verbose:
-            print(f"subsetting to {len(hvg_idx)} highly variable genes")
-        adata = adata[:, hvg_idx]
+    if (embed is None) and (hvgs is not None):
+        sc.pp.highly_variable_genes(adata, n_top_genes=hvgs, flavor=flavor)
+        adata = adata[:, adata.var['highly_variable']]
+        # note: HVG selection will lead to recomputation of PCA
     
     if verbose:
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    if ('X_pca' in adata.obsm) and (n_comps is not None):
-        return pc_regression(adata.obsm['X_pca'], batch,
-                             pca_sd=adata.uns['pca']['variance'],
-                             n_comps=n_comps,
-                             verbose=verbose)
+    if (embed is not None) and (embed in adata.obsm):
+        if verbose:
+            print("PCR on embedding")
+        return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
+    elif ('X_pca' in adata.obsm) and (n_comps is None):
+        return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
     else:
-        return pc_regression(adata.X, batch, n_comps=n_comps, verbose=verbose)
+        return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=True):
+def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
@@ -409,19 +427,19 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     if isinstance(data, (np.ndarray, sparse.csr_matrix)):
         matrix = data
     else:
-        raise TypeError(f'invalid type {data.__class__} for data')
+        raise TypeError(f'invalid type: {data.__class__} is not a numpy array or sparse matrix')
     
     # perform PCA if no variance contributions are given
     if pca_sd is None:
-        if verbose:
-            print("PCA")
-            
+        
         if n_comps is None or n_comps > min(matrix.shape):
             n_comps = min(matrix.shape)
 
         if n_comps == min(matrix.shape):
             svd_solver = 'full'
     
+        if verbose:
+            print("PCA")
         pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
                         return_info=True, svd_solver=svd_solver, copy=True)
         X_pca = pca[0].copy()
@@ -433,8 +451,8 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
 
     ## PC Regression
     if verbose:
-        print("PC regression")    
-                
+        print("PC regression")
+    
     batch = pd.get_dummies(batch) if 'category' == str(batch.dtype) else np.array(batch)
     
     # fit linear model for n_comps PCs
@@ -669,10 +687,11 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            silhouette_=True,  embed='X_pca', si_metric='euclidean', type_ = None,
-            nmi_=True, ari_=True, nmi_method='arithmetic', nmi_dir=None, 
-            pcr_=True, kBET_=True, kBET_sub=0.5, lisi_=False, 
-            cell_cycle_=True, hvg=True, verbose=False, cluster_nmi=None, organism='mouse'
+            hvgs=True, cluster_nmi=None,
+            nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
+            silhouette_=False,  embed='X_pca', si_metric='euclidean',
+            pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
+            kBET_=False, kBET_sub=0.5, lisi_=False, type_ = None
            ):
     """
     summary of all metrics for one Anndata object
@@ -688,15 +707,30 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     
     # clustering
-    print('clustering...')
-    cluster_key = 'cluster'
-    res_max, nmi_max, nmi_all = opt_louvain(adata_int, label_key=label_key, cluster_key=cluster_key,
-            plot=False, verbose=verbose, inplace=True, force=True)
-    if cluster_nmi is not None:
-        nmi_all.to_csv(cluster_nmi, header=False)
-        print(f'saved clustering NMI values to {cluster_nmi}')
-    
+    if nmi_ or ari_:
+        print('clustering...')
+        cluster_key = 'cluster'
+        res_max, nmi_max, nmi_all = opt_louvain(adata_int, label_key=label_key, cluster_key=cluster_key,
+                plot=False, verbose=verbose, inplace=True, force=True)
+        if cluster_nmi is not None:
+            nmi_all.to_csv(cluster_nmi, header=False)
+            print(f'saved clustering NMI values to {cluster_nmi}')
+
     results = {}
+    
+    if nmi_:
+        print('NMI...')
+        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
+    else:
+        nmi_score = np.nan
+    results['NMI_cluster/label'] = nmi_score
+
+    if ari_:
+        print('ARI...')
+        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+    else:
+        ari_score = np.nan
+    results['ARI cluster/label'] = ari_score
     
     if silhouette_:
         print('silhouette score...')
@@ -712,23 +746,9 @@ def metrics(adata, adata_int, batch_key, label_key,
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
-    if nmi_:
-        print('NMI...')
-        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
-    else:
-        nmi_score = np.nan
-    results['NMI_cluster/label'] = nmi_score
-
-    if ari_:
-        print('ARI...')
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
-    else:
-        ari_score = np.nan
-    results['ARI cluster/label'] = ari_score
-
     if cell_cycle_:
         print('cell cycle effect...')
-        s_phase, g2m_phase = cell_cycle(adata, adata_int, batch_key=batch_key, organism=organism)
+        s_phase, g2m_phase = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
     else:
         s_phase = np.nan
         g2m_phase = np.nan
@@ -737,7 +757,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if pcr_:
         print('PC regression...')
-        pcr_score = pcr_comparison(adata, adata_int, covariate=batch_key, verbose=verbose)
+        pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
         pcr_score = np.nan
     results['PCR batch'] = pcr_score

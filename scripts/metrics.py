@@ -89,7 +89,6 @@ if __name__=='__main__':
         n_hvgs = None
         pca = False
     
-    # integrated
     if verbose:
         print('reduce integrated data:')
         print(f'    HVG selection:\t{n_hvgs}')
@@ -102,20 +101,6 @@ if __name__=='__main__':
                                    n_top_genes=n_hvgs,
                                    neighbors=neighbors, use_rep=embed,
                                    pca=pca, umap=False)
-    # uncorrected
-    if verbose:
-        print('reduce uncorrected data:')
-        print(f'    HVGs:\t{n_hvgs}')
-        print(f'    neighbourhood graph:\tTrue')
-        print('    PCA:\tTrue')
-    if n_hvgs is not None:
-        # subset to genes in integrated adata
-        adata = adata[:,adata_int.var_names].copy()
-        adata.var['highly_variable'] = adata_int.var['highly_variable']
-    scIB.preprocessing.reduce_data(adata,
-                                   n_top_genes=n_hvgs, batch_key=batch_key,
-                                   neighbors=True,
-                                   pca=True, umap=False)
     
     # METRICS
     print("computing metrics")
@@ -125,13 +110,13 @@ if __name__=='__main__':
     pcr_ = True
     cell_cycle_ = True
     kBET_ = False #ready to use for embedded and full matrix
-    lisi_ = True
+    lisi_ = False
     if (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
-        kBET_ = False #until we have determined how to convert the bbknn knn-graph to FNN format, which kBET uses
-        lisi_ = False
+        kBET_ = True
+        lisi_ = True
     
     if verbose:
         print(f'type:\t{type_}')
@@ -143,7 +128,7 @@ if __name__=='__main__':
         print(f'    LISI:\t{lisi_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
-                              hvg=n_hvgs is not None, cluster_nmi=cluster_nmi,
+                              hvgs=n_hvgs, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
                               nmi_=nmi_, nmi_method='arithmetic', nmi_dir=None,
@@ -154,6 +139,8 @@ if __name__=='__main__':
                               lisi_ = lisi_
                              )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
+    if verbose:
+        print(results)
     # save metrics' results
     results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
 
