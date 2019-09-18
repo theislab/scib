@@ -57,7 +57,8 @@ if __name__=='__main__':
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
-        'conos': scIB.integration.runConos
+        'conos': scIB.integration.runConos,
+        'scvi': scIB.integration.runScvi
     }
     
     if method not in methods.keys():
