@@ -762,11 +762,11 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
+        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
-    results['kBET'] = 1- kbet_score
+    results['kBET'] = kbet_score
 
     if lisi_:
         print('LISI score...')
