@@ -325,32 +325,34 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
     checkAdata(adata_pre)
     checkAdata(adata_post)
     
+    if embed == 'X_pca':
+        embed = None
+    
     score_cell_cycle(adata_pre, organism=organism)
 
-    scores = {'S_score': [], 'G2M_score': []}
-    for phase in scores:
-        for batch in adata_pre.obs[batch_key].unique():
-            # perform PCR per batch
-            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
-            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+    scores = []
+    for batch in adata_pre.obs[batch_key].unique():
+        # perform PCR per batch
+        raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+        int_sub = adata_post[adata_post.obs[batch_key] == batch]
+        
+        # select highly variable genes from non-integrated
+        sc.pp.highly_variable_genes(raw_sub, n_top_genes=hvgs, flavor=flavor)
+        raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
+        # select HVG or take embedding from integrated
+        if embed is None:
+            int_sub = int_sub.X[:, int_sub.var['highly_variable']]
+        else:
+            int_sub = int_sub.obsm[embed]
             
-            # select highly variable genes from non-integrated
-            sc.pp.highly_variable_genes(raw_sub, n_top_genes=hvgs, flavor=flavor)
-            raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
-            # select HVG or take embedding from integrated
-            if embed is None:
-                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
-            else:
-                int_sub = int_sub.obsm[embed] 
-            
-            covariate = raw_sub.obs[phase]
-            
-            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-            
-            scores[phase] = 1 - abs(after - before)/before # scaled result
+        covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        
+        score = 1 - abs(after - before)/before # scaled result
+        scores.append(score)
     
-    return agg_func(scores['S_score']), agg_func(scores['G2M_score'])
+    return agg_func(scores)
 
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
@@ -370,13 +372,16 @@ def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ran
         difference of R2Var value of PCR
     """
     
+    if embed == 'X_pca':
+        embed = None
+    
     pcr_before = pcr(adata_pre, covariate=covariate, hvgs=hvgs, flavor=flavor, n_comps=n_comps, verbose=verbose)
     if embed is None:
         adata_post = adata_post[:, adata_post.var['highly_variable']]
     pcr_after = pcr(adata_post, covariate=covariate, hvgs=None, embed=embed, n_comps=n_comps, verbose=verbose)
 
     if scale:
-        return 1 - abs(pcr_after - pcr_before)/pcr_before
+        return abs(pcr_after - pcr_before)/pcr_before
     else:
         return pcr_after - pcr_before
 
@@ -414,11 +419,11 @@ def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_rang
     else:
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
+def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
-        batch: series or list of batch assignemnts
+        covariate: series or list of batch assignemnts
         n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
         pca_sd: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     PCA is only computed, if variance contribution is not given (pca_sd).
@@ -453,15 +458,16 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     if verbose:
         print("PC regression")
     
-    batch = pd.get_dummies(batch) if 'category' == str(batch.dtype) else np.array(batch)
+    # one-hot encode categorical values
+    covariate = pd.get_dummies(covariate)
     
     # fit linear model for n_comps PCs
     from sklearn.linear_model import LinearRegression
     r2 = []
     for i in range(n_comps):
         lm = LinearRegression()
-        lm.fit(X_pca[:, [i]], batch)
-        r2.append(lm.score(X_pca[:, [i]], batch))
+        lm.fit(X_pca[:, [i]], covariate)
+        r2.append(lm.score(X_pca[:, [i]], covariate))
     
     Var = pca_sd**2 / sum(pca_sd**2) * 100
     R2Var = sum(r2*Var)/100
@@ -749,12 +755,10 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if cell_cycle_:
         print('cell cycle effect...')
-        s_phase, g2m_phase = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
+        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
     else:
-        s_phase = np.nan
-        g2m_phase = np.nan
-    results['S-phase'] = s_phase
-    results['G2M-phase'] = g2m_phase
+        cc_score = np.nan
+    results['cell cycle conservation'] = cc_score
     
     if pcr_:
         print('PC regression...')

@@ -109,14 +109,12 @@ if __name__=='__main__':
     ari_ = True
     pcr_ = True
     cell_cycle_ = True
-    kBET_ = False #ready to use for embedded and full matrix
+    kBET_ = True
     lisi_ = False
     if (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
-        kBET_ = True
-        lisi_ = True
     
     if verbose:
         print(f'type:\t{type_}')
@@ -137,7 +135,7 @@ if __name__=='__main__':
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
                               kBET_=kBET_,
-                              lisi_ = lisi_
+                              lisi_=lisi_
                              )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     if verbose:
