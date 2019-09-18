@@ -734,7 +734,7 @@ def metrics(adata, adata_int, batch_key, label_key,
         ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
     else:
         ari_score = np.nan
-    results['ARI cluster/label'] = ari_score
+    results['ARI_cluster/label'] = ari_score
     
     if silhouette_:
         print('silhouette score...')
@@ -755,14 +755,14 @@ def metrics(adata, adata_int, batch_key, label_key,
         cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
     else:
         cc_score = np.nan
-    results['cell cycle conservation'] = cc_score
+    results['cell_cycle_conservation'] = cc_score
     
     if pcr_:
         print('PC regression...')
         pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
         pcr_score = np.nan
-    results['PCR batch'] = pcr_score
+    results['PCR_batch'] = pcr_score
     
     if kBET_:
         print('kBET...')
