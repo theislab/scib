@@ -338,10 +338,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
         raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
         # select HVG or take embedding from integrated
         if embed is None:
-            int_sub = int_sub.X[:, int_sub.var['highly_variable']]
+            if 'highly_variable' in int_sub.var:
+                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
+            else:
+                int_sub = int_sub.X
         else:
             int_sub = int_sub.obsm[embed]
-            
+        
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
         after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
@@ -373,7 +376,7 @@ def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ran
         embed = None
     
     pcr_before = pcr(adata_pre, covariate=covariate, hvgs=hvgs, flavor=flavor, n_comps=n_comps, verbose=verbose)
-    if embed is None:
+    if (embed is None) and ('highly_variable' in adata_post.var):
         adata_post = adata_post[:, adata_post.var['highly_variable']]
     pcr_after = pcr(adata_post, covariate=covariate, hvgs=None, embed=embed, n_comps=n_comps, verbose=verbose)
 

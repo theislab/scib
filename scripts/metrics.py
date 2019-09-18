@@ -110,7 +110,7 @@ if __name__=='__main__':
     pcr_ = True
     cell_cycle_ = True
     kBET_ = True
-    lisi_ = False
+    lisi_ = True
     if (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
