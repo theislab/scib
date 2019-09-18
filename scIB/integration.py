@@ -1,4 +1,4 @@
-`#!/bin/env python
+#!/bin/env python
 
 ### D. C. Strobl, M. Müller; 2019-07-23
 
