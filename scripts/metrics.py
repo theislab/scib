@@ -130,8 +130,8 @@ if __name__=='__main__':
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
-        kBET_ = False #until we have determined how to convert the bbknn knn-graph to FNN format, which kBET uses
-        lisi_ = False
+        kBET_ = True 
+        lisi_ = True
     
     if verbose:
         print(f'type:\t{type_}')
@@ -146,6 +146,7 @@ if __name__=='__main__':
                               hvg=n_hvgs is not None, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
+                              type_ = type_, 
                               nmi_=nmi_, nmi_method='arithmetic', nmi_dir=None,
                               ari_=ari_,
                               pcr_=pcr_,
