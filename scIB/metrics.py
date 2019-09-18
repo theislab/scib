@@ -491,20 +491,21 @@ def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', 
             print("importing knn-graph")
         ro.globalenv['nn_indx'] = nn_index.T
         ro.globalenv['nn_dst'] = nn_dists.T
-        ro.globalenv['batch'] = meta_tmp[batch_key]
-        ro.globalenv['n_batches'] = len(np.unique(meta_tmp[batch_key]))
-        ro.globalenv['label'] = meta_tmp[label_key]
-        ro.globalenv['n_labels'] = len(np.unique(meta_tmp[label_key]))
+        ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
+        ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
+        ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
+        ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
         ro.globalenv['perplexity'] = 30 #LISI default
-
+        
         if verbose:
             print("LISI score estimation")
         simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
         simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
-        simpson_estimate_batch = 1/simpson_estimate_batch
-        simpson_estimate_label = 1/simpson_estimate_label
-        print(simpson_estimate_batch)
-        lisi_estimate = simpson_estimate_batch    
+        simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
+        simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
+        d = {batch_key : simpson_est_batch, label_key : simpson_est_label}
+        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))    
+    
     else:
         if matrix is None:
             matrix = adata.X
