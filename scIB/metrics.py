@@ -749,14 +749,14 @@ def metrics(adata, adata_int, batch_key, label_key,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
-    results['kBET'] = kbet_score
+    results['kBET'] = 1- kbet_score
 
     if lisi_:
         print('LISI score...')
         lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                                        verbose=verbose), axis=1)
-        ilisi_score = 2 - lisi_score[0] #LISI scores operate on 1 - 2 (for iLISI: 2 good, 1 bad)
-        clisi_score = lisi_score[1] - 1 #LISI scores operate on 1 - 2 (for cLISI: 1 good, 2 bad)
+        ilisi_score = lisi_score[0] - 1 #LISI scores operate on 1 - 2 (for iLISI: 2 good, 1 bad)
+        clisi_score = 2 - lisi_score[1] #LISI scores operate on 1 - 2 (for cLISI: 1 good, 2 bad)
 
     else:
         ilisi_score = np.nan
