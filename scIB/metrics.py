@@ -299,20 +299,17 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     adata_post_list = scIB.utils.splitBatches(adata_post, batch)
     overlap = []
     
-    for i in adata_post_list:
-        n_hvg = np.minimum(n_hvg, int(0.5*len(i.var)))
-    print('Use '+str(n_hvg)+' HVGs')
-    
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
+        n_hvg_tmp = np.minimum(n_hvg, int(0.5*len(adata_pre_list[i].var)))
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
-        hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
+        hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
-        hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg, inplace=False)
+        hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
         #print(len(set(tmp_pre).intersection(set(tmp_post))))
-        overlap.append(len(set(tmp_pre).intersection(set(tmp_post))))
-    return np.mean(overlap/n_hvg)
+        overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_tmp)
+    return np.mean(overlap)
 
 ### Cell cycle effect
 def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger', embed=None, agg_func=np.mean, organism='mouse', n_comps=50):
@@ -769,11 +766,11 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
+        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else:
         kbet_score = np.nan
-    results['kBET'] = 1- kbet_score
+    results['kBET'] = kbet_score
 
     if lisi_:
         print('LISI score...')
