@@ -293,19 +293,26 @@ def ari(adata, group1, group2):
 
 
 ### Cell cycle effect
-def cell_cycle(adata, organism='mouse', verbose=False):
+def cell_cycle(adata_pre, adata_post, batch_key, agg_func=np.mean, organism='mouse',  verbose=False):
     """
     params:
-        adata:
+        adata_pre, adata_post: adatas before and after integration
         organism: 'mouse' or 'human' for choosing cell cycle genes 
     """
-    # get cell cycle scores
-    score_cell_cycle(adata, organism=organism)
+    score_cell_cycle(adata_pre, organism=organism)
 
-    s_phase = pcr(adata, covariate='S_score')
-    g2m_phase = pcr(adata, covariate='G2M_score')
-    
-    return s_phase, g2m_phase
+    scores = {'S_score': [], 'G2M_score': []}
+    for phase in scores:
+        # copy cell cycle phase scores to adata_post
+        adata_post.obs[phase] = adata_pre.obs[phase]
+        for batch in adata_pre.obs[batch_key].unique():
+            # perform PCR per batch
+            adata_sub_pre = adata_pre[adata_pre.obs[batch_key] == batch]
+            adata_sub_post = adata_post[adata_post.obs[batch_key] == batch]
+            print(adata_sub_pre)
+            print(adata_sub_post)
+            scores[phase] = pcr_comparison(adata_sub_pre, adata_sub_post, covariate=phase, scale=True)
+    return agg_func(scores['S_score']), agg_func(scores['G2M_score'])
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
@@ -338,18 +345,18 @@ def get_hvg_indices(adata, verbose=True):
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
         
-def pcr_comparison(adata_pre, adata_post, covariate='sample', verbose=False, scale=True):
+def pcr_comparison(adata_pre, adata_post, covariate, hvg=True, n_comps=None, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     params:
-        adata_pre: integration adata
+        adata_pre: uncorrected adata
         adata_post: integrated adata
     return:
         difference of R2Var value of PCR
     """
     
-    pcr_before = pcr(adata_pre, covariate=covariate, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, verbose=verbose)
+    pcr_before = pcr(adata_pre, covariate=covariate, hvg=True, n_comps=n_comps, verbose=verbose)
+    pcr_after = pcr(adata_post, covariate=covariate, hvg=hvg, n_comps=n_comps, verbose=verbose)
 
     if scale:
         return 1 - abs(pcr_after - pcr_before)
@@ -381,7 +388,7 @@ def pcr(adata, n_comps=None, hvg=True, covariate='sample', verbose=True):
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
-    if 'X_pca' in adata.obsm:
+    if ('X_pca' in adata.obsm) and (n_comps is not None):
         return pc_regression(adata.obsm['X_pca'], batch,
                              pca_sd=adata.uns['pca']['variance'],
                              n_comps=n_comps,
@@ -423,7 +430,7 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
-    
+
     ## PC Regression
     if verbose:
         print("PC regression")    
@@ -677,10 +684,7 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if cell_cycle_:
         print('cell cycle effect...')
-        before = cell_cycle(adata, organism=organism, verbose=verbose)
-        after = cell_cycle(adata_int, organism=organism)
-        s_phase = after[0] - before[0]
-        g2m_phase = after[1] - before[1]
+        s_phase, g2m_phase = cell_cycle(adata, adata_int, batch_key=batch_key, organism=organism)
     else:
         s_phase = np.nan
         g2m_phase = np.nan
