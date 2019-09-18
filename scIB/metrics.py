@@ -451,7 +451,7 @@ def pc_regression(data, batch, pca_sd=None, n_comps=None, svd_solver='arpack', v
     return R2Var
 
 ### lisi score
-def lisi(adata, matrix=None, batch_key='sample', label_key='louvain', type_ = None,
+def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', type_ = None,
          subsample = 0.5, hvg=False, verbose=False):
     """
     Compute lisi score (after integration)
@@ -466,35 +466,74 @@ def lisi(adata, matrix=None, batch_key='sample', label_key='louvain', type_ = No
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
-
-    if matrix is None:
-        matrix = adata.X
-
-    if hvg:
-        hvg_idx = get_hvg_indices(adata)
-        if verbose:
-            print(f"subsetting to {len(hvg_idx)} highly variable genes")
-        matrix = matrix[:, hvg_idx]
     
-    if sparse.issparse(matrix): #lisi score runs only on dense matrices (knn search)
-        matrix = matrix.todense()
-
-
-    if verbose:
-        print(f"covariates: {batch_key} and {label_key}")
-    metadata = adata.obs[[batch_key, label_key]]
     anndata2ri.activate()
     ro.r("library(lisi)")
 
-    if verbose:
-        print("importing expression matrix")
-    ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['metadata'] = metadata
-    batch_label_keys = ro.StrVector([batch_key, label_key])
-    ro.globalenv['batch_label_keys'] = batch_label_keys
-    if verbose:
-        print("LISI score estimation")
-    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
+    if type_ =='knn': #get knn index matrix
+        if verbose:
+            print("Convert nearest neighbor matrix and distances for LISI.")
+        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+                                   adata.uns['neighbors']['params']['n_neighbors']-1))
+        nn_dists = nn_index
+        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+            get_idx = dist_mat[0] == cell_id
+            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+            nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
+
+        #turn metadata into numeric values (not categorical)
+        meta_tmp = adata.obs[[batch_key, label_key]]
+        meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
+        meta_tmp[label_key] = meta_tmp[label_key].cat.codes
+
+        if verbose:
+            print("importing knn-graph")
+        ro.globalenv['nn_indx'] = nn_index.T
+        ro.globalenv['nn_dst'] = nn_dists.T
+        ro.globalenv['batch'] = meta_tmp[batch_key]
+        ro.globalenv['n_batches'] = len(np.unique(meta_tmp[batch_key]))
+        ro.globalenv['label'] = meta_tmp[label_key]
+        ro.globalenv['n_labels'] = len(np.unique(meta_tmp[label_key]))
+        ro.globalenv['perplexity'] = 30 #LISI default
+
+        if verbose:
+            print("LISI score estimation")
+        simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
+        simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
+        simpson_estimate_batch = 1/simpson_estimate_batch
+        simpson_estimate_label = 1/simpson_estimate_label
+        print(simpson_estimate_batch)
+        lisi_estimate = simpson_estimate_batch    
+    else:
+        if matrix is None:
+            matrix = adata.X
+
+        if hvg:
+            hvg_idx = get_hvg_indices(adata)
+            if verbose:
+                print(f"subsetting to {len(hvg_idx)} highly variable genes")
+            matrix = matrix[:, hvg_idx]
+    
+        if sparse.issparse(matrix): #lisi score runs only on dense matrices (knn search)
+            matrix = matrix.todense()
+        
+        if verbose:
+            print("importing expression matrix")
+        ro.globalenv['data_mtrx'] = matrix
+
+        if verbose:
+            print(f"covariates: {batch_key} and {label_key}")
+        metadata = adata.obs[[batch_key, label_key]]
+        ro.globalenv['metadata'] = metadata
+    
+        batch_label_keys = ro.StrVector([batch_key, label_key])
+        ro.globalenv['batch_label_keys'] = batch_label_keys
+
+        if verbose:
+            print("LISI score estimation")
+        lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
+    
     print(lisi_estimate)
     anndata2ri.deactivate()
     return lisi_estimate
@@ -525,17 +564,20 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
         print("importing expression matrix")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['batch'] = batch
-    
+    #print(matrix.shape)
+    #print(len(batch))
+
     if type_ == 'knn':
-        ro.globalenv['knn_graph'] = nn_index
-        ro.globalenv['k0'] = nn_index.shape[1]
+        ro.globalenv['knn_graph'] = knn
+        ro.globalenv['k0'] = np.min([knn.shape[1], matrix.shape[0]])
 
     if verbose:
         print("kBET estimation")
     #k0 = len(batch) if len(batch) < 50 else 'NULL'
-    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
     if type_ == 'knn':
-        batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, verbose={str(verbose).upper()})")
+        batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
+    else:
+         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
 
     anndata2ri.deactivate()
     try:
@@ -561,13 +603,14 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ =='knn':
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
-        dist_mat = sparse.find(adata_norm.uns['neighbors']['distances'])
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape))
+        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0], 
+                                   adata.uns['neighbors']['params']['n_neighbors']-1))
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
             get_idx = dist_mat[0] == cell_id
             nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
-    else:
-        matrix = adata.obsm[embed]
+    
+    matrix = adata.obsm[embed]
     
     if verbose:
         print(f"batch: {batch_key}")
@@ -578,14 +621,15 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         idx = np.where((adata.obs[label_key] == clus))[0]
         if type_ == 'knn':
             nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
-            nn_index_tmp[np.invert(np.in1d(nn_index_tmp, idx))] = np.nan #set the rest nan
+            nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
             score = kBET_single(
                 matrix[idx, :],
                 batch[idx],
                 knn = nn_index_tmp,
                 subsample=subsample,
                 verbose=verbose,
-                heuristic=heuristic
+                heuristic=False,
+                type_ = type_
                 )
         else:
             score = kBET_single(
