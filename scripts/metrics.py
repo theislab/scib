@@ -131,6 +131,7 @@ if __name__=='__main__':
                               hvgs=n_hvgs, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
+                              type_ = type_, 
                               nmi_=nmi_, nmi_method='arithmetic', nmi_dir=None,
                               ari_=ari_,
                               pcr_=pcr_,
