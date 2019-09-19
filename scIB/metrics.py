@@ -562,7 +562,6 @@ def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', 
             print("LISI score estimation")
         lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
     
-    print(lisi_estimate)
     anndata2ri.deactivate()
     return lisi_estimate
 
