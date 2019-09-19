@@ -522,7 +522,7 @@ def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', 
         ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
         ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
         ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
-        ro.globalenv['perplexity'] = 30 #LISI default
+        ro.globalenv['perplexity'] = np.floor(nn_index.shape[1]/3) #LISI default
         
         if verbose:
             print("LISI score estimation")
