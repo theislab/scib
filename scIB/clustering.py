@@ -37,6 +37,13 @@ def opt_louvain(adata, label_key='cell_type', cluster_key='louvain', resolutions
     clustering = None
     nmi_all = []
     
+    #maren's edit - recompute neighbors if not existing
+    try:
+        adata.uns['neighbors']
+    except KeyError:
+        print('computing neigbours for opt_cluster')
+        sc.pp.neighbors(adata)
+
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
         nmi = metrics.nmi(adata, group1=label_key, group2=cluster_key, method=nmi_method, nmi_dir=nmi_dir)
@@ -46,6 +53,11 @@ def opt_louvain(adata, label_key='cell_type', cluster_key='louvain', resolutions
             res_max = res
             clustering = adata.obs[cluster_key]
         del adata.obs[cluster_key]
+    
+    if verbose:
+        print(f'optimised clustering against {label_key}')
+        print(f'optimal cluster resolution: {res_max}')
+        print(f'optimal NMI: {nmi_max}')
     
     nmi_all = pd.DataFrame(zip(resolutions, nmi_all), columns=('resolution', 'NMI'))
     if plot:

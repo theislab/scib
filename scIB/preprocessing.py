@@ -249,7 +249,7 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     """
     
     checkAdata(adata)
-    if batch_key:
+    if batch_key is not None:
         checkBatch(batch_key, adata.obs)
     
     adata_hvg = adata if adataOut else adata.copy()
@@ -304,28 +304,33 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 
 ### Feature Reduction
-def reduce_data(adata, subset=False,
-                hvg=True, filter=True, batch_key=None, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
+def reduce_data(adata, batch_key=None, subset=False,
+                filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
                 pca=True, pca_comps=50,
                 neighbors=True, use_rep='X_pca', 
-                paga=False, paga_groups='cell_type', 
-                umap=True,
-                tsne=False,
-                diffmap=False,
-                draw_graph=False):
+                umap=True):
     
     checkAdata(adata)
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
+    hvg = n_top_genes is not None
     if hvg:
         print("HVG")
-        # quick fix: HVG doesn't work on dense matrix
+        ## quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
-        if filter:
-            sc.pp.filter_genes(adata, min_cells=1)
-        sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes, n_bins=n_bins, batch_key=batch_key)
+            
+        if batch_key is not None:
+            hvg_list = hvg_batch(adata, batch_key=batch_key, target_genes=n_top_genes, n_bins=n_bins)
+            adata.var['highly_variable'] = np.in1d(adata.var_names, hvg_list)
+
+        else:
+            sc.pp.highly_variable_genes(adata,
+                                        n_top_genes=n_top_genes,
+                                        n_bins=n_bins,
+                                        flavor=flavor)
+
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
         
@@ -340,28 +345,14 @@ def reduce_data(adata, subset=False,
     if neighbors:
         print("Nearest Neigbours")
         sc.pp.neighbors(adata, use_rep=use_rep)
-
-    if tsne:
-        print("tSNE")
-        sc.tl.tsne(adata, n_jobs=12) # n_jobs works for MulticoreTSNE, but not regular implementation
     
     if umap:
         print("UMAP")
         sc.tl.umap(adata)
     
-    if paga:
-        print(f'PAGA by group "{paga_groups}"')
-        checkBatch(paga_groups, adata.obs)
-        sc.tl.paga(adata, groups=paga_groups)
-    
-    if diffmap:
-        sc.tl.diffmap(adata)
-    
-    if draw_graph:
-        sc.tl.draw_graph(adata)
         
 ### Cell Cycle
-def cc_tirosh(marker_gene_file, adata=None):
+def score_cell_cycle(adata, organism='mouse'):
     """
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
@@ -369,11 +360,12 @@ def cc_tirosh(marker_gene_file, adata=None):
         s_genes: S-phase genes
         g2m_genes: G2- and M-phase genes
     """
-    cell_cycle_genes = [x.strip().lower().capitalize() for x in open(marker_gene_file)]
-    if adata is not None:
-        cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
-    # split list into S-phase and G2/M-phase genes
-    s_genes = cell_cycle_genes[:43]
-    g2m_genes = cell_cycle_genes[43:]
+    cc_files = {'mouse': ['scIB/resources/s_genes_tirosh.txt', 'scIB/resources/g2m_genes_tirosh.txt'],
+                'human': ['scIB/resources/s_genes_tirosh_hm.txt', 'scIB/resources/g2m_genes_tirosh_hm.txt']}
     
-    return s_genes, g2m_genes
+    s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
+    g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
+    if (len(s_genes) == 0) or (len(g2m_genes) == 0):
+        raise ValueError("cell cycle genes not in adata")
+
+    sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
