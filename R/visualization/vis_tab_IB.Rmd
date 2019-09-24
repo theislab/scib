@@ -165,9 +165,10 @@ column_info$options <- list(list(width = 3, overlay = F, legend = F), list(width
 
 plot_table_metrics <- function(metrics_tab){ 
 
-  palettes <- list("Score overall" = colorRampPalette(rev(brewer.pal(nrow(metrics_tab), "YlGnBu")))(nrow(metrics_tab)),
-                 "Removal of batch effects" = colorRampPalette(rev(brewer.pal(nrow(metrics_tab), "BuPu")))(nrow(metrics_tab)),
-                 "Cell type label variance" = colorRampPalette(rev(brewer.pal(nrow(metrics_tab), "RdPu")))(nrow(metrics_tab))
+  palettes <- list("Score overall" = colorRampPalette(rev(brewer.pal(9, "YlGnBu")))(nrow(metrics_tab)),
+                 "Removal of batch effects" = colorRampPalette(rev(brewer.pal(9, "BuPu")))(nrow(metrics_tab)),
+                 "Cell type label variance" = colorRampPalette(rev(brewer.pal(9, "RdPu")))(nrow(metrics_tab)),
+                 "legend" = colorRampPalette(rev(brewer.pal(9, "Greys")))(6)
 )
   
 
@@ -231,23 +232,9 @@ column_pos <-
     x = xmin + xwidth / 2
   )
 
-
-  
-g <-
-  ggplot() +
-  coord_equal(expand = FALSE) +
-  scale_alpha_identity() +
-  scale_colour_identity() +
-  scale_fill_identity() +
-  scale_size_identity() +
-  scale_linetype_identity() +
-  cowplot::theme_nothing()
-
-# PLOT ROW BACKGROUNDS
-df <- row_pos %>% filter(colour_background)
-if (nrow(df) > 0) {
-  g <- g + geom_rect(aes(xmin = min(column_pos$xmin)-.25, xmax = max(column_pos$xmax)+.25, ymin = ymin - (row_space / 2), ymax = ymax + (row_space / 2)), df, fill = "#DDDDDD")
-}
+##########################
+#### CREATE GEOM DATA ####
+##########################
 
 # gather circle data
 ind_circle <- which(column_info$geom == "circle")
@@ -271,11 +258,6 @@ for(i in 1:ncol(dat_mat)){
 
 circle_data$colors <- colors
 
-
-# PLOT CIRCLES
-if (nrow(circle_data) > 0) {
-  g <- g + ggforce::geom_circle(aes(x0 = x0, y0 = y0, fill= colors, r = r), circle_data, size=.25)
-}
 
 
 # gather bar data
@@ -316,15 +298,6 @@ for(i in 1:ncol(dat_mat)){
 rect_data$colors <- colors
 
 
-# PLOT RECTANGLES
-if (nrow(rect_data) > 0) {
-  # add defaults for optional values
-  rect_data <- rect_data %>%
-    add_column_if_missing(alpha = 1, border = TRUE, border_colour = "black") %>%
-    mutate(border_colour = ifelse(border, border_colour, NA))
-  
-  g <- g + geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = colors, colour = border_colour, alpha = alpha), rect_data, size = .25, show.legend = T)
-}
 
 # gather text data
 ind_text <- which(column_info$geom == "text")
@@ -366,7 +339,6 @@ if (nrow(df) > 0) {
 # remove HVG_label
 text_data <- text_data[text_data$label_value != "HVG_label",]
 
-row_groups <- data.frame(name = method_group, group = method_group)
 
 # GENERATE ROW ANNOTATION
   if (plot_row_annotation) {
@@ -390,6 +362,119 @@ row_groups <- data.frame(name = method_group, group = method_group)
     )
   }
 
+
+
+# determine dsize of current geoms
+suppressWarnings({
+  minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, circle_data$x - circle_data$r, text_data$xmin, na.rm = TRUE)
+  maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, circle_data$x + circle_data$r, text_data$xmax, na.rm = TRUE)
+  minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend, circle_data$y - circle_data$r,  text_data$ymin, na.rm = TRUE)
+  maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend,circle_data$y + circle_data$r,  text_data$ymax, na.rm = TRUE)
+})
+
+ ####################################
+ ###   CREATE HARDCODED LEGENDS   ###
+ ####################################
+  
+  legend_pos <- minimum_y
+  
+  # CREATE LEGEND for circle scores
+ 
+  # circle legend
+  if (any(column_pos$geom == "circle")) {
+    cir_minimum_x <- column_pos %>% filter(geom == "text") %>% pull(xmin) %>% min
+    
+    cir_legend_size <- 1
+    cir_legend_space <- .3
+    
+    cir_legend_dat <-
+      data.frame(
+        value = seq(0, 1, by = .2),
+        xmin = cir_minimum_x, 
+        ymin = legend_pos 
+      )
+    
+    cir_legend_dat$r = row_height/2*cir_legend_dat$value
+    
+    x0 <- cir_legend_dat$r
+    for(i in 1:length(cir_legend_dat$r)){
+      if(i == 1){
+        x0[i] <- cir_minimum_x + cir_legend_space + cir_legend_dat$r[i]
+      }
+      else {
+        x0[i] <- x0[i-1] + cir_legend_dat$r[i-1] + cir_legend_space + cir_legend_dat$r[i]
+      }
+    }
+    
+    cir_legend_dat$x0 <- x0
+    cir_legend_maxy <- legend_pos - 2.5
+    cir_legend_dat$y0 <- cir_legend_maxy + cir_legend_dat$r
+  
+    cir_legend_dat$colors <- palettes[["legend"]]
+    
+    cir_maximum_x <- max(cir_legend_dat$x0)
+    
+    cir_title_data <-
+      data_frame(xmin = cir_minimum_x, xmax = cir_maximum_x, ymin = legend_pos - 1.5, ymax = legend_pos - .5, label_value = "Score legend", hjust = 0, vjust = 1, fontface = "bold")
+
+    cir_value_data <- data.frame(
+        xmin = cir_legend_dat$x0 - cir_legend_dat$r,
+        xmax = cir_legend_dat$x0 + cir_legend_dat$r,
+        ymin = cir_legend_maxy - 1,
+        ymax = cir_legend_maxy, 
+        hjust = .5,
+        vjust = 0,
+        size = 2,
+        label_value = ifelse(cir_legend_dat$value %in% c(0, 1), sprintf("%.0f", cir_legend_dat$value), sprintf("%.1f", cir_legend_dat$value))
+      )
+    circle_data <- bind_rows(circle_data, cir_legend_dat)   
+    text_data <- bind_rows(text_data, cir_title_data, cir_value_data)
+  }
+    
+
+
+  
+  
+  minimum_y <- min(minimum_y, min(text_data$ymin, na.rm = TRUE))
+  
+
+  ########################
+  ##### COMPOSE PLOT #####
+  ########################
+  
+g <-
+  ggplot() +
+  coord_equal(expand = FALSE) +
+  scale_alpha_identity() +
+  scale_colour_identity() +
+  scale_fill_identity() +
+  scale_size_identity() +
+  scale_linetype_identity() +
+  cowplot::theme_nothing()
+
+# PLOT ROW BACKGROUNDS
+df <- row_pos %>% filter(colour_background)
+if (nrow(df) > 0) {
+  g <- g + geom_rect(aes(xmin = min(column_pos$xmin)-.25, xmax = max(column_pos$xmax)+.25, ymin = ymin - (row_space / 2), ymax = ymax + (row_space / 2)), df, fill = "#DDDDDD")
+} 
+  
+
+# PLOT CIRCLES
+if (nrow(circle_data) > 0) {
+  g <- g + ggforce::geom_circle(aes(x0 = x0, y0 = y0, fill= colors, r = r), circle_data, size=.25)
+}
+
+
+# PLOT RECTANGLES
+if (nrow(rect_data) > 0) {
+  # add defaults for optional values
+  rect_data <- rect_data %>%
+    add_column_if_missing(alpha = 1, border = TRUE, border_colour = "black") %>%
+    mutate(border_colour = ifelse(border, border_colour, NA))
+  
+  g <- g + geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = colors, colour = border_colour, alpha = alpha), rect_data, size = .25, show.legend = T)
+}
+  
 
 # PLOT TEXT
 if (nrow(text_data) > 0) {
@@ -419,6 +504,7 @@ if (nrow(text_data) > 0) {
 }
 
 
+
 # PLOT SEGMENTS
 if (nrow(segment_data) > 0) {
   # add defaults for optional values
@@ -426,91 +512,6 @@ if (nrow(segment_data) > 0) {
   
   g <- g + geom_segment(aes(x = x, xend = xend, y = y, yend = yend, size = size, colour = colour, linetype = linetype), segment_data)
 }
-
-# plot_column_annotation <- T
-# 
-# column_groups <- data.frame(level = , name = , group = , palette = )
-
-#  
-#  
-# 
-# # GENERATE COLUMN ANNOTATION
-# if (plot_column_annotation) {
-#   col_join <- column_groups %>%
-#     tidyr::gather(level, name, -group, -palette) %>%
-#     left_join(column_pos %>% select(group, xmin, xmax), by = "group")
-#   
-#   text_pct <- .9
-#   level_heights <-
-#     col_join %>%
-#     group_by(level) %>%
-#     summarise(max_newlines = max(str_count(name, "\n"))) %>%
-#     mutate(
-#       height = (max_newlines + 1) * text_pct + (1 - text_pct),
-#       levelmatch = match(level, colnames(column_groups))
-#     ) %>%
-#     arrange(desc(levelmatch)) %>%
-#     mutate(
-#       ysep = row_space,
-#       ymax = col_annot_offset + cumsum(height + ysep) - ysep,
-#       ymin = ymax - height,
-#       y = (ymin + ymax) / 2
-#     )
-#   
-#   column_annotation <-
-#     col_join %>%
-#     group_by(level) %>%
-#     mutate(max_newlines = max(str_count(name, "\n"))) %>%
-#     group_by(level, name, palette) %>%
-#     summarise(
-#       xmin = min(xmin),
-#       xmax = max(xmax),
-#       x = (xmin + xmax) / 2
-#     ) %>%
-#     ungroup() %>%
-#     left_join(level_heights, by = "level") %>%
-#     filter(!is.na(name), grepl("[A-Za-z]", name)) %>%
-#     mutate(colour = palette_list$column_annotation[palette])
-#   
-#   rect_data <- rect_data %>% bind_rows(
-#     column_annotation %>%
-#       transmute(xmin, xmax, ymin, ymax, colour, alpha = ifelse(levelmatch == 1, 1, .25), border = FALSE)
-#   )
-#   
-#   text_data <- text_data %>% bind_rows(
-#     column_annotation %>%
-#       transmute(
-#         xmin, xmax, ymin, ymax,
-#         hjust = 0.5, vjust = 0.5,
-#         fontface = ifelse(levelmatch == 1, "bold", NA),
-#         colour = ifelse(levelmatch == 1, "white", "black"),
-#         label_value = name
-#       )
-#   )
-#   
-#   if (add_abc) {
-#     text_data <- text_data %>% bind_rows(
-#       column_annotation %>%
-#         filter(levelmatch == 1) %>%
-#         arrange(x) %>%
-#         transmute(
-#           xmin = xmin + col_space, xmax = xmax - col_space, ymin, ymax,
-#           hjust = 0, vjust = 0.5,
-#           fontface = "bold",
-#           colour = "white",
-#           label_value = paste0(letters[row_number()], ")")
-#         )
-#     )
-#   }
-# }
-
-# determine dsize of current geoms
-suppressWarnings({
-  minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, circle_data$x - circle_data$r, text_data$xmin, na.rm = TRUE)
-  maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, circle_data$x + circle_data$r, text_data$xmax, na.rm = TRUE)
-  minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend, circle_data$y - circle_data$r,  text_data$ymin, na.rm = TRUE)
-  maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend,circle_data$y + circle_data$r,  text_data$ymax, na.rm = TRUE)
-})
 
 
 # ADD SIZE
