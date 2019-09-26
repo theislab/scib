@@ -82,6 +82,7 @@ def runScvi(adata, batch, hvg=None):
     from scvi.models import VAE
     from scvi.inference import UnsupervisedTrainer
     from sklearn.preprocessing import LabelEncoder
+    from scvi.dataset import AnnDatasetFromAnnData
 
     # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
     n_epochs=100
