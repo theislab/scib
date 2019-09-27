@@ -30,43 +30,111 @@ def runScanorama(adata, batch, hvg = None):
     emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
     emb = np.concatenate(emb, axis=0)
-    corrected.obsm['X_pca']= emb
-    corrected.uns['emb']=True
+    corrected.obsm['X_emb']= emb
+    #corrected.uns['emb']=True
 
     return corrected
 
-def runScGen(adata, batch, cell_type, n_top_genes=4000, model_path='./models/batch', epochs=100, hvg=None):
+def runTrVae(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    import scgen
+    import trvae
+
+    n_batches = len(adata.obs[batch].cat.categories)
+
+    train_adata, valid_adata = trvae.utils.train_test_split(
+        adata,
+        train_frac=0.80
+    )
+
+    condition_encoder = trvae.utils.create_dictionary(
+        adata.obs[batch].cat.categories.tolist(), [])
+
+    network = trvae.archs.trVAEMulti(
+        x_dimension=train_adata.shape[1],
+        n_conditions=n_batches,
+        output_activation='relu'
+    )
+
+    network.train(
+        train_adata,
+        valid_adata,
+        condition_key=batch,
+        condition_encoder=condition_encoder,
+        verbose=0,
+    )
+
+    labels, _ = trvae.tl.label_encoder(
+        adata,
+        condition_key=batch,
+        label_encoder=condition_encoder,
+    )
+
+    network.get_corrected(adata, labels, return_z=False)
     
-    ### Edited by Kris, please verify. 04.09.2019 17:45
+    adata.obsm['X_emb'] = adata.obsm['mmd_latent']
+    del adata.obsm['mmd_latent']
+    adata.X = adata.obsm['reconstructed']
     
-    sc.tl.louvain(adata, resolution=0.5)
+    return adata
+
+
+def runScvi(adata, batch, hvg=None):
+    # Use non-normalized (count) data for scvi!
+    # Expects data only on HVGs
     
-    ### End edited by Kris
+    checkSanity(adata, batch, hvg)
+
+    # Check for counts data layer
+    if 'counts' not in adata.layers:
+        raise TypeError('Adata does not contain a `counts` layer in `adata.layers[`counts`]`')
+
+    from scvi.models import VAE
+    from scvi.inference import UnsupervisedTrainer
+    from sklearn.preprocessing import LabelEncoder
+    from scvi.dataset import AnnDatasetFromAnnData
+
+    # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
+    n_epochs=100
+    n_latent=30
+    n_hidden=128
+    n_layers=2
     
-    # save cell_types for later
-    cell_types = adata.obs[cell_type].copy()
-    batches = adata.obs[batch].copy()
-    
-    # set 'cell_type' and 'batch' for scGen
-    adata.obs['cell_type'] = adata.obs[cell_type].copy()
-    adata.obs['batch'] = adata.obs[batch].copy()
-    
-    # feature selection
-    sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
-    adata = adata[:, adata.var['highly_variable'] == True].copy()
-    
-    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
-    network.train(train_data=adata, n_epochs=epochs)
-    corrected_adata = scgen.batch_removal(network, adata)
-    network.sess.close()
-    
-    # reset fields (just in case they were overwritten)
-    adata.obs[cell_type] = cell_types
-    adata.obs[batch] = batches
-    
-    return corrected_adata
+    net_adata = adata.copy()
+    net_adata.X = adata.layers['counts']
+    del net_adata.layers['counts']
+    net_adata.raw = None # Ensure that the raw counts are not accidentally used
+
+    # Define batch indices
+    le = LabelEncoder()
+    net_adata.obs['batch_indices'] = le.fit_transform(net_adata.obs[batch].values)
+
+    net_adata = AnnDatasetFromAnnData(net_adata)
+
+    vae = VAE(
+        net_adata.nb_genes,
+        reconstruction_loss='nb',
+        n_batch=net_adata.n_batches,
+        n_layers=n_layers,
+        n_latent=n_latent,
+        n_hidden=n_hidden,
+    )
+
+    trainer = UnsupervisedTrainer(
+        vae,
+        net_adata,
+        train_size=1,
+        use_cuda=False,
+    )
+
+    trainer.train(n_epochs=n_epochs, lr=1e-3)
+
+    full = trainer.create_posterior(trainer.model, net_adata, indices=np.arange(len(net_adata)))
+    latent, _, _ = full.sequential().get_latent()
+
+    adata.obsm['X_emb'] = latent
+
+    return adata
+
 
 def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
@@ -127,8 +195,8 @@ def runHarmony(adata, batch, hvg = None):
     emb = ro.r('harmonyEmb')
     ro.pandas2ri.deactivate()
     out = adata.copy()
-    out.obsm['X_pca']= emb
-    out.uns['emb']=True
+    out.obsm['X_emb']= emb
+    #out.uns['emb']=True
 
     return out
 

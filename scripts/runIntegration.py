@@ -52,12 +52,13 @@ if __name__=='__main__':
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
-        'scgen': scIB.integration.runScGen,
+        'trvae': scIB.integration.runTrVae,
         'seurat': scIB.integration.runSeurat,
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
-        'conos': scIB.integration.runConos
+        'conos': scIB.integration.runConos,
+        'scvi': scIB.integration.runScvi
     }
     
     if method not in methods.keys():
