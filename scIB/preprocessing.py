@@ -360,8 +360,15 @@ def score_cell_cycle(adata, organism='mouse'):
         s_genes: S-phase genes
         g2m_genes: G2- and M-phase genes
     """
-    cc_files = {'mouse': ['scIB/resources/s_genes_tirosh.txt', 'scIB/resources/g2m_genes_tirosh.txt'],
-                'human': ['scIB/resources/s_genes_tirosh_hm.txt', 'scIB/resources/g2m_genes_tirosh_hm.txt']}
+    import os
+    root = os.path.realpath(os.path.dirname(__file__))
+    print(root)
+    cc_files = {'mouse': [
+                    root + '/../scIB/resources/s_genes_tirosh.txt', 
+                    root + '/../scIB/resources/g2m_genes_tirosh.txt'],
+                'human': [
+                    root + '/../scIB/resources/s_genes_tirosh_hm.txt',
+                    root + '../scIB/resources/g2m_genes_tirosh_hm.txt']}
     
     s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
     g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
