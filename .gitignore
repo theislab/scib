@@ -5,6 +5,7 @@ data
 .ipynb_checkpoints
 scIB.egg-info
 *cache*
+.snakemake
 
 .Rproj.user
 Benchmarking_data_integration.Rproj
