@@ -45,15 +45,18 @@ def merge_adata(adata_list, sep='-'):
         return adata_list[0]
     
     adata = adata_list[0].concatenate(*adata_list[1:], index_unique=None)
-    
-    if sum(adata.obs.columns.str.contains(sep)) > 0: # if there is a column with separator
-        columns_to_keep = [name.split(sep)[1] == '0' for name in adata.var.columns.values]
-        clean_var = adata.var.loc[:, columns_to_keep]
-    else:
-        clean_var = adata.var
-    
-    if sum(adata.var.columns.str.contains(sep)) > 0:
-        adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
+
+    if len(adata.obs.columns) > 0:
+        # if there is a column with separator
+        if sum(adata.obs.columns.str.contains(sep)) > 0:
+            columns_to_keep = [name.split(sep)[1] == '0' for name in adata.var.columns.values]
+            clean_var = adata.var.loc[:, columns_to_keep]
+        else:
+            clean_var = adata.var
+            
+    if len(adata.var.columns) > 0:
+        if sum(adata.var.columns.str.contains(sep)) > 0:
+            adata.var = clean_var.rename(columns={name : name.split('-')[0] for name in clean_var.columns.values})
         
     return adata
 
