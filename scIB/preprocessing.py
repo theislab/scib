@@ -362,7 +362,6 @@ def score_cell_cycle(adata, organism='mouse'):
     """
     import os
     root = os.path.realpath(os.path.dirname(__file__))
-    print(root)
     cc_files = {'mouse': [
                     root + '/../scIB/resources/s_genes_tirosh.txt', 
                     root + '/../scIB/resources/g2m_genes_tirosh.txt'],
@@ -374,5 +373,5 @@ def score_cell_cycle(adata, organism='mouse'):
     g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
         raise ValueError("cell cycle genes not in adata")
-
+    
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
