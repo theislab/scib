@@ -142,8 +142,10 @@ def runSeurat(adata, batch, hvg=None):
     ro.r('library(scater)')
     anndata2ri.activate()
     
-    tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
-    ro.globalenv['adata'] = tmp
+    #tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
+    #ro.globalenv['adata'] = tmp
+
+    ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
 
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
