@@ -1,7 +1,8 @@
 import os
 
-ROOT = "/storage/groups/ml01/workspace/group.daniela/"
-#DATASETS = [s.split('.')[0] for s in os.listdir(os.path.join(ROOT, "atlases_integrated"))]
+configfile: "config.yaml"
+ROOT = config["ROOT"]
+
 DATASETS = [ "bbknn_knn", "scanorama_embed", "scanorama_full",
      "seurat_full", "trvae_embed", "harmony_embed" ]
 METRICS_DIR = os.path.join(ROOT, "metrics_lisi")
