@@ -6,7 +6,7 @@ setup(name='scIB',
       url='https://github.com/theislab/Benchmarking_data_integration',
       author='Daniel Strobl, Michaela Müller',
       author_email='',
-      packages=['scIB', 'scanpy'],
+      packages=['scIB'],
       package_data={'scIB': ['resources/*.txt']},
       zip_safe=False)
 
