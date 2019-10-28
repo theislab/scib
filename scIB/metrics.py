@@ -17,7 +17,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca', scale=True):
+def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
@@ -295,8 +295,8 @@ def ari(adata, group1, group2):
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     hvg_post = adata_post.var.index
     
-    adata_pre_list = scIB.utils.splitBatches(adata_pre, batch, hvg=hvg_post)
-    adata_post_list = scIB.utils.splitBatches(adata_post, batch)
+    adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
+    adata_post_list = splitBatches(adata_post, batch)
     overlap = []
     
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
@@ -342,15 +342,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
         # select HVG or take embedding from integrated
         if embed is None:
             if 'highly_variable' in int_sub.var:
-                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
-            else:
-                int_sub = int_sub.X
+                int_sub = int_sub[:, int_sub.var['highly_variable']]
         else:
             int_sub = int_sub.obsm[embed]
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        after =  pc_regression(int_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
         
         score = 1 - abs(after - before)/before # scaled result
         scores.append(score)
@@ -755,19 +753,19 @@ def metrics(adata, adata_int, batch_key, label_key,
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
-    if cell_cycle_:
-        print('cell cycle effect...')
-        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
-    else:
-        cc_score = np.nan
-    results['cell_cycle_conservation'] = cc_score
-    
     if pcr_:
         print('PC regression...')
         pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
         pcr_score = np.nan
     results['PCR_batch'] = pcr_score
+    
+    if cell_cycle_:
+        print('cell cycle effect...')
+        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
+    else:
+        cc_score = np.nan
+    results['cell_cycle_conservation'] = cc_score
     
     if kBET_:
         print('kBET...')
