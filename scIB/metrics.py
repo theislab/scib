@@ -717,7 +717,8 @@ def metrics(adata, adata_int, batch_key, label_key,
     if nmi_ or ari_:
         print('clustering...')
         cluster_key = 'cluster'
-        res_max, nmi_max, nmi_all = opt_louvain(adata_int, label_key=label_key, cluster_key=cluster_key,
+        res_max, nmi_max, nmi_all = opt_louvain(adata_int,
+                label_key=label_key, cluster_key=cluster_key, function=nmi,
                 plot=False, verbose=verbose, inplace=True, force=True)
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
