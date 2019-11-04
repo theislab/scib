@@ -371,6 +371,8 @@ def score_cell_cycle(adata, organism='mouse'):
     s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
     g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
-        raise ValueError("cell cycle genes not in adata")
+        rand_choice = np.random.randint(1,adata.n_vars,10)
+        rand_genes = adata.var_names[rand_choice].tolist()
+        raise ValueError(f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}")
     
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
