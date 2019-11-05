@@ -380,7 +380,6 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     return score
     
-    
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     hvg_post = adata_post.var.index
