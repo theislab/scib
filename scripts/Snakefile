@@ -1,16 +1,20 @@
 import os
 
 configfile: "config.yaml"
-ROOT = config["ROOT"]
+# config file must contain:
+#  UNINTEGRATED: path to unintegrated adata object
+#  INTEGRATED_DIR: path to all integrated adata output of format {method}.h5ad
+#  METRICS_DIR: output directory of metrics
+#  DATASETS: list of {method}_{output}
 
-DATASETS = [ "bbknn_knn", "scanorama_embed", "scanorama_full",
-     "seurat_full", "trvae_embed", "harmony_embed" ]
-METRICS_DIR = os.path.join(ROOT, "metrics_lisi")
+
+METRICS_DIR = config["METRICS_DIR"]
+
 all_metrics = os.path.join(METRICS_DIR, "all.csv")
 
 rule all_metrics:
     input: 
-        expand(os.path.join(METRICS_DIR, "{dataset}_metrics.csv"), dataset=DATASETS)
+        expand(os.path.join(METRICS_DIR, "{dataset}_metrics.csv"), dataset=config["DATASETS"])
     output:
         all_metrics
     shell:
@@ -18,11 +22,12 @@ rule all_metrics:
 
 rule metrics:
     input:
-        u = os.path.join(ROOT, "atlases_merged_anno_new.h5ad"),
-        i = os.path.join(ROOT, "atlases_integrated", "{method}.h5ad")
+        u = config["UNINTEGRATED"],
+        i = os.path.join(config["INTEGRATED_DIR"], "{method}.h5ad")
     output:
         os.path.join(METRICS_DIR, "{method}_{type}_metrics.csv")
     shell:
         "python metrics.py -u {input.u} -i {input.i} -o {METRICS_DIR} "
-        "-b study -l cell_type_union --type {wildcards.type} --organism mouse -v "
+        "-b {config[batch_key]} -l {config[label_key]} --type {wildcards.type} "
+        "--organism {config[organism]} -v "
 

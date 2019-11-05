@@ -12,9 +12,12 @@ def create_adata_dummy(pca=False, n_top_genes=None, neighbors=False):
                 umap=False, neighbors=neighbors)
     return adata
 
-def add_emb(adata):
-    if 'X_pca' in adata.obsm:
-        pca = adata.obsm['X_pca']
-    else:
-        pca = sc.tl.pca(adata, copy=True).obsm['X_pca']
-    adata.obsm['X_emb'] = pca
+def add_emb(adata, type_='pca'):
+    if type_ == 'pca':
+        if 'X_pca' in adata.obsm:
+            mtx = adata.obsm['X_pca']
+        else:
+            mtx = sc.tl.pca(adata, copy=True).obsm['X_pca']
+    elif type_ == 'full':
+        mtx = adata.X
+    adata.obsm['X_emb'] = mtx

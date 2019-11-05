@@ -109,9 +109,12 @@ if __name__=='__main__':
     ari_ = True
     pcr_ = True
     cell_cycle_ = True
+    hvgs_ = True
     kBET_ = True
     lisi_ = True
-    if (type_ == "knn"):
+    if (type_ == "embed"):
+        hvgs_ = False
+    elif (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
@@ -122,11 +125,12 @@ if __name__=='__main__':
         print(f'    NMI:\t{nmi_}')
         print(f'    ARI:\t{ari_}')
         print(f'    cell cycle:\t{cell_cycle_}')
+        print(f'    HVGs:\t{hvgs_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
-                              hvgs=n_hvgs, cluster_nmi=cluster_nmi,
+                              hvgs=hvgs_, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
                               type_ = type_, 

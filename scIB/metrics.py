@@ -360,16 +360,18 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
         # select highly variable genes from non-integrated
         sc.pp.highly_variable_genes(raw_sub, n_top_genes=hvgs, flavor=flavor)
         raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
+        
+        # subset integrated data on matrix directly
         # select HVG or take embedding from integrated
         if embed is None:
             if 'highly_variable' in int_sub.var:
-                int_sub = int_sub[:, int_sub.var['highly_variable']]
+                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
         else:
-            int_sub = int_sub.obsm[embed]
+            int_sub = int_sub.obsm["X_emb"]
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-        after =  pc_regression(int_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
         
         score = 1 - abs(after - before)/before # scaled result
         scores.append(score)
@@ -383,8 +385,14 @@ def get_hvg_indices(adata, verbose=True):
             print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
+
+def select_hvg(adata, select=True):
+        if select and 'highly_variable' in adata.var:
+            return adata[:, adata.var['highly_variable']]
+        else:
+            return adata
         
-def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ranger', embed=None, n_comps=None, scale=True, verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=None, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     params:
@@ -397,24 +405,23 @@ def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ran
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, covariate=covariate, hvgs=hvgs, flavor=flavor, n_comps=n_comps, verbose=verbose)
-    if (embed is None) and ('highly_variable' in adata_post.var):
-        adata_post = adata_post[:, adata_post.var['highly_variable']]
-    pcr_after = pcr(adata_post, covariate=covariate, hvgs=None, embed=embed, n_comps=n_comps, verbose=verbose)
+    pcr_before = pcr(adata_pre, covariate=covariate,
+                     n_comps=n_comps, verbose=verbose)
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, 
+                    n_comps=n_comps, verbose=verbose)
 
     if scale:
         return abs(pcr_after - pcr_before)/pcr_before
     else:
         return pcr_after - pcr_before
 
-def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_ranger', verbose=False):
+def pcr(adata, covariate, embed=None, n_comps=None, verbose=False):
     """
     PCR for Adata object
     params:
         adata: Anndata object
-        embed: name of embedding in adata.obsm to use. No HVG selection, PCA will be computed on the embedding
-        hvgs: specifies number of highly variable genes to compute. If None, no HVGs will be computed, else HVG selection and PCA on these HVGs will be computed
-        n_comps: number of PCs if PCA should be computed. None will assume that PCA has been already computed
+        embed: name of embedding in adata.obsm to use. PCA will be computed on the embedding
+        n_comps: number of PCs if PCA should be computed
         covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
@@ -423,10 +430,7 @@ def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_rang
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
     
-    if (embed is None) and (hvgs is not None):
-        sc.pp.highly_variable_genes(adata, n_top_genes=hvgs, flavor=flavor)
-        adata = adata[:, adata.var['highly_variable']]
-        # note: HVG selection will lead to recomputation of PCA
+    adata = select_hvg(adata, select=(embed is None))
     
     if verbose:
         print(f"covariate: {covariate}")
@@ -434,11 +438,15 @@ def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_rang
     
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
-            print("PCR on embedding")
+            print(f"compute PCR on embeding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
-    elif ('X_pca' in adata.obsm) and (n_comps is None):
+    elif ('X_pca' in adata.obsm): # and (n_comps is None):
+        if verbose:
+            print("using existing PCA")
         return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
     else:
+        if verbose:
+            print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
 def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
