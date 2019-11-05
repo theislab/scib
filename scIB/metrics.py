@@ -290,6 +290,27 @@ def ari(adata, group1, group2):
     
     from sklearn.metrics.cluster import adjusted_rand_score
     return adjusted_rand_score(group1, group2)
+
+### Isolated label score
+def isolated_labels(adata, label_key, batch_key, cluster_key):
+    
+    # get isolated labels
+    n_batch = adata.obs[batch_key].nunique()
+    tmp = adata.obs[[label_key, batch_key]].drop_duplicates()
+    batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
+    isolated_lab = batch_per_lab[batch_per_lab[batch_key] < n_batch].index.tolist()
+
+def score_isolated_label(adata, label_key, batch_key, cluster_key, label):
+    
+    # cluster optimizing over cluster with largest number of isolated label per batch
+    def max_label_per_batch(adata, label_key, group_key, label):
+        sub = adata.obs[adata.obs[label_key] == label].copy()
+        return sub[group_key].value_counts().max()
+    
+    opt_louvain(adata, label_key, cluster_key, function=max_label_per_batch, label=label)
+    
+    
+    
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
