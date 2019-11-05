@@ -343,10 +343,9 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
         # subset integrated data on matrix directly
         # select HVG or take embedding from integrated
         if embed is None:
-            if 'highly_variable' in int_sub.var:
-                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
+            int_sub = select_hvg(int_sub).X
         else:
-            int_sub = int_sub.obsm["X_emb"]
+            int_sub = int_sub.obsm[embed]
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
@@ -371,7 +370,7 @@ def select_hvg(adata, select=True):
         else:
             return adata
         
-def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=None, scale=True, verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     params:
