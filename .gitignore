@@ -11,3 +11,5 @@ scIB.egg-info
 Benchmarking_data_integration.Rproj
 .DS_Store
 .Rhistory
+
+.idea/
