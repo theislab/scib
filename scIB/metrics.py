@@ -292,24 +292,48 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1, group2)
 
 ### Isolated label score
-def isolated_labels(adata, label_key, batch_key, cluster_key):
+def isolated_labels(adata, label_key, batch_key, cluster_key, all_=False, verbose=False):
+    isolated_labels = {}
+    for label in get_isolated_labels(adata, label_key, batch_key, cluster_key):
+        if verbose:
+            print(label)
+        score = score_isolated_label(adata, label_key, batch_key, cluster_key, label, 
+                                     verbose=verbose)
+        isolated_labels[label] = score
     
-    # get isolated labels
+    if all_:
+        return isolated_labels
+    return np.mean(list(isolated_labels.values()))
+
+def get_isolated_labels(adata, label_key, batch_key, cluster_key):
     n_batch = adata.obs[batch_key].nunique()
     tmp = adata.obs[[label_key, batch_key]].drop_duplicates()
     batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
-    isolated_lab = batch_per_lab[batch_per_lab[batch_key] < n_batch].index.tolist()
+    
+    return batch_per_lab[batch_per_lab[batch_key] < n_batch].index.tolist()
 
-def score_isolated_label(adata, label_key, batch_key, cluster_key, label):
+def score_isolated_label(adata, label_key, batch_key, cluster_key, label, verbose=False):
+    
+    import sklearn.metrics as scm
+    adata = adata.copy()
     
     # cluster optimizing over cluster with largest number of isolated label per batch
-    def max_label_per_batch(adata, label_key, group_key, label):
+    def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
         sub = adata.obs[adata.obs[label_key] == label].copy()
-        return sub[group_key].value_counts().max()
+        if argmax:
+            return sub[cluster_key].value_counts().argmax()
+        return sub[cluster_key].value_counts().max()
     
-    opt_louvain(adata, label_key, cluster_key, function=max_label_per_batch, label=label)
+    opt_louvain(adata, label_key, cluster_key, 
+                function=max_label_per_batch, label=label,
+                verbose=verbose)
     
+    largest_cluster = max_label_per_batch(adata, label_key, cluster_key, label, argmax=True)
     
+    y_true = adata.obs[label_key] == label
+    y_pred = adata.obs[cluster_key] == largest_cluster
+    
+    return scm.f1_score(y_pred, y_true)
     
     
 ### Highly Variable Genes conservation
