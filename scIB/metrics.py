@@ -352,7 +352,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     import sklearn.metrics as scm
     adata_tmp = adata.copy()
-    
+            
     # cluster optimizing over cluster with largest number of isolated label per batch
     def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
         sub = adata.obs[adata.obs[label_key] == label].copy()
