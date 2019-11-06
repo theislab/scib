@@ -292,13 +292,13 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1, group2)
 
 ### Isolated label score
-def isolated_labels(adata, label_key, batch_key, cluster_key, all_=False, verbose=False):
+def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, all_=False, verbose=False):
     isolated_labels = {}
     for label in get_isolated_labels(adata, label_key, batch_key, cluster_key):
         if verbose:
             print(label)
         score = score_isolated_label(adata, label_key, batch_key, cluster_key, label, 
-                                     verbose=verbose)
+                                     cluster=cluster, verbose=verbose)
         isolated_labels[label] = score
     
     if all_:
@@ -312,7 +312,8 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key):
     
     return batch_per_lab[batch_per_lab[batch_key] < n_batch].index.tolist()
 
-def score_isolated_label(adata, label_key, batch_key, cluster_key, label, verbose=False):
+def score_isolated_label(adata, label_key, batch_key, label,
+                         cluster=True, verbose=False, **kwargs):
     
     import sklearn.metrics as scm
     adata = adata.copy()
@@ -324,16 +325,21 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key, label, verbos
             return sub[cluster_key].value_counts().argmax()
         return sub[cluster_key].value_counts().max()
     
-    opt_louvain(adata, label_key, cluster_key, 
+    if cluster:
+        opt_louvain(adata, label_key, cluster_key, 
                 function=max_label_per_batch, label=label,
                 verbose=verbose)
     
-    largest_cluster = max_label_per_batch(adata, label_key, cluster_key, label, argmax=True)
+        largest_cluster = max_label_per_batch(adata, label_key, cluster_key, label, argmax=True)
+        y_pred = adata.obs[cluster_key] == largest_cluster
+        y_true = adata.obs[label_key] == label
+        score = scm.f1_score(y_pred, y_true)
+    else:
+        adata.obs['group'] = adata.obs[label_key] == label
+        score = silhouette(adata, group_key='group', **kwargs)
     
-    y_true = adata.obs[label_key] == label
-    y_pred = adata.obs[cluster_key] == largest_cluster
-    
-    return scm.f1_score(y_pred, y_true)
+    del adata
+    return score
     
     
 ### Highly Variable Genes conservation
