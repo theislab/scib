@@ -8,6 +8,7 @@ warnings.filterwarnings('ignore')
 def create_adata_dummy(pca=False, n_top_genes=None, neighbors=False):
     adata = sc.datasets.paul15()
     adata.obs['celltype'] = adata.obs['paul15_clusters']
+    np.random.seed(42)
     adata.obs['batch'] = np.random.randint(1, 5, adata.n_obs)
     adata.obs['batch'] = adata.obs['batch'].astype("category")
     reduce_data(adata, pca=pca, n_top_genes=n_top_genes,
