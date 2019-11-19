@@ -74,11 +74,12 @@ def pcr_comparison():
     assert score <= 1
 
 def cell_cycle():
-    adata = utils.create_adata_dummy(pca=True, n_top_genes=2000)
+    adata = utils.create_adata_dummy()
     adata_int = adata.copy()
     
-    score = me.cell_cycle(adata, adata_int, batch_key='batch', organism='mouse')
-    print(f"score: {score}")
+    score = me.cell_cycle(adata, adata_int, batch_key='batch',
+                          organism='mouse', verbose=True)
+    print(f"score: {score}")    
     assert score >= 0
     assert score <= 1
 
