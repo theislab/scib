@@ -20,6 +20,7 @@ import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
 import rpy2.robjects as ro
 import anndata2ri
+from scipy.sparse import issparse
 
 # functions for running the methods
 
@@ -141,13 +142,13 @@ def runSeurat(adata, batch, hvg=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
-    
-    #tmp = anndata.AnnData(X=adata.X.sorted_indices(), obs=adata.obs)
-    #ro.globalenv['adata'] = tmp
 
+    if issparse(adata.X):
+        adata.X = adata.X.sort_indices()
+    
     ro.globalenv['adata'] = adata
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
-
+    
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
     ro.r('anchors = FindIntegrationAnchors('+
