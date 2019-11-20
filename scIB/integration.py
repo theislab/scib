@@ -147,24 +147,22 @@ def runSeurat(adata, batch, hvg=None):
         if not adata.X.has_sorted_indices:
             adata.X.sort_indices()
 
-    print(f'Sorted indices? {adata.X.has_sorted_indices}')
-
     for key in adata.layers:
         if issparse(adata.layers[key]):
             if not adata.layers[key].has_sorted_indices:
                 adata.layers[key].sort_indices()
 
-        print(f'Sorted indices? {adata.layers[key].has_sorted_indices}')
-                
     ro.globalenv['adata'] = adata
     
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
 
     # Fix error if levels are 0 and 1
-    ro.r('sobj$batch <- as.character(sobj$batch)')
-    
+    # ro.r(f'sobj$batch <- as.character(sobj${batch})')
+    ro.r(f'Idents(sobj) = "{batch}"')
+
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
+
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
         'anchor.features = 2000,'+
