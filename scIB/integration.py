@@ -177,8 +177,7 @@ def runSeurat(adata, batch, hvg=None):
         'max.features = 200,'+
         'eps = 0)'
     )
-    ro.r('integra
-ted = IntegrateData('+
+    ro.r('integrated = IntegrateData('+
         'anchorset = anchors,'+
         'new.assay.name = "integrated",'+
         'features = NULL,'+
