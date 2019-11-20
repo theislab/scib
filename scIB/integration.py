@@ -144,9 +144,20 @@ def runSeurat(adata, batch, hvg=None):
     anndata2ri.activate()
 
     if issparse(adata.X):
-        adata.X = adata.X.sort_indices()
-    
+        if not adata.X.has_sorted_indices:
+            adata.X.sort_indices()
+
+    print(f'Sorted indices? {adata.X.has_sorted_indices}')
+
+    for key in adata.layers:
+        if issparse(adata.layers[key]):
+            if not adata.layers[key].has_sorted_indices:
+                adata.layers[key].sort_indices()
+
+        print(f'Sorted indices? {adata.layers[key].has_sorted_indices}')
+                
     ro.globalenv['adata'] = adata
+    
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
     
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
@@ -163,7 +174,8 @@ def runSeurat(adata, batch, hvg=None):
         'max.features = 200,'+
         'eps = 0)'
     )
-    ro.r('integrated = IntegrateData('+
+    ro.r('integra
+ted = IntegrateData('+
         'anchorset = anchors,'+
         'new.assay.name = "integrated",'+
         'features = NULL,'+
