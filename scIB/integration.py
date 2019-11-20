@@ -159,6 +159,9 @@ def runSeurat(adata, batch, hvg=None):
     ro.globalenv['adata'] = adata
     
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+
+    # Fix error if levels are 0 and 1
+    ro.r('sobj$batch <- as.character(sobj$batch)')
     
     ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
     #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
