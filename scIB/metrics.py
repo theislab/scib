@@ -292,9 +292,25 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1, group2)
 
 ### Isolated label score
-def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, all_=False, verbose=False):
+def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, n=1,
+                    all_=False, verbose=False):
+    """
+    score how well labels of isolated labels are distiguished in the dataset by
+        1. clustering-based approach
+        2. silhouette score
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+        n: max number of batches per label for label to be considered as isolated.
+            if n=1, take labels that are present for a single batch
+            if n=None, consider any label that is missing at least 1 batch
+        all_: return scores for all isolated labels instead of aggregated mean
+    return:
+        by default, mean of scores for each isolated label
+        retrieve dictionary of scores for each label if `all_` is specified
+    """
+    
     isolated_labels = {}
-    for label in get_isolated_labels(adata, label_key, batch_key, cluster_key):
+    for label in get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n):
         if verbose:
             print(label)
         score = score_isolated_label(adata, label_key, batch_key, cluster_key, label, 
@@ -305,15 +321,27 @@ def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, all_
         return isolated_labels
     return np.mean(list(isolated_labels.values()))
 
-def get_isolated_labels(adata, label_key, batch_key, cluster_key):
-    n_batch = adata.obs[batch_key].nunique()
+def get_isolated_labels(adata, label_key, batch_key, cluster_key, n=None):
+    """
+    get labels that are considered isolated by the number of batches
+    """
+    
     tmp = adata.obs[[label_key, batch_key]].drop_duplicates()
     batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
     
-    return batch_per_lab[batch_per_lab[batch_key] < n_batch].index.tolist()
+    # threshold for determining when label is considered isolated
+    n_batch = adata.obs[batch_key].nunique()
+    if (n is None) or (n > n_batch):
+        n = n_batch - 1
+    return batch_per_lab[batch_per_lab[batch_key] <= n].index.tolist()
 
 def score_isolated_label(adata, label_key, batch_key, label,
                          cluster=True, verbose=False, **kwargs):
+    """
+    compute label score for a single label
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+    """
     
     import sklearn.metrics as scm
     adata = adata.copy()
