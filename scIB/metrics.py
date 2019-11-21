@@ -330,7 +330,6 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
     
     # threshold for determining when label is considered isolated
-    n_batch = adata.obs[batch_key].nunique()
     if n is None:
         n = batch_per_lab.min().tolist()[0]
     
