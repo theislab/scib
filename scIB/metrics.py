@@ -378,9 +378,9 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, covariate=covariate,
+    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=False,
                      n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, 
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=False,
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
