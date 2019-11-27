@@ -75,8 +75,8 @@ if __name__=='__main__':
     # select options according to type
     if adata.n_vars > adata_int.n_vars: # no HVG selection if output is not already subsetted
         n_hvgs = None
-    pca = True
-    neighbors = True
+    precompute_pca = True
+    recompute_neighbors = True
     embed = 'X_pca'
     
     if (type_ == "embed"):
@@ -87,20 +87,21 @@ if __name__=='__main__':
             adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
     elif (type_ == "knn"):
         n_hvgs = None
-        pca = False
+        precompute_pca = False
+        recompute_neighbors = False
     
     if verbose:
         print('reduce integrated data:')
         print(f'    HVG selection:\t{n_hvgs}')
-        message = f'    neighbourhood graph:\t{neighbors}'
-        if neighbors:
+        message = f'    compute neighbourhood graph:\t{precompute_neighbors}'
+        if recompute_neighbors:
             message += f' on {embed}'
         print(message)
-        print(f'    PCA:\t{pca}')
+        print(f'    precompute PCA:\t{precompute_pca}')
     scIB.preprocessing.reduce_data(adata_int,
                                    n_top_genes=n_hvgs,
-                                   neighbors=neighbors, use_rep=embed,
-                                   pca=pca, umap=False)
+                                   neighbors=recompute_neighbors, use_rep=embed,
+                                   pca=precompute_pca, umap=False)
     
     # METRICS
     print("computing metrics")
