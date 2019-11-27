@@ -118,6 +118,7 @@ if __name__=='__main__':
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
+        hvgs_ = False
     
     if verbose:
         print(f'type:\t{type_}')

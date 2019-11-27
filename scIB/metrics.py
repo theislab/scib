@@ -330,18 +330,24 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         embed = None
     
     score_cell_cycle(adata_pre, organism=organism)
-
-    scores = []
+    
+    scores = {}
     for batch in adata_pre.obs[batch_key].unique():
         raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
         int_sub = adata_post[adata_post.obs[batch_key] == batch]
         int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
+        if raw_sub.shape[0] != int_sub.shape[0]:
+            raise ValueError(f'batch "{batch}" of batch_key "{batch_key}" has unequal number of entries.')
+        
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        print('before')
+        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
+        print('after')
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        
         score = 1 - abs(after - before)/before # scaled result
-        scores.append(score)
+        scores[batch] = score
         
         if verbose:
             print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
@@ -349,7 +355,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     if agg_func is None:
         return scores
     else:
-        return agg_func(scores)
+        return agg_func(list(scores.values()))
 
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
@@ -454,7 +460,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
-
+    
     ## PC Regression
     if verbose:
         print("PC regression")
@@ -464,11 +470,14 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
     
     # fit linear model for n_comps PCs
     from sklearn.linear_model import LinearRegression
+    from sklearn import metrics as scm
     r2 = []
     for i in range(n_comps):
+        pc = X_pca[:, [i]]
         lm = LinearRegression()
-        lm.fit(X_pca[:, [i]], covariate)
-        r2.append(lm.score(X_pca[:, [i]], covariate))
+        lm.fit(pc, covariate)
+        pred = lm.predict(pc)
+        r2.append(scm.r2_score(pred, covariate))
     
     Var = pca_sd**2 / sum(pca_sd**2) * 100
     R2Var = sum(r2*Var)/100
