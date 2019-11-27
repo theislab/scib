@@ -1,12 +1,14 @@
 import os
 
 configfile: "config.yaml"
-# config file must contain:
+# config file must contain the following keys:
+#  DATASETS: list of <file prefix>_<output_type> in yaml format
 #  UNINTEGRATED: path to unintegrated adata object
 #  INTEGRATED_DIR: path to all integrated adata output of format {method}.h5ad
 #  METRICS_DIR: output directory of metrics
-#  DATASETS: list of {method}_{output}
-
+#  batch_key: name of batch column
+#  label_key: name of cell type column
+#  organism: name of organism (mouse|human)
 
 METRICS_DIR = config["METRICS_DIR"]
 
