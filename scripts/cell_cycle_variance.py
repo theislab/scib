@@ -33,5 +33,5 @@ if __name__=='__main__':
                                 embed=embed,
                                 agg_func=None, 
                                 verbose=args.verbose)
-    scores = pd.DataFrame.from_dict(scores, orient='index').transpose()
+    print(scores)
     scores.to_csv(args.output, index=False)

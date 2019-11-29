@@ -93,10 +93,19 @@ def cell_cycle():
     adata = utils.create_adata_dummy()
     adata_int = adata.copy()
     
-    score = me.cell_cycle(adata, adata_int, batch_key='batch',
-                          organism='mouse', verbose=True)
+    # only final score implementation
+    score = me.cell_cycle(adata, adata_int, batch_key='batch', organism='mouse',
+                          agg_func=np.mean, verbose=True)
     print(f"score: {score}")    
     assert score == 1
+    
+    # get all intermediate scores
+    scores_df = me.cell_cycle(adata, adata_int, batch_key='batch', organism='mouse',
+                          agg_func=None, verbose=True)
+    print(f"score: {scores_df}")
+    assert isinstance(scores_df, pd.DataFrame)
+    for i in scores_df['score']:
+        assert i == 1
 
 def hvg_overlap():
     adata = utils.create_adata_dummy()

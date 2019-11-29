@@ -93,7 +93,7 @@ if __name__=='__main__':
     if verbose:
         print('reduce integrated data:')
         print(f'    HVG selection:\t{n_hvgs}')
-        message = f'    compute neighbourhood graph:\t{precompute_neighbors}'
+        message = f'    compute neighbourhood graph:\t{recompute_neighbors}'
         if recompute_neighbors:
             message += f' on {embed}'
         print(message)

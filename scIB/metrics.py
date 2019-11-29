@@ -331,8 +331,11 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     
     score_cell_cycle(adata_pre, organism=organism)
     
-    scores = {}
-    for batch in adata_pre.obs[batch_key].unique():
+    batches = adata_pre.obs[batch_key].unique()
+    scores_final = []
+    scores_before = []
+    scores_after = []
+    for batch in batches:
         raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
         int_sub = adata_post[adata_post.obs[batch_key] == batch]
         int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
@@ -341,21 +344,26 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             raise ValueError(f'batch "{batch}" of batch_key "{batch_key}" has unequal number of entries.')
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
         print('before')
         before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
+        scores_before.append(before)
+        
         print('after')
         after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_after.append(after)
         
         score = 1 - abs(after - before)/before # scaled result
-        scores[batch] = score
+        scores_final.append(score)
         
         if verbose:
             print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
         
     if agg_func is None:
-        return scores
+        return pd.DataFrame([batches, scores_before, scores_after, scores_final],
+                            columns=['batch', 'before', 'after', 'score'])
     else:
-        return agg_func(list(scores.values()))
+        return agg_func(scores_final)
 
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
@@ -466,7 +474,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
         print("PC regression")
     
     # one-hot encode categorical values
-    covariate = pd.get_dummies(covariate)
+    covariate = pd.get_dummies(covariate).to_numpy()
     
     # fit linear model for n_comps PCs
     from sklearn.linear_model import LinearRegression
@@ -476,8 +484,13 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
         pc = X_pca[:, [i]]
         lm = LinearRegression()
         lm.fit(pc, covariate)
-        pred = lm.predict(pc)
-        r2.append(scm.r2_score(pred, covariate))
+        r2_score = lm.score(pc, covariate)
+        #pred = lm.predict(pc)
+        #r2_score = scm.r2_score(pred, covariate, multioutput='uniform_average')
+        #print(r2_score)
+        #print(pred)
+        #print(covariate)
+        r2.append(r2_score)
     
     Var = pca_sd**2 / sum(pca_sd**2) * 100
     R2Var = sum(r2*Var)/100
