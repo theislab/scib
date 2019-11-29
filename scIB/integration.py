@@ -152,6 +152,13 @@ def runSeurat(adata, batch, hvg=None):
             if not adata.layers[key].has_sorted_indices:
                 adata.layers[key].sort_indices()
 
+    if hvg!=None:
+        ro.globalenv['hvg'] = hvg
+        ro.r('hvg <- unlist(hvg)')
+    else:
+        ro.globalenv['hvg'] = 2000
+
+                
     ro.globalenv['adata'] = adata
     
     ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
@@ -165,7 +172,7 @@ def runSeurat(adata, batch, hvg=None):
 
     ro.r('anchors = FindIntegrationAnchors('+
         'object.list = batch_list, '+
-        'anchor.features = 2000,'+
+        'anchor.features = hvg,'+
         'scale = T,'+
         'l2.norm = T,'+
         'dims = 1:30,'+

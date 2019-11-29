@@ -22,8 +22,11 @@ def runIntegration(inPath, outPath, method, hvg, batch):
                                              batch_key=batch,
                                              target_genes=hvg,
                                              adataOut=True)
-    
-    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+
+    if method==scIB.integration.runSeurat and hvg>500:
+        integrated_tmp = scIB.metrics.measureTM(method, adata, batch, adata.var.highly_variable_intersection.index)
+    else:
+        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
 
