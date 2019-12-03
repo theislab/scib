@@ -67,9 +67,17 @@ if __name__=='__main__':
     print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
     print(adata_int)
-    if (n_hvgs is not None):
+    
+    # check input files
+    if adata.n_obs != adata_int.n_obs:
+        message = "The datasets have different numbers of genes before and after integration."
+        message += "Please make sure that both datasets match."
+        raise ValueError(message)
+    if n_hvgs is not None:
         if (adata_int.n_vars < n_hvgs):
-            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+            message = "There are fewer genes in the uncorrected adata "
+            message += "than specified for HVG selection."
+            raise ValueError(message)
 
     # DATA REDUCTION
     # select options according to type

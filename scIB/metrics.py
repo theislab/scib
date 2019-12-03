@@ -341,7 +341,10 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
         if raw_sub.shape[0] != int_sub.shape[0]:
-            raise ValueError(f'batch "{batch}" of batch_key "{batch_key}" has unequal number of entries.')
+            message = f'batch "{batch}" of batch_key "{batch_key}" '
+            message += 'has unequal number of entries before and after integration.'
+            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+            raise ValueError(message)
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
