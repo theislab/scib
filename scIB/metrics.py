@@ -6,7 +6,7 @@ import seaborn as sns
 import scanpy as sc
 import anndata
 from scIB.utils import *
-from scIB.preprocessing import hvg_intersect, score_cell_cycle
+from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 
 import rpy2.rinterface_lib.callbacks
@@ -17,7 +17,7 @@ import anndata2ri
 
 
 ### Silhouette score
-def silhouette(adata, group_key='cell_type', metric='euclidean', embed='X_pca', scale=True):
+def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
@@ -295,8 +295,8 @@ def ari(adata, group1, group2):
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     hvg_post = adata_post.var.index
     
-    adata_pre_list = scIB.utils.splitBatches(adata_pre, batch, hvg=hvg_post)
-    adata_post_list = scIB.utils.splitBatches(adata_post, batch)
+    adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
+    adata_post_list = splitBatches(adata_post, batch)
     overlap = []
     
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
@@ -315,12 +315,13 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     return np.mean(overlap)
 
 ### Cell cycle effect
-def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger', embed=None, agg_func=np.mean, organism='mouse', n_comps=50):
+def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
+               organism='mouse', n_comps=50, verbose=False):
     """
     params:
         adata_pre, adata_post: adatas before and after integration
         organism: 'mouse' or 'human' for choosing cell cycle genes
-        agg_func: any function that takes a list of numbers and aggregates them into a single number
+        agg_func: any function that takes a list of numbers and aggregates them into a single number. If agg_func is None, all results will be returned
     """
     checkAdata(adata_pre)
     checkAdata(adata_post)
@@ -329,33 +330,43 @@ def cell_cycle(adata_pre, adata_post, batch_key, hvgs=2000, flavor='cell_ranger'
         embed = None
     
     score_cell_cycle(adata_pre, organism=organism)
-
-    scores = []
-    for batch in adata_pre.obs[batch_key].unique():
-        # perform PCR per batch
+    
+    batches = adata_pre.obs[batch_key].unique()
+    scores_final = []
+    scores_before = []
+    scores_after = []
+    for batch in batches:
         raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
         int_sub = adata_post[adata_post.obs[batch_key] == batch]
+        int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
-        # select highly variable genes from non-integrated
-        sc.pp.highly_variable_genes(raw_sub, n_top_genes=hvgs, flavor=flavor)
-        raw_sub = raw_sub[:, raw_sub.var['highly_variable']]
-        # select HVG or take embedding from integrated
-        if embed is None:
-            if 'highly_variable' in int_sub.var:
-                int_sub = int_sub.X[:, int_sub.var['highly_variable']]
-            else:
-                int_sub = int_sub.X
-        else:
-            int_sub = int_sub.obsm[embed]
+        if raw_sub.shape[0] != int_sub.shape[0]:
+            message = f'batch "{batch}" of batch_key "{batch_key}" '
+            message += 'has unequal number of entries before and after integration.'
+            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+            raise ValueError(message)
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        
+        print('before')
+        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
+        scores_before.append(before)
+        
+        print('after')
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_after.append(after)
         
         score = 1 - abs(after - before)/before # scaled result
-        scores.append(score)
-    
-    return agg_func(scores)
+        scores_final.append(score)
+        
+        if verbose:
+            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+        
+    if agg_func is None:
+        return pd.DataFrame([batches, scores_before, scores_after, scores_final],
+                            columns=['batch', 'before', 'after', 'score'])
+    else:
+        return agg_func(scores_final)
 
 ### PC Regression
 def get_hvg_indices(adata, verbose=True):
@@ -364,8 +375,14 @@ def get_hvg_indices(adata, verbose=True):
             print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
         return np.array(range(adata.n_vars))
     return np.where((adata.var["highly_variable"] == True))[0]
+
+def select_hvg(adata, select=True):
+        if select and 'highly_variable' in adata.var:
+            return adata[:, adata.var['highly_variable']]
+        else:
+            return adata
         
-def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ranger', embed=None, n_comps=None, scale=True, verbose=False):
+def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     params:
@@ -378,24 +395,23 @@ def pcr_comparison(adata_pre, adata_post, covariate, hvgs=2000, flavor='cell_ran
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, covariate=covariate, hvgs=hvgs, flavor=flavor, n_comps=n_comps, verbose=verbose)
-    if (embed is None) and ('highly_variable' in adata_post.var):
-        adata_post = adata_post[:, adata_post.var['highly_variable']]
-    pcr_after = pcr(adata_post, covariate=covariate, hvgs=None, embed=embed, n_comps=n_comps, verbose=verbose)
+    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=False,
+                     n_comps=n_comps, verbose=verbose)
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=False,
+                    n_comps=n_comps, verbose=verbose)
 
     if scale:
         return abs(pcr_after - pcr_before)/pcr_before
     else:
         return pcr_after - pcr_before
 
-def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_ranger', verbose=False):
+def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=False, verbose=False):
     """
     PCR for Adata object
     params:
         adata: Anndata object
-        embed: name of embedding in adata.obsm to use. No HVG selection, PCA will be computed on the embedding
-        hvgs: specifies number of highly variable genes to compute. If None, no HVGs will be computed, else HVG selection and PCA on these HVGs will be computed
-        n_comps: number of PCs if PCA should be computed. None will assume that PCA has been already computed
+        embed: name of embedding in adata.obsm to use. PCA will be computed on the embedding
+        n_comps: number of PCs if PCA should be computed
         covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
@@ -404,22 +420,21 @@ def pcr(adata, covariate, embed=None, n_comps=None, hvgs=2000, flavor='cell_rang
     checkAdata(adata)
     checkBatch(covariate, adata.obs)
     
-    if (embed is None) and (hvgs is not None):
-        sc.pp.highly_variable_genes(adata, n_top_genes=hvgs, flavor=flavor)
-        adata = adata[:, adata.var['highly_variable']]
-        # note: HVG selection will lead to recomputation of PCA
-    
     if verbose:
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
-            print("PCR on embedding")
+            print(f"compute PCR on embeding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
-    elif ('X_pca' in adata.obsm) and (n_comps is None):
+    elif ('X_pca' in adata.obsm) and not recompute_pca:
+        if verbose:
+            print("using existing PCA")
         return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
     else:
+        if verbose:
+            print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
 def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
@@ -456,21 +471,29 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
-
+    
     ## PC Regression
     if verbose:
         print("PC regression")
     
     # one-hot encode categorical values
-    covariate = pd.get_dummies(covariate)
+    covariate = pd.get_dummies(covariate).to_numpy()
     
     # fit linear model for n_comps PCs
     from sklearn.linear_model import LinearRegression
+    from sklearn import metrics as scm
     r2 = []
     for i in range(n_comps):
+        pc = X_pca[:, [i]]
         lm = LinearRegression()
-        lm.fit(X_pca[:, [i]], covariate)
-        r2.append(lm.score(X_pca[:, [i]], covariate))
+        lm.fit(pc, covariate)
+        r2_score = lm.score(pc, covariate)
+        #pred = lm.predict(pc)
+        #r2_score = scm.r2_score(pred, covariate, multioutput='uniform_average')
+        #print(r2_score)
+        #print(pred)
+        #print(covariate)
+        r2.append(r2_score)
     
     Var = pca_sd**2 / sum(pca_sd**2) * 100
     R2Var = sum(r2*Var)/100
@@ -719,7 +742,8 @@ def metrics(adata, adata_int, batch_key, label_key,
     if nmi_ or ari_:
         print('clustering...')
         cluster_key = 'cluster'
-        res_max, nmi_max, nmi_all = opt_louvain(adata_int, label_key=label_key, cluster_key=cluster_key,
+        res_max, nmi_max, nmi_all = opt_louvain(adata_int,
+                label_key=label_key, cluster_key=cluster_key, function=nmi,
                 plot=False, verbose=verbose, inplace=True, force=True)
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
@@ -755,13 +779,6 @@ def metrics(adata, adata_int, batch_key, label_key,
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
-    if cell_cycle_:
-        print('cell cycle effect...')
-        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed, agg_func=np.mean, organism=organism)
-    else:
-        cc_score = np.nan
-    results['cell_cycle_conservation'] = cc_score
-    
     if pcr_:
         print('PC regression...')
         pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
@@ -769,11 +786,19 @@ def metrics(adata, adata_int, batch_key, label_key,
         pcr_score = np.nan
     results['PCR_batch'] = pcr_score
     
+    if cell_cycle_:
+        print('cell cycle effect...')
+        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
+                              agg_func=np.mean, organism=organism)
+    else:
+        cc_score = np.nan
+    results['cell_cycle_conservation'] = cc_score
+    
     if kBET_:
         print('kBET...')
         kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
-    else:
+    else: 
         kbet_score = np.nan
     results['kBET'] = kbet_score
 
