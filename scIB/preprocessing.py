@@ -369,3 +369,36 @@ def score_cell_cycle(adata, organism='mouse'):
         raise ValueError("cell cycle genes not in adata")
 
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+
+    
+def saveSeurat(adata, path):
+    ro.r('library(Seurat)')
+    ro.r('library(scater)')
+    anndata2ri.activate()
+
+    if issparse(adata.X):
+        if not adata.X.has_sorted_indices:
+            adata.X.sort_indices()
+
+    for key in adata.layers:
+        if issparse(adata.layers[key]):
+            if not adata.layers[key].has_sorted_indices:
+                adata.layers[key].sort_indices()
+
+    ro.globalenv['adata'] = adata
+    
+    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+
+    # Fix error if levels are 0 and 1
+    # ro.r(f'sobj$batch <- as.character(sobj${batch})')
+    ro.r(f'Idents(sobj) = "{batch}"')
+    ro.r(f'saveRDS(sobj, file="{path}")')
+    anndata2ri.deactivate()
+    
+def saveConos(adata, batch, path):
+    split = splitBatches(adata, batch)
+    for i in range(len(split)):
+        sc.pp.highly_variable_genes(split[i], flavor='cell_ranger')
+        sc.pp.pca(split[i], svd_solver='arpack')
+        saveSeurat(split[i], path+'_'+str(i)+'.rds')
+    
