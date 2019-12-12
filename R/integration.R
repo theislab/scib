@@ -3,12 +3,9 @@ loadSeuratObject = function(filename) {
 	sobj = readRDS(filename)
 	return(sobj)
 }
-​
 runSeurat = function(data, batch, hvgs=NULL) {
 	  require(Seurat)
-​
 	  batch_list = SplitObject(data, split.by = batch)
-​
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
 	          anchor.features = 2000,
@@ -20,7 +17,6 @@ runSeurat = function(data, batch, hvgs=NULL) {
         	  k.score = 30,
         	  max.features = 200,
         	  eps = 0)
-​
 	integrated = IntegrateData(
         	   anchorset = anchors,
 		   new.assay.name = "integrated",
@@ -35,11 +31,8 @@ runSeurat = function(data, batch, hvgs=NULL) {
         	   do.cpp = T,
         	   eps = 0,
         	   verbose = T)
-​
 	return(integrated)
 }
-​
-​
 func_profiler = function(expr, chunksize=20000, filename='timing.out') {
 	      Rprof(filename, memory.profiling=T)
 	      res = expr
@@ -48,8 +41,6 @@ func_profiler = function(expr, chunksize=20000, filename='timing.out') {
 	      mem = max(summaryRprof(filename, chunksize=chunksize, memory="both")$by.total$mem.total)
 	      return(list(results=res, time=t, memory=mem))
 }
-​
-​
 # Example call:
 #   sobj = load_seurat_object('small_test.RDS')
 #   out = func_profiler(runSeurat(sobj, "batch"))
@@ -77,7 +68,7 @@ runConos = function(data, batch, outdir) {
 	batch_list <- SplitObject(sobj, split.by=batch)
  	pp <- lapply(batch_list, preP)
  
-	con <- Conos$new(pp, n.cores=1)
+	con <- Conos$new(pp)
 	con$buildGraph(space="genes")
 	con$findCommunities()
 	con$embedGraph(method="UMAP")
@@ -86,6 +77,12 @@ runConos = function(data, batch, outdir) {
 	dir.create(outdir)
 	
 	saveConosForScanPy(con, output.path=outdir, 
-                   norm=TRUE, embed=TRUE, pseudo.pca=TRUE, pca=TRUE, 
-                   connect=TRUE, verbose=TRUE)
+                   pseudo.pca=TRUE, pca=TRUE, 
+                   verbose=TRUE)
+}
+
+runHarmony = function(pca, method, batch) {
+	require(harmony)
+	harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
+	return(harmonyEmb)
 }

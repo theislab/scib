@@ -401,4 +401,49 @@ def saveConos(adata, batch, path):
         sc.pp.highly_variable_genes(split[i], flavor='cell_ranger')
         sc.pp.pca(split[i], svd_solver='arpack')
         saveSeurat(split[i], path+'_'+str(i)+'.rds')
+        
+def readSeurat(path):
+    ro.r('library(Seurat)')
+    
+def readConos(path):
+    from scipy.io import mmread
+    gene_df = pd.read_csv(path + "genes.csv")
+
+    metadata = pd.read_csv(path + "metadata.csv")
+    metadata.index = metadata.CellId
+    del metadata["CellId"]
+
+    embedding_df = pd.read_csv(path + "embedding.csv")
+    # Decide between using PCA or pseudo-PCA
+    pseudopca_df = pd.read_csv(path + "pseudopca.csv")
+    #pca_df = pd.read_csv(path + "pca.csv")
+
+    graph_conn_mtx = mmread(path + "graph_connectivities.mtx")
+    graph_dist_mtx = mmread(path + "graph_distances.mtx")
+    
+    adata = sc.read_mtx(path+ "raw_count_matrix.mtx")
+    
+    
+    adata.var_names = gene_df["gene"].values
+    adata.obs_names = metadata.index.values
+
+    adata.obs = metadata.copy()
+
+    # Depends on which PCA you loaded
+    adata.X_pca = pseudopca_df.values
+    adata.obsm['X_pca'] = pseudopca_df.values
+
+    # Name according to embedding you saved
+    adata.X_umap = embedding_df.values
+    adata.obsm['X_umap'] = embedding_df.values
+
+    adata.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
+
+    # Assign raw counts to .raw slot, load in normalised counts
+    #adata.raw = adata
+    #adata_temp = sc.read_mtx(DATA_PATH + "count_matrix.mtx")
+    #adata.X = adata_temp.X
+    
+    return adata
+
     
