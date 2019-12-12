@@ -1,35 +1,116 @@
-import os
+import pathlib
 
 configfile: "config.yaml"
-# config file must contain the following keys:
-#  DATASETS: list of <file prefix>_<output_type> in yaml format
-#  UNINTEGRATED: path to unintegrated adata object
-#  INTEGRATED_DIR: path to all integrated adata output of format {method}.h5ad
-#  METRICS_DIR: output directory of metrics
-#  batch_key: name of batch column
-#  label_key: name of cell type column
-#  organism: name of organism (mouse|human)
 
-METRICS_DIR = config["METRICS_DIR"]
+""" General idea:
++ multiple data scenarios that need to go through the same process
+    + integration on all methods defined with following settings
+        + scaled/unscaled
+        + HVG-selected/full-feature
+    + metrics on all integrated outputs and settings
+    + cell cycle variance and other analysis on integrated output
++ input files need to follow a specific structure
+    + use symlinks to avoid copying the data
+    + 1 folder per data scenario, must contain:
+        + unintegrated, preprocessed file
+        + folder for integrated output
+        + folder for metrics output
+        + folder for cell cycle variance and other analysis output
+    + for each of these folders, wildcards of scaled/non-scaled, HVG/full need to be available (easiest: subfolders)
++ ideally, all files should be under a ROOT directory following the above folder structure
++ levels
+     1. data scenario
+     + method to output format mapping
+     + scaled/unscaled
+     + HVG/full feature
+     + data type
+"""
 
-all_metrics = os.path.join(METRICS_DIR, "all.csv")
+## variables and function definition for input files
+OUTPUT_DIR = config["OUTPUT_DIR"]
+ROOT = config["ROOT"]
+DATA_SCENARIOS = config["DATA_SCENARIOS"]
+SCALING = ['scaled', 'unscaled']
+FEATURE_SELECTION = ['hvg', 'full_feature']
+METHODS = list(config["METHODS"].keys())
+OUTPUT_TYPES = list(config["METHODS"].values())
 
-rule all_metrics:
-    input: 
-        expand(os.path.join(METRICS_DIR, "{dataset}_metrics.csv"), dataset=config["DATASETS"])
-    output:
-        all_metrics
-    shell:
-        "python all_metrics.py -i {METRICS_DIR} -o {all_metrics} "
+def join_path(root=ROOT, *args):
+    path = pathlib.Path(root)
+    for d in args:
+        path = path / d
+    return str(path)
+
+def get_from_scenario(scenario, key="file"):
+    return DATA_SCENARIOS[scenario][file]
+
+#rule all:
+# input: join_path(root=ROOT, "integration.done")
+
+## INTEGRATION
+integration_output = {
+   "single"     : join_path(root=ROOT, "{scenario}", "integration",
+                  "{scaling}", "{hvg}", "{method}.h5ad"),
+   "by_feature" : join_path(root=ROOT, "{scenario}", "integration",
+                  "{scaling}", "{hvg}", "all.csv"),
+   "by_scaling" : join_path(root=ROOT, "{scenario}", "integration",
+                  "{scaling}", "all.csv"),
+   "by_scenario": join_path(root=ROOT, "{scenario}", "integration", "all.csv"),
+}
+
+# TODO: run integration using integration script
+# rule integration:
+#     output: touch(join_path(ROOT, "integration.done"))
+
+## METRICS
+metric_output = {
+   "single"     : join_path(root=ROOT, "{scenario}", "metrics",
+                  "{scaling}", "{hvg}", "{method}_{o_type}.csv"),
+   "by_feature" : join_path(root=ROOT, "{scenario}", "metrics",
+                  "{scaling}", "{hvg}", "all.csv"),
+   "by_scaling" : join_path(root=ROOT, "{scenario}", "metrics",
+                  "{scaling}", "all.csv"),
+   "by_scenario": join_path(root=ROOT, "{scenario}", "metrics", "all.csv"),
+   "total"      : join_path(root=ROOT, "metrics.csv")
+}
 
 rule metrics:
-    input:
-        u = config["UNINTEGRATED"],
-        i = os.path.join(config["INTEGRATED_DIR"], "{method}.h5ad")
-    output:
-        os.path.join(METRICS_DIR, "{method}_{type}_metrics.csv")
-    shell:
-        "python metrics.py -u {input.u} -i {input.i} -o {METRICS_DIR} "
-        "-b {config[batch_key]} -l {config[label_key]} --type {wildcards.type} "
-        "--organism {config[organism]} -v "
+    input: expand(metric_output["by_scenario"], scenario=config["DATA_SCENARIOS"])
+    output: metric_output["total"]
+    shell: "python merge.py -i {input} -o {output}"
 
+rule metrics_by_scenario:
+    input: expand(metric_output["by_scaling"], scaling=SCALING)
+    output: metric_output["by_scenario"]
+    shell: "python merge.py -i {input} -o {output} --key scenario"
+
+rule metrics_by_scaling:
+    input: expand(metric_output["by_feature"], hvg=FEATURE_SELECTION)
+    output: metric_output["by_scaling"]
+    shell: "python merge.py -i {input} -o {output} --key scaling"
+
+rule metrics_by_feature:
+    input: expand(metric_output["single"], method=METHODS, o_type=OUTPUT_TYPES)
+    output: metric_output["by_feature"]
+    shell: "python merge.py -i {input} -o {output} --key hvg"
+
+rule metrics_single:
+    input:
+        u = lambda wildcards: get_from_scenario(wildcards.scenario, key="file")
+        i = integration_output["single"]
+    output: metric_output["single"]
+    params:
+        metrics_dir = str(pathlib.Path(output).parent()),
+        batch_key = config[batch_key],
+        label_key = config[label_key],
+        organism = lambda wildcards: get_from_scenario(wildcards.scenario, key="organism"),
+        assay = lambda wildcards: get_from_scenario(wildcards.scenario, key="assay")
+    shell:
+        """
+        python metrics.py -u {input.u} -i {input.i} -o {params.metrics_dir} 
+        -b {params.batch_key} -l {params.label_key} --type {wildcards.type} 
+        --organism {params.organism} --assay {params.assay} -v
+        """
+
+## Cell Cycle Variation
+# rule cc_variation:
