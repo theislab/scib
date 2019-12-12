@@ -427,11 +427,9 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        print('before')
         before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
         scores_before.append(before)
         
-        print('after')
         after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
         scores_after.append(after)
         
