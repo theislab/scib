@@ -7,8 +7,8 @@ from scIB import utils
 from scIB import metrics
 
 
-def opt_louvain(adata, label_key, cluster_key, *args, function=None, resolutions=None,
-                inplace=True, plot=False, force=True, verbose=True):
+def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
+                inplace=True, plot=False, force=True, verbose=True, **kwargs):
     """
     params:
         label_key: name of column in adata.obs containing biological labels to be
@@ -16,7 +16,7 @@ def opt_louvain(adata, label_key, cluster_key, *args, function=None, resolutions
         cluster_key: name of column to be added to adata.obs during clustering. 
             Will be overwritten if exists and `force=True`
         function: function that computes the cost to be optimised over. Must take as
-            arguments (adata, group1, group2, *args) and returns a number for maximising
+            arguments (adata, group1, group2, **kwargs) and returns a number for maximising
         resolutions: list if resolutions to be optimised over. If `resolutions=None`,
             default resolutions of 20 values ranging between 0.1 and 2 will be used
     returns:
@@ -55,7 +55,7 @@ def opt_louvain(adata, label_key, cluster_key, *args, function=None, resolutions
 
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
-        score = function(adata, label_key, cluster_key, *args)
+        score = function(adata, label_key, cluster_key, **kwargs)
         score_all.append(score)
         if score_max < score:
             scor_max = score

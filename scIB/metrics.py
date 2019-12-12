@@ -290,6 +290,85 @@ def ari(adata, group1, group2):
     
     from sklearn.metrics.cluster import adjusted_rand_score
     return adjusted_rand_score(group1, group2)
+
+### Isolated label score
+def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, n=1,
+                    all_=False, verbose=False):
+    """
+    score how well labels of isolated labels are distiguished in the dataset by
+        1. clustering-based approach
+        2. silhouette score
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+        n: max number of batches per label for label to be considered as isolated.
+            if n=1, take labels that are present for a single batch
+            if n=None, consider any label that is missing at least 1 batch
+        all_: return scores for all isolated labels instead of aggregated mean
+    return:
+        by default, mean of scores for each isolated label
+        retrieve dictionary of scores for each label if `all_` is specified
+    """
+    
+    isolated_labels = {}
+    for label in get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n):
+        if verbose:
+            print(label)
+        score = score_isolated_label(adata, label_key, batch_key, cluster_key, label, 
+                                     cluster=cluster, verbose=verbose)
+        isolated_labels[label] = score
+    
+    if all_:
+        return isolated_labels
+    return np.mean(list(isolated_labels.values()))
+
+def get_isolated_labels(adata, label_key, batch_key, cluster_key, n=None):
+    """
+    get labels that are considered isolated by the number of batches
+    """
+    
+    tmp = adata.obs[[label_key, batch_key]].drop_duplicates()
+    batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
+    
+    # threshold for determining when label is considered isolated
+    n_batch = adata.obs[batch_key].nunique()
+    if (n is None) or (n > n_batch):
+        n = n_batch - 1
+    return batch_per_lab[batch_per_lab[batch_key] <= n].index.tolist()
+
+def score_isolated_label(adata, label_key, batch_key, label,
+                         cluster=True, verbose=False, **kwargs):
+    """
+    compute label score for a single label
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+    """
+    
+    import sklearn.metrics as scm
+    adata = adata.copy()
+    
+    # cluster optimizing over cluster with largest number of isolated label per batch
+    def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
+        sub = adata.obs[adata.obs[label_key] == label].copy()
+        if argmax:
+            return sub[cluster_key].value_counts().argmax()
+        return sub[cluster_key].value_counts().max()
+    
+    if cluster:
+        opt_louvain(adata, label_key, cluster_key, 
+                function=max_label_per_batch, label=label,
+                verbose=verbose)
+    
+        largest_cluster = max_label_per_batch(adata, label_key, cluster_key, label, argmax=True)
+        y_pred = adata.obs[cluster_key] == largest_cluster
+        y_true = adata.obs[label_key] == label
+        score = scm.f1_score(y_pred, y_true)
+    else:
+        adata.obs['group'] = adata.obs[label_key] == label
+        score = silhouette(adata, group_key='group', **kwargs)
+    
+    del adata
+    return score
+    
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
