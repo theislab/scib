@@ -7,12 +7,13 @@ import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
-# types of integration output
+# argparse choices
 RESULT_TYPES = [
     "full", # reconstructed expression data
     "embed", # embedded/latent space
     "knn" # only corrected neighbourhood graph as output
 ]
+ASSAYS = ["expression", "atac"]
 
 if __name__=='__main__':
     """
@@ -33,6 +34,7 @@ if __name__=='__main__':
     
     parser.add_argument('--organism', required=True)
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
+    parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
     parser.add_argument('--hvgs', default=None, help='Number of highly variable genes', type=int)
     parser.add_argument('-v', '--verbose', action='store_true')
     
@@ -144,16 +146,18 @@ if __name__=='__main__':
                                    neighbors=recompute_neighbors, use_rep=embed,
                                    pca=precompute_pca, umap=False)
     
-    # METRICS
     print("computing metrics")
+    # DEFAULT
     silhouette_ = True
     nmi_ = True
     ari_ = True
     pcr_ = True
     cell_cycle_ = True
     hvgs_ = True
-    kBET_ = True
-    lisi_ = True
+    kBET_ = False
+    lisi_ = False
+    
+    # Output tpye
     if (type_ == "embed"):
         hvgs_ = False
     elif (type_ == "knn"):
@@ -161,6 +165,9 @@ if __name__=='__main__':
         pcr_ = False
         cell_cycle_ = False
         hvgs_ = False
+    
+    if args.assay == 'atac':
+        cell_cycle_ = False
     
     if verbose:
         print(f'type:\t{type_}')
@@ -188,7 +195,7 @@ if __name__=='__main__':
     if verbose:
         print(results)
     # save metrics' results
-    results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
+    results.to_csv(os.path.join(args.output, f'{out_prefix}.csv'))
 
     print("done")
 

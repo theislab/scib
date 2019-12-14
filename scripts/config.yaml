@@ -1,30 +1,7 @@
 #### new keys:
 ROOT: /storage/groups/ml01/workspace/scIB
 
-DATA_SCENARIOS:
-  pancreas:
-    organism: human
-    assay: expression
-    file: 
-  mouse_brain:
-    organism: mouse
-    assay: expression
-    file: 
-  immune_cell:
-    organism: human
-    assay: expression
-    file: 
-  mouse_atlas:
-    organsism: mouse
-    assay: expression
-    file: 
-  mouse_brain_atac:
-    organism: mouse
-    assay: atac
-    file: 
-
-# method name : ouput type(s)
-METHODS:
+METHODS: # method name : ouput type(s)
   mnn: full
   scanorama:
     - embed
@@ -34,6 +11,43 @@ METHODS:
   harmony: embed
   bbknn: knn
 
+DATA_SCENARIOS:
+  pancreas:
+    batch_key: tech
+    label_key: celltype
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/human_pancreas/human_pancreas_norm.h5ad
+  lung_atlas:
+    batch_key: batch
+    label_key: cell_type
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
+  immune_cell:
+    batch_key: batch
+    label_key: final_annotation
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
+  mouse_atlas:
+    batch_key: study # TODO: we need batch over all samples as well
+    label_key: cell_type_union
+    organsism: mouse
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
+  mouse_brain:
+    batch_key: study
+    label_key: cell_type
+    organism: mouse
+    assay: expression
+    file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
+  mouse_brain_atac:
+    batch_key: batchname
+    label_key: cell_type_consensus
+    organism: mouse
+    assay: atac
+    file: /storage/groups/ce01/workspace/Benchmarking_data_integration/data/brain_atac_3datasetsmerge_10x_CEMBA180312_3B_GSM3034638_bin_merged_top_var_feat_min500cells_regression_Seurat_cell_labels.h5ad
 ####
 
 

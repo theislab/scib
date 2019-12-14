@@ -1,6 +1,6 @@
 import pathlib
 
-configfile: "config.yaml"
+#configfile: "config.yaml"
 
 """ General idea:
 + multiple data scenarios that need to go through the same process
@@ -27,88 +27,75 @@ configfile: "config.yaml"
 """
 
 ## variables and function definition for input files
-OUTPUT_DIR = config["OUTPUT_DIR"]
 ROOT = config["ROOT"]
 DATA_SCENARIOS = config["DATA_SCENARIOS"]
 SCALING = ['scaled', 'unscaled']
 FEATURE_SELECTION = ['hvg', 'full_feature']
-METHODS = list(config["METHODS"].keys())
-OUTPUT_TYPES = list(config["METHODS"].values())
 
-def join_path(root=ROOT, *args):
-    path = pathlib.Path(root)
-    for d in args:
+def join_path(*args):
+    path = pathlib.Path(args[0])
+    for d in args[1:]:
         path = path / d
     return str(path)
 
-def get_from_scenario(scenario, key="file"):
-    return DATA_SCENARIOS[scenario][file]
-
-#rule all:
-# input: join_path(root=ROOT, "integration.done")
-
-## INTEGRATION
-integration_output = {
-   "single"     : join_path(root=ROOT, "{scenario}", "integration",
-                  "{scaling}", "{hvg}", "{method}.h5ad"),
-   "by_feature" : join_path(root=ROOT, "{scenario}", "integration",
-                  "{scaling}", "{hvg}", "all.csv"),
-   "by_scaling" : join_path(root=ROOT, "{scenario}", "integration",
-                  "{scaling}", "all.csv"),
-   "by_scenario": join_path(root=ROOT, "{scenario}", "integration", "all.csv"),
+metric_output = {
+   "final"    : join_path(ROOT, "metrics.csv"),
+   "by_method": join_path(ROOT, "{{scenario}}", "metrics", "{{scaling}}", "{{hvg}}", 
+                          "{method}_{o_type}.csv"),
+   "single"   : join_path(ROOT, "{scenario}", "metrics", "{scaling}", "{hvg}", "{method}_{o_type}.csv")
 }
 
+integration_output = {
+   "single"     : join_path(ROOT, "{scenario}", "integration", "{scaling}", "{hvg}", "{method}.h5ad"),
+   "final"      : join_path(ROOT, "integration.done")
+}
+
+
+def get_from_scenario(scenario, key="file"):
+    return DATA_SCENARIOS[scenario][key]
+
+def get_all_metrics_files():
+    all_files = []
+    METHODS = config["METHODS"]
+    for method, output_types in METHODS.items():
+        file_pattern = metric_output["by_method"]
+        for aggr_method in expand(file_pattern, method=method, o_type=output_types):
+            f = expand(aggr_method, scenario=DATA_SCENARIOS, scaling=SCALING, hvg=FEATURE_SELECTION)
+            all_files.extend(f)
+    return all_files
+
+## RULES
+rule all:
+ input: 
+     # integration_output["final"],
+     metric_output["final"]
+
+## INTEGRATION
 # TODO: run integration using integration script
 # rule integration:
 #     output: touch(join_path(ROOT, "integration.done"))
 
 ## METRICS
-metric_output = {
-   "single"     : join_path(root=ROOT, "{scenario}", "metrics",
-                  "{scaling}", "{hvg}", "{method}_{o_type}.csv"),
-   "by_feature" : join_path(root=ROOT, "{scenario}", "metrics",
-                  "{scaling}", "{hvg}", "all.csv"),
-   "by_scaling" : join_path(root=ROOT, "{scenario}", "metrics",
-                  "{scaling}", "all.csv"),
-   "by_scenario": join_path(root=ROOT, "{scenario}", "metrics", "all.csv"),
-   "total"      : join_path(root=ROOT, "metrics.csv")
-}
-
 rule metrics:
-    input: expand(metric_output["by_scenario"], scenario=config["DATA_SCENARIOS"])
-    output: metric_output["total"]
-    shell: "python merge.py -i {input} -o {output}"
-
-rule metrics_by_scenario:
-    input: expand(metric_output["by_scaling"], scaling=SCALING)
-    output: metric_output["by_scenario"]
-    shell: "python merge.py -i {input} -o {output} --key scenario"
-
-rule metrics_by_scaling:
-    input: expand(metric_output["by_feature"], hvg=FEATURE_SELECTION)
-    output: metric_output["by_scaling"]
-    shell: "python merge.py -i {input} -o {output} --key scaling"
-
-rule metrics_by_feature:
-    input: expand(metric_output["single"], method=METHODS, o_type=OUTPUT_TYPES)
-    output: metric_output["by_feature"]
-    shell: "python merge.py -i {input} -o {output} --key hvg"
+    input: get_all_metrics_files()
+    output: metric_output["final"]
+    shell: "python merge.py -i {input} -o {output} --root"
 
 rule metrics_single:
     input:
-        u = lambda wildcards: get_from_scenario(wildcards.scenario, key="file")
+        u = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
         i = integration_output["single"]
     output: metric_output["single"]
     params:
-        metrics_dir = str(pathlib.Path(output).parent()),
-        batch_key = config[batch_key],
-        label_key = config[label_key],
-        organism = lambda wildcards: get_from_scenario(wildcards.scenario, key="organism"),
-        assay = lambda wildcards: get_from_scenario(wildcards.scenario, key="assay")
+        batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
+        label_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="label_key"),
+        organism  = lambda wildcards: get_from_scenario(wildcards.scenario, key="organism"),
+        assay     = lambda wildcards: get_from_scenario(wildcards.scenario, key="assay"),
     shell:
         """
-        python metrics.py -u {input.u} -i {input.i} -o {params.metrics_dir} 
-        -b {params.batch_key} -l {params.label_key} --type {wildcards.type} 
+        OUT_DIR=$(dirname {output})
+        python metrics.py -u {input.u} -i {input.i} -o $OUT_DIR \
+        -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
         --organism {params.organism} --assay {params.assay} -v
         """
 
