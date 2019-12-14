@@ -77,14 +77,17 @@ rule all:
 
 ## METRICS
 rule metrics:
-    input: get_all_metrics_files()
+    input:
+        tables = get_all_metrics_files(),
+        script = "merge.py"
     output: metric_output["final"]
-    shell: "python merge.py -i {input} -o {output} --root"
+    shell: "python {input.script} -i {input.tables} -o {output} --root {ROOT}"
 
 rule metrics_single:
     input:
-        u = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
-        i = integration_output["single"]
+        u      = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
+        i      = integration_output["single"],
+        script = "metrics.py"
     output: metric_output["single"]
     params:
         batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
@@ -94,7 +97,7 @@ rule metrics_single:
     shell:
         """
         OUT_DIR=$(dirname {output})
-        python metrics.py -u {input.u} -i {input.i} -o $OUT_DIR \
+        python {input.script} -u {input.u} -i {input.i} -o $OUT_DIR \
         -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
         --organism {params.organism} --assay {params.assay} -v
         """
