@@ -30,12 +30,12 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', required=True, help='output directory')
     
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
-    parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
+    parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels')
     
     parser.add_argument('--organism', required=True)
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
-    parser.add_argument('--hvgs', default=None, help='Number of highly variable genes', type=int)
+    parser.add_argument('--hvgs', default=0, help='Number of highly variable genes. Use 0 to specify that no feature selection had been used.', type=int)
     parser.add_argument('-v', '--verbose', action='store_true')
     
     args = parser.parse_args()
@@ -45,7 +45,7 @@ if __name__=='__main__':
     batch_key = args.batch_key
     label_key = args.label_key
     organism = args.organism
-    n_hvgs = args.hvgs
+    n_hvgs = args.hvgs if args.hvgs > 0 else None
     
     # set prefix for output and results column name
     base = os.path.basename(args.integrated)
@@ -154,10 +154,10 @@ if __name__=='__main__':
     pcr_ = True
     cell_cycle_ = True
     hvgs_ = True
-    kBET_ = False
-    lisi_ = False
+    kBET_ = True
+    lisi_ = True
     
-    # Output tpye
+    # by output type
     if (type_ == "embed"):
         hvgs_ = False
     elif (type_ == "knn"):
@@ -166,6 +166,7 @@ if __name__=='__main__':
         cell_cycle_ = False
         hvgs_ = False
     
+    # by assay
     if args.assay == 'atac':
         cell_cycle_ = False
     
