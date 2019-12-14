@@ -1,6 +1,6 @@
 import pathlib
 
-configfile: "config.yaml"
+#configfile: "config.yaml"
 
 """ Specifications
 + General idea:
@@ -105,7 +105,7 @@ rule all:
 rule metrics:
     input:
         tables = get_all_file_patterns("metrics"),
-        script = "merge_metrics.py"
+        script = "scripts/merge_metrics.py"
     output: get_filename_pattern("metrics", "final")
     shell: "python {input.script} -i {input.tables} -o {output} --root {ROOT}"
 
@@ -113,7 +113,7 @@ rule metrics_single:
     input:
         u      = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
         i      = get_filename_pattern("integration", "single"),
-        script = "metrics.py"
+        script = "scripts/metrics.py"
     output: get_filename_pattern("metrics", "single")
     params:
         batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
@@ -133,7 +133,7 @@ rule metrics_single:
 rule cc_variation:
     input:
         tables = get_all_file_patterns("cc_variance", exclude_type='knn'),
-        script = "merge_cc_variance.py"
+        script = "scripts/merge_cc_variance.py"
     output: get_filename_pattern("cc_variance", "final")
     shell: "python {input.script} -i {input.tables} -o {output} --root {ROOT}"
 
@@ -141,7 +141,7 @@ rule cc_single:
     input:
         u      = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
         i      = get_filename_pattern("integration", "single"),
-        script = "cell_cycle_variance.py"
+        script = "scripts/cell_cycle_variance.py"
     output: get_filename_pattern("cc_variance", "single")
     params:
         batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
