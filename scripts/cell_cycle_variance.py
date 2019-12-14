@@ -2,6 +2,7 @@ import pandas as pd
 import scanpy as sc
 import scIB
 
+ASSAYS = ["expression", "atac"]
 RESULT_TYPES = ["full", "embed"]
 
 if __name__=='__main__':
@@ -14,10 +15,13 @@ if __name__=='__main__':
     parser.add_argument('-u', '--uncorrected', required=True)
     parser.add_argument('-i', '--integrated', required=True)
     parser.add_argument('-o', '--output', required=True, help='output file')
-    parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
+    parser.add_argument('-b', '--batch_key', required=True, help='Key of batch variable')
     parser.add_argument('--organism', required=True)
+    parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony')
+    parser.add_argument('--hvgs', default=0, type=int)
     parser.add_argument('-v', '--verbose', action='store_true')
+    
     args = parser.parse_args()
     
     embed = 'X_emb' if args.type == 'embed' else 'X_pca'
