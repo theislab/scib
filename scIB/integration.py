@@ -247,7 +247,16 @@ def runBBKNN(adata, batch, hvg=None):
 
 def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    anndata2ri.activate()
+    import time
+    import os
+    tmpName = "/tmp/conos+"time.time()
+    saveSeurat(adata, tmpName+'.RDS')
+    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runConos.R '+tmpName+'.RDS '+batch+' '+tmpName)
+    adata_out = readConos(tmpName)
+
+    return adata_out
+
+    """anndata2ri.activate()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     ro.r('library(conos)')
@@ -275,7 +284,7 @@ def runConos(adata, batch, hvg=None):
     
     anndata2ri.deactivate()
     return out
-
+    """
     
 
 
