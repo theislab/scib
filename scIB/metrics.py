@@ -567,6 +567,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     ## PC Regression
     if verbose:
         print("PC regression")
+    np.random.seed(0)
     
     # one-hot encode categorical values
     covariate = pd.get_dummies(covariate).to_numpy()
