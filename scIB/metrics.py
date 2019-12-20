@@ -540,7 +540,8 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
             print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack', verbose=False):
+def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack', 
+                  seed=42, verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
@@ -578,6 +579,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     ## PC Regression
     if verbose:
         print("fit regression on PCs")
+    np.random.seed(seed)
     
     # one-hot encode categorical values
     covariate = pd.get_dummies(covariate).to_numpy()
