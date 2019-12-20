@@ -318,6 +318,10 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
+    Compare the variance effect of S-phase and G2/M-phase cell cycle scores before and
+    after integration. Cell cycle scores are computed per batch on the unintegrated data set,
+    eliminatimg that batch effect. This function returns a score between 1 and 0. The larger
+    the score, the stronger the cell cycle variance is conserved.
     params:
         adata_pre, adata_post: adatas before and after integration
         organism: 'mouse' or 'human' for choosing cell cycle genes
@@ -328,8 +332,6 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     
     if embed == 'X_pca':
         embed = None
-    
-    score_cell_cycle(adata_pre, organism=organism)
     
     batches = adata_pre.obs[batch_key].unique()
     scores_final = []
@@ -346,6 +348,9 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
             raise ValueError(message)
         
+        if verbose:
+            print('score cell cycle')
+        score_cell_cycle(raw_sub, organism=organism)
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
         print('before')
@@ -385,9 +390,12 @@ def select_hvg(adata, select=True):
 def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
+    Return either the difference of variance contribution before and after
+    or a score between 0 and 1 with 0 if the variance contribution hasn't 
     params:
         adata_pre: uncorrected adata
         adata_post: integrated adata
+        scale: if True, return scaled score
     return:
         difference of R2Var value of PCR
     """
@@ -395,9 +403,9 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=False,
+    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=True,
                      n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=False,
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=True,
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
@@ -405,9 +413,13 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     else:
         return pcr_after - pcr_before
 
-def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=False, verbose=False):
+def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
     """
     PCR for Adata object
+    Checks whether to
+        + compute PCA on embedding or expression data (set `embed` to name of embedding matrix e.g. `embed='X_emb'`)
+        + use existing PCA (only if PCA entry exists)
+        + recompute PCA on expression matrix (default)
     params:
         adata: Anndata object
         embed: name of embedding in adata.obsm to use. PCA will be computed on the embedding
@@ -424,20 +436,25 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=False, verbose=F
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
+    # use embedding for PCA
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
-            print(f"compute PCR on embeding n_comps: {n_comps}")
+            print(f"compute PCR on embedding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
-    elif ('X_pca' in adata.obsm) and not recompute_pca:
+    
+    # use existing PCA computation
+    elif (recompute_pca == False) and ('X_pca' in adata.obsm) and ('pca' in adata.uns):
         if verbose:
             print("using existing PCA")
         return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
+    
+    # recompute PCA
     else:
         if verbose:
             print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
+def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack', verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
