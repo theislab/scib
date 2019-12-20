@@ -318,14 +318,20 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
-    Compare the variance effect of S-phase and G2/M-phase cell cycle scores before and
+    Compare the variance contribution of S-phase and G2/M-phase cell cycle scores before and
     after integration. Cell cycle scores are computed per batch on the unintegrated data set,
-    eliminatimg that batch effect. This function returns a score between 1 and 0. The larger
-    the score, the stronger the cell cycle variance is conserved.
+    eliminatimg the batch effect confounded by the `batch_key` variable. This function
+    returns a score between 1 and 0. The larger the score, the stronger the cell cycle
+    variance is conserved.
+    This score can be calculated on full corrected feature spaces and latent embeddings as 
+    variance contributions of a fixed score can be obtained via PC regression here.
     params:
         adata_pre, adata_post: adatas before and after integration
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
+        agg_func: any function that takes a list of numbers and aggregates them into a single number. 
+                  If `agg_func=None`, all results will be returned
         organism: 'mouse' or 'human' for choosing cell cycle genes
-        agg_func: any function that takes a list of numbers and aggregates them into a single number. If agg_func is None, all results will be returned
     """
     checkAdata(adata_pre)
     checkAdata(adata_post)
@@ -390,11 +396,15 @@ def select_hvg(adata, select=True):
 def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
-    Return either the difference of variance contribution before and after
-    or a score between 0 and 1 with 0 if the variance contribution hasn't 
+    Return either the difference of variance contribution before and after integration
+    or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't 
+    changed. The larger the score, the smaller the variance contribution of the batch 
+    variable after integration.
     params:
         adata_pre: uncorrected adata
         adata_post: integrated adata
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
         scale: if True, return scaled score
     return:
         difference of R2Var value of PCR
@@ -422,7 +432,8 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         + recompute PCA on expression matrix (default)
     params:
         adata: Anndata object
-        embed: name of embedding in adata.obsm to use. PCA will be computed on the embedding
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
         n_comps: number of PCs if PCA should be computed
         covariate: key for adata.obs column to regress against
     return:
