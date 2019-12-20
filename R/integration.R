@@ -66,7 +66,7 @@ preP <- function(so, vars.to.regress=NULL, verbose=TRUE, n.pcs=100) {
   return(so)
 }
 
-runConos = function(data, batch, outdir) {
+runConos = function(data, batch) {
 	require(conos)
 	require(Seurat)
 	sobj <- loadSeuratObject(data)
@@ -79,8 +79,14 @@ runConos = function(data, batch, outdir) {
 	con$embedGraph(method="UMAP")
 	
 	#metadata <- data.frame(Cluster=con$clusters$leiden$groups)
-	dir.create(outdir)
+
+	return con
 	
+}
+
+saveConos = function(con, outdir) {
+	dir.create(outdir)
+
 	saveConosForScanPy(con, output.path=outdir, 
                    pseudo.pca=TRUE, pca=TRUE, 
                    verbose=TRUE)
