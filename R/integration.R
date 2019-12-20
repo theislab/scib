@@ -3,6 +3,11 @@ loadSeuratObject = function(filename) {
 	sobj = readRDS(filename)
 	return(sobj)
 }
+
+saveSeuratObject = function(sobj, path) {
+	require(Seurat)
+	saveRDS(sobj, file=path)
+}
 runSeurat = function(data, batch, hvgs=NULL) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)

@@ -403,7 +403,13 @@ def saveConos(adata, batch, path):
         saveSeurat(split[i], path+'_'+str(i)+'.rds')
         
 def readSeurat(path):
+    anndata2ri.activate()
     ro.r('library(Seurat)')
+    ro.r('library(scater)')
+    ro.r(f'sobj <- readRDS({path})')
+    adata = ro.r('as.SingleCellExperiment(sobj)')
+    anndata2ri.deactivate()
+    return(adata)
     
 def readConos(path):
     from scipy.io import mmread

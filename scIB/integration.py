@@ -10,6 +10,7 @@ import scanpy as sc
 import scipy as sp
 #import numpy as np
 from scIB.utils import *
+from scIB.preprocessing import *
 from memory_profiler import profile
 import os
 import pandas as pd
@@ -139,7 +140,17 @@ def runScvi(adata, batch, hvg=None):
 
 def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    ro.r('library(Seurat)')
+    import time
+    import os
+    tmpName = "/tmp/seurat+"time.time()+".RDS"
+    saveSeurat(adata, tmpName)
+    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runSeurat.R '+tmpName+' '+batch+' '+tmpName+'_out.RDS')
+    adata_out = readSeurat(tmpName+'_out.RDS')
+
+    return adata_out
+
+    
+    """ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
 
@@ -192,7 +203,7 @@ def runSeurat(adata, batch, hvg=None):
     )
     integrated = ro.r('as.SingleCellExperiment(integrated)')
     anndata2ri.deactivate()
-    return integrated
+    return integrated"""
 
 def runHarmony(adata, batch, hvg = None):
     checkSanity(adata, batch, hvg)
