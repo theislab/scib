@@ -383,8 +383,8 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     Compare the effect before and after integration
     Return either the difference of variance contribution before and after integration
     or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't 
-    changed. The larger the score, the smaller the variance contribution of the batch 
-    variable after integration.
+    changed. The larger the score, the more different the variance contributions are before 
+    and after integration.
     params:
         adata_pre: uncorrected adata
         adata_post: integrated adata
