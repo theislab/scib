@@ -377,20 +377,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     else:
         return agg_func(scores_final)
 
-### PC Regression
-def get_hvg_indices(adata, verbose=True):
-    if "highly_variable" not in adata.var.columns:
-        if verbose:
-            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
-        return np.array(range(adata.n_vars))
-    return np.where((adata.var["highly_variable"] == True))[0]
-
-def select_hvg(adata, select=True):
-        if select and 'highly_variable' in adata.var:
-            return adata[:, adata.var['highly_variable']]
-        else:
-            return adata
-        
+### PC Regression        
 def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
@@ -527,8 +514,99 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     return R2Var
 
 ### lisi score
-def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', type_ = None,
-         subsample = 0.5, hvg=False, verbose=False):
+def get_hvg_indices(adata, verbose=True):
+    if "highly_variable" not in adata.var.columns:
+        if verbose:
+            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
+        return np.array(range(adata.n_vars))
+    return np.where((adata.var["highly_variable"] == True))[0]
+
+def select_hvg(adata, select=True):
+    if select and 'highly_variable' in adata.var:
+        return adata[:, adata.var['highly_variable']].copy()
+    else:
+        return adata
+
+def lisi_knn(adata, batch_key, label_key, verbose=False):
+    
+    #get knn index matrix
+    if verbose:
+        print("Convert nearest neighbor matrix and distances for LISI.")
+    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+                               adata.uns['neighbors']['params']['n_neighbors']-1))
+    nn_dists = nn_index
+    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+        get_idx = dist_mat[0] == cell_id
+        nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+        nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
+    
+    #turn metadata into numeric values (not categorical)
+    meta_tmp = adata.obs[[batch_key, label_key]]
+    meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
+    meta_tmp[label_key] = meta_tmp[label_key].cat.codes
+    
+    # run LISI in R
+    anndata2ri.activate()
+    ro.r("library(lisi)")
+    
+    if verbose:
+        print("importing knn-graph")
+    ro.globalenv['nn_indx'] = nn_index.T
+    ro.globalenv['nn_dst'] = nn_dists.T
+    ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
+    ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
+    ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
+    ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
+    ro.globalenv['perplexity'] = np.floor(nn_index.shape[1]/3) #LISI default
+    
+    if verbose:
+        print("LISI score estimation")
+    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
+    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
+    simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
+    simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
+    
+    anndata2ri.deactivate()
+    
+    # extract results
+    d = {batch_key : simpson_est_batch, label_key : simpson_est_label}
+    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))
+    
+    return lisi_estimate
+    
+    
+def lisi_matrix(adata, batch_key, label_key, verbose=False):
+    
+    matrix = adata.X
+    
+    #lisi score runs only on dense matrices (knn search)
+    if sparse.issparse(matrix):
+        matrix = matrix.todense()
+    
+    # run LISI in R
+    anndata2ri.activate()
+    ro.r("library(lisi)")
+    
+    if verbose:
+        print("importing expression matrix")
+    ro.globalenv['data_mtrx'] = matrix
+
+    if verbose:
+        print(f"covariates: {batch_key} and {label_key}")
+    metadata = adata.obs[[batch_key, label_key]]
+    ro.globalenv['metadata'] = metadata
+    batch_label_keys = ro.StrVector([batch_key, label_key])
+    ro.globalenv['batch_label_keys'] = batch_label_keys
+
+    if verbose:
+        print("LISI score estimation")
+    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
+    anndata2ri.deactivate()
+    
+    return lisi_estimate
+
+def lisi(adata, batch_key, label_key, type_=None, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -543,78 +621,12 @@ def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', 
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
-    anndata2ri.activate()
-    ro.r("library(lisi)")
-
-    if type_ =='knn': #get knn index matrix
-        if verbose:
-            print("Convert nearest neighbor matrix and distances for LISI.")
-        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                                   adata.uns['neighbors']['params']['n_neighbors']-1))
-        nn_dists = nn_index
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
-            get_idx = dist_mat[0] == cell_id
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
-            nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
-
-        #turn metadata into numeric values (not categorical)
-        meta_tmp = adata.obs[[batch_key, label_key]]
-        meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
-        meta_tmp[label_key] = meta_tmp[label_key].cat.codes
-
-        if verbose:
-            print("importing knn-graph")
-        ro.globalenv['nn_indx'] = nn_index.T
-        ro.globalenv['nn_dst'] = nn_dists.T
-        ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
-        ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
-        ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
-        ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
-        ro.globalenv['perplexity'] = np.floor(nn_index.shape[1]/3) #LISI default
-        
-        if verbose:
-            print("LISI score estimation")
-        simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
-        simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
-        simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
-        simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
-        d = {batch_key : simpson_est_batch, label_key : simpson_est_label}
-        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))    
-    
+    if type_ =='knn':
+        return lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     else:
-        if matrix is None:
-            matrix = adata.X
-
-        if hvg:
-            hvg_idx = get_hvg_indices(adata)
-            if verbose:
-                print(f"subsetting to {len(hvg_idx)} highly variable genes")
-            matrix = matrix[:, hvg_idx]
-    
-        if sparse.issparse(matrix): #lisi score runs only on dense matrices (knn search)
-            matrix = matrix.todense()
-        
-        if verbose:
-            print("importing expression matrix")
-        ro.globalenv['data_mtrx'] = matrix
-
-        if verbose:
-            print(f"covariates: {batch_key} and {label_key}")
-        metadata = adata.obs[[batch_key, label_key]]
-        ro.globalenv['metadata'] = metadata
-    
-        batch_label_keys = ro.StrVector([batch_key, label_key])
-        ro.globalenv['batch_label_keys'] = batch_label_keys
-
-        if verbose:
-            print("LISI score estimation")
-        lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
-    
-    anndata2ri.deactivate()
-    return lisi_estimate
-
-
+        adata = select_hvg(adata)
+        print(adata.shape)
+        return lisi_matrix(adata=adata, batch_key=batch_key, label_key=label_key, matrix=matrix, verbose=verbose)
 
 ### kBET
 def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=True, verbose=False):
@@ -830,8 +842,10 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if lisi_:
         print('LISI score...')
-        lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
-                                       verbose=verbose), axis=1)
+        lisi_score = np.nanmedian(
+            lisi(adata_int, batch_key=batch_key, label_key=label_key, 
+                 type_=type_, verbose=verbose), 
+            axis=1)
         ilisi_score = lisi_score[0] - 1 #LISI scores operate on 1 - 2 (for iLISI: 2 good, 1 bad)
         clisi_score = 2 - lisi_score[1] #LISI scores operate on 1 - 2 (for cLISI: 1 good, 2 bad)
 
