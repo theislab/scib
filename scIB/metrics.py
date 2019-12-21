@@ -577,6 +577,9 @@ def lisi_knn(adata, batch_key, label_key, verbose=False):
     
     
 def lisi_matrix(adata, batch_key, label_key, verbose=False):
+    """
+    deprecated
+    """
     
     matrix = adata.X
     
@@ -606,7 +609,7 @@ def lisi_matrix(adata, batch_key, label_key, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, type_=None, verbose=False):
+def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -621,13 +624,26 @@ def lisi(adata, batch_key, label_key, type_=None, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
-    if type_ =='knn':
-        return lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
-    else:
-        adata = select_hvg(adata)
-        print(adata.shape)
-        return lisi_matrix(adata=adata, batch_key=batch_key, label_key=label_key, matrix=matrix, verbose=verbose)
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a" +
+                             "kNN graph has been computed")
+    elif verbose:
+        print("using precomputed kNN graph")
+    
+    lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
+    
+    # iLISI: 2 good, 1 bad
+    ilisi_score = np.nanmedian(lisi_score[batch_key])
+    # cLISI: 1 good, 2 bad
+    clisi_score = np.nanmedian(lisi_score[label_key])
+    
+    if scale:
+        ilisi_score = ilisi_score - 1
+        clisi_score = 2 - clisi_score
+    
+    return ilisi_score, clisi_score
 
+    
 ### kBET
 def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=True, verbose=False):
     """
@@ -842,12 +858,8 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if lisi_:
         print('LISI score...')
-        lisi_score = np.nanmedian(
-            lisi(adata_int, batch_key=batch_key, label_key=label_key, 
-                 type_=type_, verbose=verbose), 
-            axis=1)
-        ilisi_score = lisi_score[0] - 1 #LISI scores operate on 1 - 2 (for iLISI: 2 good, 1 bad)
-        clisi_score = 2 - lisi_score[1] #LISI scores operate on 1 - 2 (for cLISI: 1 good, 2 bad)
+        ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
+                                        verbose=verbose)
 
     else:
         ilisi_score = np.nan

@@ -73,12 +73,20 @@ if __name__=='__main__':
         message = "The datasets have different numbers of cells before and after integration."
         message += "Please make sure that both datasets match."
         raise ValueError(message)
-    if n_hvgs is not None:
-        if (adata_int.n_vars < n_hvgs):
-            message = "There are fewer genes in the uncorrected adata "
-            message += "than specified for HVG selection."
-            raise ValueError(message)
-
+        
+    if (n_hvgs is not None) and (adata_int.n_vars < n_hvgs):
+        # check number of HVGs to be computed
+        message = "There are fewer genes in the uncorrected adata "
+        message += "than specified for HVG selection."
+        raise ValueError(message)
+    
+    print# remove HVG if already precomputed
+    if 'highly_variable_genes' in adata_int.var:
+        if verbose:
+            print("removed old hvgs")
+        del adata_int.var['highly_variable_genes']
+    
+    
     # DATA REDUCTION
     # select options according to type
     
