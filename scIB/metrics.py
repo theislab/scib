@@ -527,7 +527,17 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
-def lisi_knn(adata, batch_key, label_key, verbose=False):
+def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
+    """
+    Compute LISI score on kNN graph provided in the adata object. By default, perplexity
+    is chosen as 1/3 * number of nearest neighbours in the knn-graph.
+    """
+    
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a" +
+                             "kNN graph has been computed")
+    elif verbose:
+        print("using precomputed kNN graph")
     
     #get knn index matrix
     if verbose:
@@ -540,6 +550,10 @@ def lisi_knn(adata, batch_key, label_key, verbose=False):
         get_idx = dist_mat[0] == cell_id
         nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
         nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
+        
+    if perplexity is None:
+        # use LISI default
+        perplexity = np.floor(nn_index.shape[1]/3)
     
     #turn metadata into numeric values (not categorical)
     meta_tmp = adata.obs[[batch_key, label_key]]
@@ -558,7 +572,7 @@ def lisi_knn(adata, batch_key, label_key, verbose=False):
     ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
     ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
     ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
-    ro.globalenv['perplexity'] = np.floor(nn_index.shape[1]/3) #LISI default
+    ro.globalenv['perplexity'] = perplexity
     
     if verbose:
         print("LISI score estimation")
@@ -576,12 +590,16 @@ def lisi_knn(adata, batch_key, label_key, verbose=False):
     return lisi_estimate
     
     
-def lisi_matrix(adata, batch_key, label_key, verbose=False):
+def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     """
     deprecated
+    Computes the LISI scores for a given data matrix in adata.X. The scoring function of the 
+    LISI R package is called with default parameters. This function takes a data matrix and
+    recomputes nearest neighbours.
     """
     
-    matrix = adata.X
+    if matrix is None:
+        matrix = adata.X
     
     #lisi score runs only on dense matrices (knn search)
     if sparse.issparse(matrix):
@@ -623,12 +641,6 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
-    
-    if 'neighbors' not in adata.uns:
-        raise AttributeError(f"key 'neighbors' not found. Please make sure that a" +
-                             "kNN graph has been computed")
-    elif verbose:
-        print("using precomputed kNN graph")
     
     lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
