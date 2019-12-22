@@ -78,14 +78,7 @@ if __name__=='__main__':
         # check number of HVGs to be computed
         message = "There are fewer genes in the uncorrected adata "
         message += "than specified for HVG selection."
-        raise ValueError(message)
-    
-    print# remove HVG if already precomputed
-    if 'highly_variable_genes' in adata_int.var:
-        if verbose:
-            print("removed old hvgs")
-        del adata_int.var['highly_variable_genes']
-    
+        raise ValueError(message)    
     
     # DATA REDUCTION
     # select options according to type
