@@ -27,7 +27,7 @@ def runIntegration(inPath, outPath, method, hvg, batch):
                                              target_genes=hvg,
                                              adataOut=True)
     
-    integrated_tmp = scIB.metrics.measureTM(method, adata, batch, hvg)
+    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
 
