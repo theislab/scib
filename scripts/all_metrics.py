@@ -26,7 +26,7 @@ if __name__=='__main__':
     
     res_list = []
     results = pd.DataFrame()
-    files = glob.glob(f'{args.input}*metrics*')
+    files = glob.glob(os.path.join(args.input, '*metrics*'))
     for file_ in files:
         res = pd.read_csv(file_, index_col=0)
         res_list.append(res)
