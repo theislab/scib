@@ -72,29 +72,38 @@ if __name__=='__main__':
     
     # check input files
     if adata.n_obs != adata_int.n_obs:
-        message = "The datasets have different numbers of genes before and after integration."
+        message = "The datasets have different numbers of cells before and after integration."
         message += "Please make sure that both datasets match."
         raise ValueError(message)
-    if n_hvgs is not None:
-        if (adata_int.n_vars < n_hvgs):
-            message = "There are fewer genes in the uncorrected adata "
-            message += "than specified for HVG selection."
-            raise ValueError(message)
-
+        
+    if (n_hvgs is not None) and (adata_int.n_vars < n_hvgs):
+        # check number of HVGs to be computed
+        message = "There are fewer genes in the uncorrected adata "
+        message += "than specified for HVG selection."
+        raise ValueError(message)    
+    
     # DATA REDUCTION
     # select options according to type
-    if adata.n_vars > adata_int.n_vars: # no HVG selection if output is not already subsetted
-        n_hvgs = None
+    
+    # case 1: full expression matrix, default settings
     precompute_pca = True
     recompute_neighbors = True
     embed = 'X_pca'
     
+    # distinguish between subsetted and full expression matrix
+    # compute HVGs only if output is already subsetted
+    if adata.n_vars > adata_int.n_vars:
+        n_hvgs = None
+    
+    # case 2: embedding output
     if (type_ == "embed"):
         n_hvgs = None
         embed = "X_emb"
         # legacy check
         if ('emb' in adata_int.uns) and (adata_int.uns['emb']):
             adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
+    
+    # case3: kNN graph output
     elif (type_ == "knn"):
         n_hvgs = None
         precompute_pca = False

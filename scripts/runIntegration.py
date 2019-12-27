@@ -17,6 +17,10 @@ def runIntegration(inPath, outPath, method, hvg, batch):
 
     adata = sc.read(inPath)
 
+    # remove HVG if already precomputed
+    if 'highly_variable' in adata.var:
+        del adata.var['highly_variable']
+    
     if hvg > 500:
         adata = scIB.preprocessing.hvg_batch(adata,
                                              batch_key=batch,
