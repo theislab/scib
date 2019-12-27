@@ -397,18 +397,26 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
+    Compare the variance contribution of S-phase and G2/M-phase cell cycle scores before and
+    after integration. Cell cycle scores are computed per batch on the unintegrated data set,
+    eliminatimg the batch effect confounded by the `batch_key` variable. This function
+    returns a score between 1 and 0. The larger the score, the stronger the cell cycle
+    variance is conserved.
+    This score can be calculated on full corrected feature spaces and latent embeddings as 
+    variance contributions of a fixed score can be obtained via PC regression here.
     params:
         adata_pre, adata_post: adatas before and after integration
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
+        agg_func: any function that takes a list of numbers and aggregates them into a single number. 
+                  If `agg_func=None`, all results will be returned
         organism: 'mouse' or 'human' for choosing cell cycle genes
-        agg_func: any function that takes a list of numbers and aggregates them into a single number. If agg_func is None, all results will be returned
     """
     checkAdata(adata_pre)
     checkAdata(adata_post)
     
     if embed == 'X_pca':
         embed = None
-    
-    score_cell_cycle(adata_pre, organism=organism)
     
     batches = adata_pre.obs[batch_key].unique()
     scores_final = []
@@ -425,6 +433,9 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
             raise ValueError(message)
         
+        if verbose:
+            print('score cell cycle')
+        score_cell_cycle(raw_sub, organism=organism)
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
         before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
@@ -445,26 +456,20 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     else:
         return agg_func(scores_final)
 
-### PC Regression
-def get_hvg_indices(adata, verbose=True):
-    if "highly_variable" not in adata.var.columns:
-        if verbose:
-            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
-        return np.array(range(adata.n_vars))
-    return np.where((adata.var["highly_variable"] == True))[0]
-
-def select_hvg(adata, select=True):
-        if select and 'highly_variable' in adata.var:
-            return adata[:, adata.var['highly_variable']]
-        else:
-            return adata
-        
+### PC Regression        
 def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
+    Return either the difference of variance contribution before and after integration
+    or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't 
+    changed. The larger the score, the more different the variance contributions are before 
+    and after integration.
     params:
         adata_pre: uncorrected adata
         adata_post: integrated adata
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
+        scale: if True, return scaled score
     return:
         difference of R2Var value of PCR
     """
@@ -472,9 +477,9 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=False,
+    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=True,
                      n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=False,
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=True,
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
@@ -482,12 +487,17 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
     else:
         return pcr_after - pcr_before
 
-def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=False, verbose=False):
+def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
     """
     PCR for Adata object
+    Checks whether to
+        + compute PCA on embedding or expression data (set `embed` to name of embedding matrix e.g. `embed='X_emb'`)
+        + use existing PCA (only if PCA entry exists)
+        + recompute PCA on expression matrix (default)
     params:
         adata: Anndata object
-        embed: name of embedding in adata.obsm to use. PCA will be computed on the embedding
+        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
+                  use the embedding provided in `adata_post.obsm[embed]`
         n_comps: number of PCs if PCA should be computed
         covariate: key for adata.obs column to regress against
     return:
@@ -501,20 +511,25 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=False, verbose=F
         print(f"covariate: {covariate}")
     batch = adata.obs[covariate]
     
+    # use embedding for PCA
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
-            print(f"compute PCR on embeding n_comps: {n_comps}")
+            print(f"compute PCR on embedding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
-    elif ('X_pca' in adata.obsm) and not recompute_pca:
+    
+    # use existing PCA computation
+    elif (recompute_pca == False) and ('X_pca' in adata.obsm) and ('pca' in adata.uns):
         if verbose:
             print("using existing PCA")
         return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
+    
+    # recompute PCA
     else:
         if verbose:
             print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack', verbose=False):
+def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack', verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
@@ -579,8 +594,120 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=None, svd_solver='arpack
     return R2Var
 
 ### lisi score
-def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', type_ = None,
-         subsample = 0.5, hvg=False, verbose=False):
+def get_hvg_indices(adata, verbose=True):
+    if "highly_variable" not in adata.var.columns:
+        if verbose:
+            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
+        return np.array(range(adata.n_vars))
+    return np.where((adata.var["highly_variable"] == True))[0]
+
+def select_hvg(adata, select=True):
+    if select and 'highly_variable' in adata.var:
+        return adata[:, adata.var['highly_variable']].copy()
+    else:
+        return adata
+
+def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
+    """
+    Compute LISI score on kNN graph provided in the adata object. By default, perplexity
+    is chosen as 1/3 * number of nearest neighbours in the knn-graph.
+    """
+    
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a" +
+                             "kNN graph has been computed")
+    elif verbose:
+        print("using precomputed kNN graph")
+    
+    #get knn index matrix
+    if verbose:
+        print("Convert nearest neighbor matrix and distances for LISI.")
+    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+                               adata.uns['neighbors']['params']['n_neighbors']-1))
+    nn_dists = nn_index
+    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+        get_idx = dist_mat[0] == cell_id
+        nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+        nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
+        
+    if perplexity is None:
+        # use LISI default
+        perplexity = np.floor(nn_index.shape[1]/3)
+    
+    #turn metadata into numeric values (not categorical)
+    meta_tmp = adata.obs[[batch_key, label_key]]
+    meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
+    meta_tmp[label_key] = meta_tmp[label_key].cat.codes
+    
+    # run LISI in R
+    anndata2ri.activate()
+    ro.r("library(lisi)")
+    
+    if verbose:
+        print("importing knn-graph")
+    ro.globalenv['nn_indx'] = nn_index.T
+    ro.globalenv['nn_dst'] = nn_dists.T
+    ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
+    ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
+    ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
+    ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
+    ro.globalenv['perplexity'] = perplexity
+    
+    if verbose:
+        print("LISI score estimation")
+    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
+    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
+    simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
+    simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
+    
+    anndata2ri.deactivate()
+    
+    # extract results
+    d = {batch_key : simpson_est_batch, label_key : simpson_est_label}
+    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))
+    
+    return lisi_estimate
+    
+    
+def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
+    """
+    deprecated
+    Computes the LISI scores for a given data matrix in adata.X. The scoring function of the 
+    LISI R package is called with default parameters. This function takes a data matrix and
+    recomputes nearest neighbours.
+    """
+    
+    if matrix is None:
+        matrix = adata.X
+    
+    #lisi score runs only on dense matrices (knn search)
+    if sparse.issparse(matrix):
+        matrix = matrix.todense()
+    
+    # run LISI in R
+    anndata2ri.activate()
+    ro.r("library(lisi)")
+    
+    if verbose:
+        print("importing expression matrix")
+    ro.globalenv['data_mtrx'] = matrix
+
+    if verbose:
+        print(f"covariates: {batch_key} and {label_key}")
+    metadata = adata.obs[[batch_key, label_key]]
+    ro.globalenv['metadata'] = metadata
+    batch_label_keys = ro.StrVector([batch_key, label_key])
+    ro.globalenv['batch_label_keys'] = batch_label_keys
+
+    if verbose:
+        print("LISI score estimation")
+    lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
+    anndata2ri.deactivate()
+    
+    return lisi_estimate
+
+def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -595,79 +722,20 @@ def lisi(adata, matrix=None, knn=None, batch_key='sample', label_key='louvain', 
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
-    anndata2ri.activate()
-    ro.r("library(lisi)")
-
-    if type_ =='knn': #get knn index matrix
-        if verbose:
-            print("Convert nearest neighbor matrix and distances for LISI.")
-        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                                   adata.uns['neighbors']['params']['n_neighbors']-1))
-        nn_dists = nn_index
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
-            get_idx = dist_mat[0] == cell_id
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
-            nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
-
-        #turn metadata into numeric values (not categorical)
-        meta_tmp = adata.obs[[batch_key, label_key]]
-        meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
-        meta_tmp[label_key] = meta_tmp[label_key].cat.codes
-
-        if verbose:
-            print("importing knn-graph")
-        ro.globalenv['nn_indx'] = nn_index.T
-        ro.globalenv['nn_dst'] = nn_dists.T
-        ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
-        ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
-        ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
-        ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
-        ro.globalenv['perplexity'] = np.floor(nn_index.shape[1]/3) #LISI default
-        
-        if verbose:
-            print("LISI score estimation")
-        simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
-        simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
-        simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
-        simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
-        d = {batch_key : simpson_est_batch, label_key : simpson_est_label}
-        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))    
+    lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
-    else:
-        if matrix is None:
-            matrix = adata.X
-
-        if hvg:
-            hvg_idx = get_hvg_indices(adata)
-            if verbose:
-                print(f"subsetting to {len(hvg_idx)} highly variable genes")
-            matrix = matrix[:, hvg_idx]
+    # iLISI: 2 good, 1 bad
+    ilisi_score = np.nanmedian(lisi_score[batch_key])
+    # cLISI: 1 good, 2 bad
+    clisi_score = np.nanmedian(lisi_score[label_key])
     
-        if sparse.issparse(matrix): #lisi score runs only on dense matrices (knn search)
-            matrix = matrix.todense()
-        
-        if verbose:
-            print("importing expression matrix")
-        ro.globalenv['data_mtrx'] = matrix
-
-        if verbose:
-            print(f"covariates: {batch_key} and {label_key}")
-        metadata = adata.obs[[batch_key, label_key]]
-        ro.globalenv['metadata'] = metadata
+    if scale:
+        ilisi_score = ilisi_score - 1
+        clisi_score = 2 - clisi_score
     
-        batch_label_keys = ro.StrVector([batch_key, label_key])
-        ro.globalenv['batch_label_keys'] = batch_label_keys
+    return ilisi_score, clisi_score
 
-        if verbose:
-            print("LISI score estimation")
-        lisi_estimate = ro.r(f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)") #batch_label_keys)")
     
-    anndata2ri.deactivate()
-    return lisi_estimate
-
-
-
 ### kBET
 def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=True, verbose=False):
     """
@@ -882,10 +950,8 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if lisi_:
         print('LISI score...')
-        lisi_score = np.nanmedian(lisi(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
-                                       verbose=verbose), axis=1)
-        ilisi_score = lisi_score[0] - 1 #LISI scores operate on 1 - 2 (for iLISI: 2 good, 1 bad)
-        clisi_score = 2 - lisi_score[1] #LISI scores operate on 1 - 2 (for cLISI: 1 good, 2 bad)
+        ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
+                                        verbose=verbose)
 
     else:
         ilisi_score = np.nan
