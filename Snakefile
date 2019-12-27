@@ -24,7 +24,7 @@ import pathlib
 ## variables and function definition for input files
 ROOT = config["ROOT"]
 DATA_SCENARIOS = config["DATA_SCENARIOS"]
-SCALING = ['scaled', 'unscaled']
+SCALING = ['scaled'] #, 'unscaled']
 FEATURE_SELECTION = {'hvg': 2000, 'full_feature': 0}
 
 def get_from_scenario(scenario, key="file"):
