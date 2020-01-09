@@ -332,14 +332,6 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     score_cell_cycle(adata_pre, organism=organism)
     
     scores = {}
-    #batch might be overwritten, so we match it to the pre-integrated labels
-    if batch_key == 'batch': 
-        test_tab = pd.crosstab(adata_pre.obs[batch_key], adata_post.obs[batch_key])
-        #match the name according to the largest crosstab entry in case the batches where reordered 
-        match_name = test_tab.index.values[test_tab.values.argmax(0)]
-        #rename adata_post.obs[batch_key] labels 
-        adata_post.obs[batch_key] = adata_post.obs[batch_key].cat.rename_categories(match_name)
-    
     for batch in adata_pre.obs[batch_key].unique():
         raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
         int_sub = adata_post[adata_post.obs[batch_key] == batch]
