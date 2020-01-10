@@ -72,11 +72,9 @@ if __name__=='__main__':
             raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
     #batch_key might be overwritten, so we match it to the pre-integrated labels
     if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
-        test_tab = pd.crosstab(adata.obs[batch_key], adata_int.obs[batch_key])
-        #match the name according to the largest crosstab entry in case the batches where reordered 
-        match_name = test_tab.index.values[test_tab.values.argmax(0)]
-        #rename adata_post.obs[batch_key] labels 
-        adata_int.obs[batch_key] = adata_int.obs[batch_key].cat.rename_categories(match_name)
+        #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
+        #pandas uses the table index to match the correct labels 
+        adata_int.obs[batch_key] = adata.obs[batch_key]
                                               
 
     # DATA REDUCTION
