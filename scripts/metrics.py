@@ -71,11 +71,14 @@ if __name__=='__main__':
         if (adata_int.n_vars < n_hvgs):
             raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
     #batch_key might be overwritten, so we match it to the pre-integrated labels
+    adata_int.obs[batch_key] = adata_int.obs[batch_key].astype('category')
     if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
         #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
         #pandas uses the table index to match the correct labels 
+        del adata_int.obs[batch_key]
         adata_int.obs[batch_key] = adata.obs[batch_key]
-                                              
+        #print(adata.obs[batch_key].value_counts())
+        #print(adata_int.obs[batch_key].value_counts())
 
     # DATA REDUCTION
     # select options according to type
