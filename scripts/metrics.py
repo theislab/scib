@@ -67,6 +67,22 @@ if __name__=='__main__':
     print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
     print(adata_int)
+
+    if (n_hvgs is not None):
+        if (adata_int.n_vars < n_hvgs):
+            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+    #check if the obsnames were changed and rename them in that case
+    if not np.array_equal(adata.obs_names, adata_int.obs_names):
+        #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
+        match_obs = np.concatenate([[obs_name for obs_name in adata.obs_names if idx.count(obs_name)>0] for idx in adata_int.obs_names])
+        adata_int.obs_names = match_obs
+    #batch_key might be overwritten, so we match it to the pre-integrated labels
+    adata_int.obs[batch_key] = adata_int.obs[batch_key].astype('category')
+    if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
+        #pandas uses the table index to match the correct labels 
+        adata_int.obs[batch_key] = adata.obs[batch_key]
+        #print(adata.obs[batch_key].value_counts())
+        #print(adata_int.obs[batch_key].value_counts())
     
     # check input files
     if adata.n_obs != adata_int.n_obs:
