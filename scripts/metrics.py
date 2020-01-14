@@ -71,6 +71,13 @@ if __name__=='__main__':
     if (n_hvgs is not None):
         if (adata_int.n_vars < n_hvgs):
             raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+       
+    # check input files
+    if adata.n_obs != adata_int.n_obs:
+        message = "The datasets have different numbers of cells before and after integration."
+        message += "Please make sure that both datasets match."
+        raise ValueError(message)
+    
     #check if the obsnames were changed and rename them in that case
     if not np.array_equal(adata.obs_names, adata_int.obs_names):
         #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
@@ -83,13 +90,8 @@ if __name__=='__main__':
         adata_int.obs[batch_key] = adata.obs[batch_key]
         #print(adata.obs[batch_key].value_counts())
         #print(adata_int.obs[batch_key].value_counts())
-    
-    # check input files
-    if adata.n_obs != adata_int.n_obs:
-        message = "The datasets have different numbers of cells before and after integration."
-        message += "Please make sure that both datasets match."
-        raise ValueError(message)
-        
+
+
     if (n_hvgs is not None) and (adata_int.n_vars < n_hvgs):
         # check number of HVGs to be computed
         message = "There are fewer genes in the uncorrected adata "
