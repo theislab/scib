@@ -3,6 +3,7 @@
 
 import scanpy as sc
 import scIB
+import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
