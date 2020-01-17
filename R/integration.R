@@ -39,7 +39,7 @@ runSeurat = function(data, batch, hvgs=NULL) {
 	return(integrated)
 }
 func_profiler = function(expr, chunksize=20000, filename='timing.out', prof.interval=1) {
-	      Rprof(filename, memory.profiling=T, prof.interval=interval)
+	      Rprof(filename, memory.profiling=T, interval=prof.interval)
 	      res = expr
 	      Rprof(NULL)
 	      t = summaryRprof(filename, chunksize=chunksize, memory="both")$sampling.time
