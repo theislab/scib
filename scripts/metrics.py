@@ -82,8 +82,13 @@ if __name__=='__main__':
     #check if the obsnames were changed and rename them in that case
     if not np.array_equal(adata.obs_names, adata_int.obs_names):
         #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
-        match_obs = np.concatenate([[obs_name for obs_name in adata.obs_names if idx.count(obs_name)>0] for idx in adata_int.obs_names])
-        adata_int.obs_names = match_obs
+        new_obs_names = ['-'.join(idx.split('-')[:-1]) for idx in adata_int.obs_names]
+
+        if not np.array_equal(adata.obs_names, new_obs_names):
+            adata_int.obs_names = new_obs_names
+        else:
+            raise ValueError('obs_names changed after integration!')
+            
     #batch_key might be overwritten, so we match it to the pre-integrated labels
     adata_int.obs[batch_key] = adata_int.obs[batch_key].astype('category')
     if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
