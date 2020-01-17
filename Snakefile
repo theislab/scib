@@ -26,6 +26,7 @@ ROOT = config["ROOT"]
 DATA_SCENARIOS = config["DATA_SCENARIOS"]
 SCALING = ['scaled'] #, 'unscaled']
 FEATURE_SELECTION = {'hvg': 2000, 'full_feature': 0}
+METHODS = config["METHODS"]
 
 def get_from_scenario(scenario, key="file"):
     return DATA_SCENARIOS[scenario][key]
@@ -69,7 +70,7 @@ def get_all_file_patterns(file_type, exclude_type=''):
     exclude_type: output type to be excluded
     """
     all_files = []
-    for m, ot in config["METHODS"].items():
+    for m, ot in METHODS.items():
     
         # remove types to be excluded
         ot = [x for x in as_list(ot) if x not in as_list(exclude_type)]
@@ -97,9 +98,27 @@ rule all:
      get_filename_pattern("cc_variance", "final")
 
 ## INTEGRATION
-# TODO: run integration using integration script
-# rule integration:
-#     output: touch(join_path(ROOT, "integration.done"))
+rule integration:
+     input: 
+         expand(get_filename_pattern("integration", "single"),
+                scenario=DATA_SCENARIOS.keys(),
+                scaling=SCALING,
+                hvg=FEATURE_SELECTION.keys(),
+                method=METHODS)
+
+rule integration_single:
+    input:
+        adata = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
+        script = "scripts/runIntegration.py"
+    output: get_filename_pattern("integration", "single")
+    params:
+        batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
+        hvgs      = lambda wildcards: FEATURE_SELECTION[wildcards.hvg]
+    shell:
+        """
+        python {input.script} -i {input.adata} -o {output} \
+            -b {params.batch_key} --method {wildcards.method} --hvgs {params.hvgs}
+        """
 
 ## METRICS
 rule metrics:
