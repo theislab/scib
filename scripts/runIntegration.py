@@ -28,7 +28,7 @@ def runIntegration(inPath, outPath, method, hvg, batch, scale):
                                              adataOut=True)
     
     if scale:
-        scIB.preprocessing.scale_batch(adata, batch)
+        adata = scIB.preprocessing.scale_batch(adata, batch)
 
     integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
