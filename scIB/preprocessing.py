@@ -188,12 +188,13 @@ def scale_batch(adata, batch):
     checkBatch(batch, adata.obs)
 
     # Store layers for after merge (avoids vstack error in merge)
+    adata_copy = adata.copy()
     tmp = dict()
-    for lay in list(adata.layers):
-        tmp[lay] = adata.layers[lay]
-        del adata.layers[lay]
+    for lay in list(adata_copy.layers):
+        tmp[lay] = adata_copy.layers[lay]
+        del adata_copy.layers[lay]
 
-    split = splitBatches(adata, batch)
+    split = splitBatches(adata_copy, batch)
 
     for i in split:
         sc.pp.scale(i)
@@ -208,6 +209,7 @@ def scale_batch(adata, batch):
         adata_scaled.layers[key] = tmp[key]
 
     del tmp
+    del adata_copy
     
     return adata_scaled
 
