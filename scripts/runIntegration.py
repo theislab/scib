@@ -17,7 +17,6 @@ def runIntegration(inPath, outPath, method, hvg, batch, scale):
 
     adata = sc.read(inPath)
 
-
     # remove HVG if already precomputed
     if 'highly_variable' in adata.var:
         del adata.var['highly_variable']
