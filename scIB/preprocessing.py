@@ -187,6 +187,12 @@ def scale_batch(adata, batch):
     checkAdata(adata)
     checkBatch(batch, adata.obs)
 
+    # Store layers for after merge (avoids vstack error in merge)
+    tmp = dict()
+    for lay in list(adata.layers):
+        tmp[lay] = adata.layers[lay]
+        del adata.layers[lay]
+
     split = splitBatches(adata, batch)
 
     for i in split:
@@ -194,6 +200,15 @@ def scale_batch(adata, batch):
 
     adata_scaled = merge_adata(split)
 
+    # Reorder to original obs_name ordering
+    adata_scaled = adata_scaled[adata.obs_names]
+
+    # Add layers again
+    for key in tmp:
+        adata_scaled.layers[key] = tmp[key]
+
+    del tmp
+    
     return adata_scaled
 
     

@@ -44,7 +44,8 @@ def merge_adata(adata_list, sep='-'):
     if len(adata_list) == 1:
         return adata_list[0]
     
-    adata = adata_list[0].concatenate(*adata_list[1:], index_unique=None)
+    adata = adata_list[0].concatenate(*adata_list[1:], index_unique=None, batch_key='tmp')
+    del adata.obs['tmp']
 
     if len(adata.obs.columns) > 0:
         # if there is a column with separator
