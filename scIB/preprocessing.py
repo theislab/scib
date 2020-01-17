@@ -179,7 +179,7 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
-def scale_batch(adata, batch, inplace=True):
+def scale_batch(adata, batch):
     """
     Function to scale the gene expression values of each batch separately.
     """
@@ -194,10 +194,7 @@ def scale_batch(adata, batch, inplace=True):
 
     adata_scaled = merge_adata(split)
 
-    if inplace:
-        adata = adata_scaled
-    else:
-        return adata_scaled
+    return adata_scaled
 
     
 def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500, step_size=1000):
