@@ -42,12 +42,12 @@ DATA_SCENARIOS:
     organism: mouse
     assay: expression
     file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
-  mouse_brain_atac:
-    batch_key: batchname
-    label_key: cell_type_consensus
-    organism: mouse
-    assay: atac
-    file: /storage/groups/ce01/workspace/Benchmarking_data_integration/data/brain_atac_3datasetsmerge_10x_CEMBA180312_3B_GSM3034638_bin_merged_top_var_feat_min500cells_regression_Seurat_cell_labels.h5ad
+    #  mouse_brain_atac:
+    #    batch_key: batchname
+    #label_key: cell_type_consensus
+    #organism: mouse
+    #assay: atac
+    #file: /mnt/znas/icb_zstore01/groups/ce01/workspace/Benchmarking_data_integration/data/brain_atac/atac_brain_processed.h5ad
 ####
 
 
