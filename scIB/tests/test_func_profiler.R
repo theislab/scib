@@ -54,7 +54,7 @@ test_prime = function(samples, n_threads=3){
 # 1 and 100 million
 # set seed so the random sample will be the same every time
 set.seed(2)
-sample_numbers <- sample(100000000, 10000000)
+sample_numbers <- sample(1000000, 1000000)
 
 
 print("starting function call 1")
