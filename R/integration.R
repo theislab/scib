@@ -38,7 +38,7 @@ runSeurat = function(data, batch, hvgs=NULL) {
         	   verbose = T)
 	return(integrated)
 }
-func_profiler = function(expr, chunksize=20000, filename='timing.out', prof.interval=1) {
+func_profiler = function(expr, chunksize=20000, filename='timing.out', prof.interval=0.99) {
 	      Rprof(filename, memory.profiling=T, interval=prof.interval)
 	      res = expr
 	      Rprof(NULL)
