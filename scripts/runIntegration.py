@@ -62,7 +62,8 @@ if __name__=='__main__':
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
         'conos': scIB.integration.runConos,
-        'scvi': scIB.integration.runScvi
+        'scvi': scIB.integration.runScvi,
+        'combat': sc.IB.integration.runCombat
     }
     
     if method not in methods.keys():

@@ -265,9 +265,11 @@ def runConos(adata, batch, hvg=None):
     anndata2ri.deactivate()
     return out
 
+def runCombat(adata, batch):
+    sc.pp.combat(adata, key=batch)
+    return adata
+
     
-
-
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
     #emb, corrected = runScanorama(adata, 'method', False)
