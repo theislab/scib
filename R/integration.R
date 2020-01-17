@@ -80,7 +80,7 @@ runConos = function(data, batch) {
 	
 	#metadata <- data.frame(Cluster=con$clusters$leiden$groups)
 
-	return con
+	return(con)
 	
 }
 

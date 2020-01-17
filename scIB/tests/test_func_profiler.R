@@ -1,4 +1,4 @@
-source("~/helmholtz_munich/benchmarking_data_integration/Benchmarking_data_integration/scIB/R_funcs.R")
+source("../../R/integration.R")
 
 # load parallel package
 require(parallel)
