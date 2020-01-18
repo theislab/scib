@@ -179,7 +179,41 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
+def scale_batch(adata, batch):
+    """
+    Function to scale the gene expression values of each batch separately.
+    """
 
+    checkAdata(adata)
+    checkBatch(batch, adata.obs)
+
+    # Store layers for after merge (avoids vstack error in merge)
+    adata_copy = adata.copy()
+    tmp = dict()
+    for lay in list(adata_copy.layers):
+        tmp[lay] = adata_copy.layers[lay]
+        del adata_copy.layers[lay]
+
+    split = splitBatches(adata_copy, batch)
+
+    for i in split:
+        sc.pp.scale(i)
+
+    adata_scaled = merge_adata(split)
+
+    # Reorder to original obs_name ordering
+    adata_scaled = adata_scaled[adata.obs_names]
+
+    # Add layers again
+    for key in tmp:
+        adata_scaled.layers[key] = tmp[key]
+
+    del tmp
+    del adata_copy
+    
+    return adata_scaled
+
+    
 def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500, step_size=1000):
 ### Feature Selection
     """

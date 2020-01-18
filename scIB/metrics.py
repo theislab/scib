@@ -623,13 +623,17 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     if verbose:
         print("Convert nearest neighbor matrix and distances for LISI.")
     dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+    #get number of nearest neighbours parameter
+    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                               adata.uns['neighbors']['params']['n_neighbors']-1))
+                               n_nn))
     nn_dists = nn_index
     for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
         get_idx = dist_mat[0] == cell_id
-        nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
-        nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])
+        #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
+        #potential enhancement: handle case where less than n_nn neighbours are reported
+        nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
+        nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])[:n_nn]
         
     if perplexity is None:
         # use LISI default
