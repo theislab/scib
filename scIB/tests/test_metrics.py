@@ -114,6 +114,18 @@ def hvg_overlap():
     print(f"score: {score}")
     assert score == 1
     
+def isolated_labels():
+    adata = utils.create_adata_dummy(pca=True, n_top_genes=2000, neighbors=True)
+    
+    # test 2 different implementations of score
+    for impl in [True, False]:
+        score = me.isolated_labels(adata, label_key='celltype', 
+                                   batch_key='batch', cluster=impl,
+                                   n=4, verbose=True)
+        print(f"score: {score}")
+        assert score <= 1
+        assert score >= 0
+    
 def metrics_all_methods():
     adata = utils.create_adata_dummy()
     

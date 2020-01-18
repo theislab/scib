@@ -33,9 +33,12 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
     if cluster_key in adata.obs.columns:
         if force:
             if verbose:
-                print(f"Warning: cluster key {cluster_key} already exists in adata.obs and will be overwritten")
+                print(f"Warning: cluster key {cluster_key} already exists " +
+                      "in adata.obs and will be overwritten")
         else:
-            raise ValueError(f"cluster key {cluster_key} already exists in adata, please remove the key or choose a different name. If you want to force overwriting the key, specify `force=True`")
+            raise ValueError(f"cluster key {cluster_key} already exists in " +
+                             "adata, please remove the key or choose a different name." +
+                             "If you want to force overwriting the key, specify `force=True`")
     
     if resolutions is None:
         n = 20

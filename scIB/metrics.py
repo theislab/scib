@@ -292,8 +292,8 @@ def ari(adata, group1, group2):
     return adjusted_rand_score(group1, group2)
 
 ### Isolated label score
-def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, n=1,
-                    all_=False, verbose=False):
+def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster", 
+                    cluster=True, n=None, all_=False, verbose=False):
     """
     score how well labels of isolated labels are distiguished in the dataset by
         1. clustering-based approach
@@ -309,19 +309,19 @@ def isolated_labels(adata, label_key, batch_key, cluster_key, cluster=True, n=1,
         retrieve dictionary of scores for each label if `all_` is specified
     """
     
-    isolated_labels = {}
-    for label in get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n):
-        if verbose:
-            print(label)
-        score = score_isolated_label(adata, label_key, batch_key, cluster_key, label, 
-                                     cluster=cluster, verbose=verbose)
-        isolated_labels[label] = score
+    scores = {}
+    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key,
+                                          n=n, verbose=verbose)
+    for label in isolated_labels:
+        score = score_isolated_label(adata, label_key, batch_key, cluster_key,
+                                     label, cluster=cluster, verbose=verbose)
+        scores[label] = score
     
     if all_:
-        return isolated_labels
-    return np.mean(list(isolated_labels.values()))
+        return scores
+    return np.mean(list(scores.values()))
 
-def get_isolated_labels(adata, label_key, batch_key, cluster_key, n=None):
+def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     """
     get labels that are considered isolated by the number of batches
     """
@@ -331,12 +331,19 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n=None):
     
     # threshold for determining when label is considered isolated
     n_batch = adata.obs[batch_key].nunique()
-    if (n is None) or (n > n_batch):
-        n = n_batch - 1
-    return batch_per_lab[batch_per_lab[batch_key] <= n].index.tolist()
+    if n is None:
+        n = int(n_batch / 4)
+    
+    if verbose:
+        print(f"isolated labels: no more than {n} batches per label")
+    
+    labels = batch_per_lab[batch_per_lab[batch_key] <= n].index.tolist()
+    if len(labels) == 0 and verbose:
+        print(f"no isolated labels with less than {n} batches")
+    return labels
 
-def score_isolated_label(adata, label_key, batch_key, label,
-                         cluster=True, verbose=False, **kwargs):
+def score_isolated_label(adata, label_key, batch_key, cluster_key,
+                         label, cluster=True, verbose=False, **kwargs):
     """
     compute label score for a single label
     params:
@@ -354,11 +361,11 @@ def score_isolated_label(adata, label_key, batch_key, label,
         return sub[cluster_key].value_counts().max()
     
     if cluster:
-        opt_louvain(adata, label_key, cluster_key, 
-                function=max_label_per_batch, label=label,
-                verbose=verbose)
+        opt_louvain(adata, label_key, cluster_key, function=max_label_per_batch,
+                    label=label, verbose=False)
     
-        largest_cluster = max_label_per_batch(adata, label_key, cluster_key, label, argmax=True)
+        largest_cluster = max_label_per_batch(adata, label_key, 
+                                              cluster_key, label, argmax=True)
         y_pred = adata.obs[cluster_key] == largest_cluster
         y_true = adata.obs[label_key] == label
         score = scm.f1_score(y_pred, y_true)
@@ -367,6 +374,10 @@ def score_isolated_label(adata, label_key, batch_key, label,
         score = silhouette(adata, group_key='group', **kwargs)
     
     del adata
+    
+    if verbose:
+        print(f"{label}: {score}")
+    
     return score
     
     
