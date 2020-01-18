@@ -444,15 +444,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
             raise ValueError(message)
         
-        if verbose:
-            print('score cell cycle')
         score_cell_cycle(raw_sub, organism=organism)
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
+        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=False)
         scores_before.append(before)
         
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
         scores_after.append(after)
         
         score = 1 - abs(after - before)/before # scaled result
@@ -883,6 +881,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
+            isolated_labels_=False, n_isolated=None,
             kBET_=False, kBET_sub=0.5, lisi_=False, type_ = None
            ):
     """
@@ -913,17 +912,18 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if nmi_:
         print('NMI...')
-        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
+        score = nmi(adata_int, group1=cluster_key, group2=label_key,
+                    method=nmi_method, nmi_dir=nmi_dir)
     else:
-        nmi_score = np.nan
-    results['NMI_cluster/label'] = nmi_score
+        score = np.nan
+    results['NMI_cluster/label'] = score
 
     if ari_:
         print('ARI...')
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+        score = ari(adata_int, group1=cluster_key, group2=label_key)
     else:
-        ari_score = np.nan
-    results['ARI_cluster/label'] = ari_score
+        score = np.nan
+    results['ARI_cluster/label'] = score
     
     if silhouette_:
         print('silhouette score...')
@@ -941,22 +941,34 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if pcr_:
         print('PC regression...')
-        pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
+        score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
-        pcr_score = np.nan
-    results['PCR_batch'] = pcr_score
+        score = np.nan
+    results['PCR_batch'] = score
     
     if cell_cycle_:
         print('cell cycle effect...')
-        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
-                              agg_func=np.mean, organism=organism)
+        score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
+                           agg_func=np.mean, organism=organism)
     else:
-        cc_score = np.nan
+        score = np.nan
     results['cell_cycle_conservation'] = cc_score
+    
+    if isolated_labels_:
+        print("isolated labels")
+        score_clus = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
+                                cluster=True, n=n_isolated, verbose=False)
+        score_sil = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
+                                cluster=False, n=n_isolated, verbose=False)
+    else:
+        score_clus = np.nan
+        score_sil  = np.nan
+    results['isolated_label_F1'] = score_clus
+    results['isolated_label_silhouette'] = score_sil
     
     if kBET_:
         print('kBET...')
-        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
+        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
