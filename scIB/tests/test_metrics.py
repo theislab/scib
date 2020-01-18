@@ -30,14 +30,29 @@ def silhouette_batch():
     assert score <= 1
     
 def nmi():
+    
     adata = utils.create_adata_dummy(pca=True, n_top_genes=2000, neighbors=True)
+    
+    # trivial score
+    score = scIB.me.nmi(adata, 'celltype', 'celltype')
+    assert score == 1
+    
+    # on cell type 
     _, _, nmi_all = cluster(adata, cluster_key='cluster', label_key='celltype', verbose=True)
     for score in nmi_all['score']:
+        print(score)
         assert score >= 0
         assert score <= 1
     
 def ari():
+    
     adata = utils.create_adata_dummy(pca=True, n_top_genes=2000, neighbors=True)
+    
+    # trivial score
+    score = scIB.me.ari(adata, 'celltype', 'celltype')
+    assert score == 1
+    
+    # on cell type 
     cluster(adata, cluster_key='cluster', label_key='celltype')
     score = me.ari(adata, group1='cluster', group2='celltype')
     print(f"score: {score}")
@@ -45,15 +60,16 @@ def ari():
     assert score <= 1
 
 def pcr_comparison():
+    
     verbose = True
+    
     # no PCA precomputed
     adata = utils.create_adata_dummy()
     adata_int = adata.copy()
     score = me.pcr_comparison(adata, adata_int, covariate='batch', n_comps=50,
                               scale=True, verbose=verbose)
-    print(f"no PCA precomputed\nscore: {score}")
-    assert score >= 0
-    assert score <= 1
+    print(f"no PCA precomputed: {score}")
+    assert score < 1e-6
     
     # use different embedding
     adata = utils.create_adata_dummy()
@@ -61,36 +77,42 @@ def pcr_comparison():
     utils.add_emb(adata_int, type_='full')
     score = me.pcr_comparison(adata, adata_int, covariate='batch', embed='X_emb', n_comps=50,
                                    scale=True, verbose=verbose)
-    print(f"using embedding\nscore: {score}")
+    print(f"using embedding: {score}")
     assert score >= 0
     assert score <= 1
+    assert score < 1e-6
     
     # precomputed PCA
     adata = utils.create_adata_dummy(pca=True, n_top_genes=2000)
     adata_int = adata.copy()
     score = me.pcr_comparison(adata, adata_int, covariate='batch', scale=True, verbose=verbose)
-    print(f"precomputed PCA\nscore: {score}")
-    assert score >= 0
-    assert score <= 1
+    print(f"precomputed PCA: {score}")
+    assert score == 0 # same PCA values -> difference should be 0
 
 def cell_cycle():
     adata = utils.create_adata_dummy()
     adata_int = adata.copy()
     
-    score = me.cell_cycle(adata, adata_int, batch_key='batch',
-                          organism='mouse', verbose=True)
+    # only final score implementation
+    score = me.cell_cycle(adata, adata_int, batch_key='batch', organism='mouse',
+                          agg_func=np.mean, verbose=True)
     print(f"score: {score}")    
-    assert score >= 0
-    assert score <= 1
+    assert score == 1
+    
+    # get all intermediate scores
+    scores_df = me.cell_cycle(adata, adata_int, batch_key='batch', organism='mouse',
+                          agg_func=None, verbose=True)
+    print(f"score: {scores_df}")
+    assert isinstance(scores_df, pd.DataFrame)
+    for i in scores_df['score']:
+        assert i == 1
 
 def hvg_overlap():
     adata = utils.create_adata_dummy()
     adata_int = adata.copy()
     score = me.hvg_overlap(adata_int, adata, batch='batch', n_hvg=500)
     print(f"score: {score}")
-    assert score >= 0
-    assert score <= 1
-    
+    assert score == 1
     
 def metrics_all_methods():
     adata = utils.create_adata_dummy()

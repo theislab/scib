@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runIntegration(inPath, outPath, method, hvg, batch):
+def runIntegration(inPath, outPath, method, hvg, batch, scale):
     """
     params:
         method: name of method
@@ -17,12 +17,19 @@ def runIntegration(inPath, outPath, method, hvg, batch):
 
     adata = sc.read(inPath)
 
+    # remove HVG if already precomputed
+    if 'highly_variable' in adata.var:
+        del adata.var['highly_variable']
+
     if hvg > 500:
         adata = scIB.preprocessing.hvg_batch(adata,
                                              batch_key=batch,
                                              target_genes=hvg,
                                              adataOut=True)
     
+    if scale:
+        adata = scIB.preprocessing.scale_batch(adata, batch)
+
     integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
     integrated = integrated_tmp[2][0]
@@ -43,12 +50,14 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
+    parser.add_argument('-s', '--scale', action='store_true', help='Scale the data per batch')
 
     args = parser.parse_args()
     file = args.input_file
     out = args.output_file
     batch = args.batch
     hvg = int(args.hvgs)
+    scale = args.scale
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
@@ -65,4 +74,4 @@ if __name__=='__main__':
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch)
+    runIntegration(file, out, run, hvg, batch, scale)
