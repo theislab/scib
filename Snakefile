@@ -106,19 +106,19 @@ rule integration:
                 hvg=FEATURE_SELECTION.keys(),
                 method=METHODS)
 
-rule integration_single:
-    input:
-        adata = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
-        script = "scripts/runIntegration.py"
-    output: get_filename_pattern("integration", "single")
-    params:
-        batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
-        hvgs      = lambda wildcards: FEATURE_SELECTION[wildcards.hvg]
-    shell:
-        """
-        python {input.script} -i {input.adata} -o {output} \
-            -b {params.batch_key} --method {wildcards.method} --hvgs {params.hvgs}
-        """
+#rule integration_single:
+#    input:
+#        adata = lambda wildcards: get_from_scenario(wildcards.scenario, key="file"),
+#        script = "scripts/runIntegration.py"
+#    output: get_filename_pattern("integration", "single")
+#    params:
+#        batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
+#        hvgs      = lambda wildcards: FEATURE_SELECTION[wildcards.hvg]
+#    shell:
+#        """
+#        python {input.script} -i {input.adata} -o {output} \
+#            -b {params.batch_key} --method {wildcards.method} --hvgs {params.hvgs}
+#        """
 
 ## METRICS
 rule metrics:

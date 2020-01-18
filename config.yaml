@@ -7,9 +7,12 @@ METHODS: # method name : ouput type(s)
     - embed
     - full
       #seurat: full
-  trvae: embed
+  trvae: 
+    - embed
+    - full
   harmony: embed
   bbknn: knn
+  scvi: full
 
 DATA_SCENARIOS:
   pancreas:
