@@ -935,7 +935,7 @@ def metrics(adata, adata_int, batch_key, label_key,
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
-        sil_clus =np.nan
+        sil_clus = np.nan
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
@@ -952,7 +952,7 @@ def metrics(adata, adata_int, batch_key, label_key,
                            agg_func=np.mean, organism=organism)
     else:
         score = np.nan
-    results['cell_cycle_conservation'] = cc_score
+    results['cell_cycle_conservation'] = score
     
     if isolated_labels_:
         print("isolated labels")
@@ -972,13 +972,12 @@ def metrics(adata, adata_int, batch_key, label_key,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
-    results['kBET'] = kbet_score
+    results['kBET'] = score
 
     if lisi_:
         print('LISI score...')
         ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
                                         verbose=verbose)
-
     else:
         ilisi_score = np.nan
         clisi_score = np.nan

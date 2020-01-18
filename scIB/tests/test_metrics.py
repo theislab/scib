@@ -187,5 +187,7 @@ def all_metrics(adata_u, adata_i, script, dir_, type_, method, verbose=False):
     for metric, value in metrics.iterrows():
         value = value[0]
         print(f'{metric}: {value}')
+        if np.isnan(value):
+            continue
         assert value >= 0
         assert value <= 1
