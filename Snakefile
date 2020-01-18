@@ -24,7 +24,7 @@ import pathlib
 ## variables and function definition for input files
 ROOT = config["ROOT"]
 DATA_SCENARIOS = config["DATA_SCENARIOS"]
-SCALING = ['scaled'] #, 'unscaled']
+SCALING = ['unscaled'] #, 'scaled']
 FEATURE_SELECTION = {'hvg': 2000, 'full_feature': 0}
 METHODS = config["METHODS"]
 
@@ -93,15 +93,15 @@ def get_all_file_patterns(file_type, exclude_type=''):
 
 ## RULES
 rule all:
- input:
-     get_filename_pattern("metrics", "final"),
-     get_filename_pattern("cc_variance", "final")
+    input:
+        get_filename_pattern("metrics", "final") #,
+        # get_filename_pattern("cc_variance", "final")
 
 ## INTEGRATION
 rule integration:
      input: 
          expand(get_filename_pattern("integration", "single"),
-                scenario=DATA_SCENARIOS.keys(),
+                scenario="mouse_brain", #DATA_SCENARIOS.keys(),
                 scaling=SCALING,
                 hvg=FEATURE_SELECTION.keys(),
                 method=METHODS)
@@ -173,3 +173,4 @@ rule cc_single:
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
         """
+

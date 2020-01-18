@@ -6,7 +6,7 @@ METHODS: # method name : ouput type(s)
   scanorama:
     - embed
     - full
-  seurat: full
+      #seurat: full
   trvae: embed
   harmony: embed
   bbknn: knn
@@ -30,18 +30,18 @@ DATA_SCENARIOS:
     organism: human
     assay: expression
     file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
-  mouse_atlas:
-    batch_key: study # TODO: we need batch over all samples as well
-    label_key: cell_type_union
-    organsism: mouse
-    assay: expression
-    file: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
-  mouse_brain:
-    batch_key: study
-    label_key: cell_type
-    organism: mouse
-    assay: expression
-    file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
+    #mouse_atlas:
+    #batch_key: study # TODO: we need batch over all samples as well
+    #label_key: cell_type_union
+    #organsism: mouse
+    #assay: expression
+    #file: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
+    #mouse_brain:
+    #batch_key: study
+    #label_key: cell_type
+    #organism: mouse
+    #assay: expression
+    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
     #  mouse_brain_atac:
     #    batch_key: batchname
     #label_key: cell_type_consensus
