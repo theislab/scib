@@ -444,13 +444,15 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
             raise ValueError(message)
         
+        if verbose:
+            print("score cell cycle")
         score_cell_cycle(raw_sub, organism=organism)
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=False)
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
         scores_before.append(before)
         
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=False)
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
         scores_after.append(after)
         
         score = 1 - abs(after - before)/before # scaled result
@@ -563,7 +565,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
             svd_solver = 'full'
     
         if verbose:
-            print("PCA")
+            print("compute PCA")
         pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
                         return_info=True, svd_solver=svd_solver, copy=True)
         X_pca = pca[0].copy()
@@ -575,7 +577,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     
     ## PC Regression
     if verbose:
-        print("PC regression")
+        print("fit regression on PCs")
     
     # one-hot encode categorical values
     covariate = pd.get_dummies(covariate).to_numpy()
@@ -912,18 +914,18 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if nmi_:
         print('NMI...')
-        score = nmi(adata_int, group1=cluster_key, group2=label_key,
+        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key,
                     method=nmi_method, nmi_dir=nmi_dir)
     else:
-        score = np.nan
-    results['NMI_cluster/label'] = score
+        nmi_score = np.nan
+    results['NMI_cluster/label'] = nmi_score
 
     if ari_:
         print('ARI...')
-        score = ari(adata_int, group1=cluster_key, group2=label_key)
+        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
     else:
-        score = np.nan
-    results['ARI_cluster/label'] = score
+        ari_score = np.nan
+    results['ARI_cluster/label'] = ari_score
     
     if silhouette_:
         print('silhouette score...')
@@ -941,30 +943,30 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if pcr_:
         print('PC regression...')
-        score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
+        pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
-        score = np.nan
-    results['PCR_batch'] = score
+        pcr_score = np.nan
+    results['PCR_batch'] = pcr_score
     
     if cell_cycle_:
         print('cell cycle effect...')
-        score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
+        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
                            agg_func=np.mean, organism=organism)
     else:
-        score = np.nan
-    results['cell_cycle_conservation'] = score
+        cc_score = np.nan
+    results['cell_cycle_conservation'] = cc_score
     
     if isolated_labels_:
         print("isolated labels")
-        score_clus = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
+        il_score_clus = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
                                 cluster=True, n=n_isolated, verbose=False)
-        score_sil = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
+        il_score_sil = isolated_labels(adata, label_key=label_key, batch_key=batch_key,
                                 cluster=False, n=n_isolated, verbose=False)
     else:
-        score_clus = np.nan
-        score_sil  = np.nan
-    results['isolated_label_F1'] = score_clus
-    results['isolated_label_silhouette'] = score_sil
+        il_score_clus = np.nan
+        il_score_sil  = np.nan
+    results['isolated_label_F1'] = il_score_clus
+    results['isolated_label_silhouette'] = il_score_sil
     
     if kBET_:
         print('kBET...')
@@ -972,7 +974,7 @@ def metrics(adata, adata_int, batch_key, label_key,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
-    results['kBET'] = score
+    results['kBET'] = kbet_score
 
     if lisi_:
         print('LISI score...')
