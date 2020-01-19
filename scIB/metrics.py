@@ -351,7 +351,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     """
     
     import sklearn.metrics as scm
-    adata = adata.copy()
+    adata_tmp = adata.copy()
     
     # cluster optimizing over cluster with largest number of isolated label per batch
     def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
@@ -361,19 +361,19 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
         return sub[cluster_key].value_counts().max()
     
     if cluster:
-        opt_louvain(adata, label_key, cluster_key, function=max_label_per_batch,
+        opt_louvain(adata_tmp, label_key, cluster_key, function=max_label_per_batch,
                     label=label, verbose=False)
     
-        largest_cluster = max_label_per_batch(adata, label_key, 
+        largest_cluster = max_label_per_batch(adata_tmp, label_key, 
                                               cluster_key, label, argmax=True)
-        y_pred = adata.obs[cluster_key] == largest_cluster
-        y_true = adata.obs[label_key] == label
+        y_pred = adata_tmp.obs[cluster_key] == largest_cluster
+        y_true = adata_tmp.obs[label_key] == label
         score = scm.f1_score(y_pred, y_true)
     else:
-        adata.obs['group'] = adata.obs[label_key] == label
-        score = silhouette(adata, group_key='group', **kwargs)
+        adata_tmp.obs['group'] = adata_tmp.obs[label_key] == label
+        score = silhouette(adata_tmp, group_key='group', **kwargs)
     
-    del adata
+    del adata_tmp
     
     if verbose:
         print(f"{label}: {score}")
