@@ -332,7 +332,7 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     # threshold for determining when label is considered isolated
     n_batch = adata.obs[batch_key].nunique()
     if n is None:
-        n = int(n_batch / 4)
+        n = batch_per_lab.min().tolist()[0]
     
     if verbose:
         print(f"isolated labels: no more than {n} batches per label")
