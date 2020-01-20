@@ -80,11 +80,11 @@ if __name__=='__main__':
         raise ValueError(message)
     
     #check if the obsnames were changed and rename them in that case
-    if not np.array_equal(adata.obs_names, adata_int.obs_names):
+    if len(set(adata.obs_names).difference(set(adata_int.obs_names))) > 0:
         #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
         new_obs_names = ['-'.join(idx.split('-')[:-1]) for idx in adata_int.obs_names]
 
-        if np.array_equal(adata.obs_names, new_obs_names):
+        if len(set(adata.obs_names).difference(set(new_obs_names))):
             adata_int.obs_names = new_obs_names
         else:
             raise ValueError('obs_names changed after integration!')
