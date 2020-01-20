@@ -17,20 +17,26 @@ def runIntegration(inPath, outPath, method, hvg, batch):
 
     adata = sc.read(inPath)
 
+    """
     if hvg > 500:
         adata = scIB.preprocessing.hvg_batch(adata,
                                              batch_key=batch,
                                              target_genes=hvg,
                                              adataOut=True)
+    """
     
-    integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+    if timing:
+        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
-    integrated = integrated_tmp[2][0]
+        integrated = integrated_tmp[2][0]
 
 
-    integrated.uns['mem'] = integrated_tmp[0]
-    integrated.uns['runtime'] = integrated_tmp[1]
+        integrated.uns['mem'] = integrated_tmp[0]
+        integrated.uns['runtime'] = integrated_tmp[1]
 
+    else:
+        method(adata, batch)
+    
     sc.write(outPath, integrated)
 
 if __name__=='__main__':
@@ -43,12 +49,14 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
+    parser.add_argument("-t", '--timing', help='Activate runtime and memory profiling', action='store_true')
 
     args = parser.parse_args()
     file = args.input_file
     out = args.output_file
     batch = args.batch
     hvg = int(args.hvgs)
+    timing = args.timing
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,

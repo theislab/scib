@@ -8,12 +8,13 @@ saveSeuratObject = function(sobj, path) {
 	require(Seurat)
 	saveRDS(sobj, file=path)
 }
-runSeurat = function(data, batch, hvgs=NULL) {
+runSeurat = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
+
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
-	          anchor.features = 2000,
+	          anchor.features = hvg,
  		  scale = T,
 		  l2.norm = T,
 		  dims = 1:30,

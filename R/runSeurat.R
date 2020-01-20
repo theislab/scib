@@ -2,6 +2,12 @@ args <- commandArgs(trailingOnly=T)
 source('integration.R')
 print(args)
 sobj = loadSeuratObject(args[[1]])
-out = func_profiler(runSeurat(sobj, args[[2]]))
-saveSeuratObject(out$results, args[[3]])
+hvg<-2000
+if(length(args)==4) {
+	hvg<-readRDS(args[[4]])
+}
+
+out = runSeurat(sobj, args[[2]])
+saveSeuratObject(out, args[[3]])
+
 
