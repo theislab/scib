@@ -293,7 +293,7 @@ def ari(adata, group1, group2):
 
 ### Isolated label score
 def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster", 
-                    cluster=True, n=None, all_=False, verbose=False):
+                    cluster=True, n=None, all_=False, verbose=True):
     """
     score how well labels of isolated labels are distiguished in the dataset by
         1. clustering-based approach

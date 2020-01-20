@@ -144,7 +144,7 @@ def metrics_all_methods():
     }
     # for name, func in methods.items():
 
-def all_metrics(adata_u, adata_i, script, dir_, type_, method, verbose=False):
+def all_metrics(adata_u, adata_i, script, type_, method, dir_="./data", verbose=False):
     """
     params:
         adata_u: unintegrated anndata
