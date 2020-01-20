@@ -6,8 +6,9 @@ METHODS: # method name : ouput type(s)
   scanorama:
     - embed
     - full
-      #seurat: full
-  trvae: embed
+  #seurat: full
+  trvae: 
+   - embed
   harmony: embed
   bbknn: knn
   scvi: embed
@@ -49,26 +50,4 @@ DATA_SCENARIOS:
     #organism: mouse
     #assay: atac
     #file: /mnt/znas/icb_zstore01/groups/ce01/workspace/Benchmarking_data_integration/data/brain_atac/atac_brain_processed.h5ad
-####
 
-
-DATASETS: 
-  #- mnn_full
-  - scanorama_embed
-  - scanorama_full
-  - seurat_full
-  - trvae_embed
-  - harmony_embed
-    #- bbknn_knn
-
-batch_key: study # tech
-label_key: cell_type_union # celltype
-organism: mouse # human
-
-#UNINTEGRATED: /storage/groups/ml01/workspace/group.daniela/maren_human_pancreas/human_pancreas_norm.h5ad
-#INTEGRATED_DIR: /storage/groups/ml01/workspace/group.daniela/maren_human_pancreas/integrated
-#METRICS_DIR : /storage/groups/ml01/workspace/group.daniela/maren_human_pancreas/metrics
-
-UNINTEGRATED: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
-INTEGRATED_DIR: /storage/groups/ml01/workspace/group.daniela/atlases_integrated
-METRICS_DIR : /storage/groups/ml01/workspace/group.daniela/metrics
