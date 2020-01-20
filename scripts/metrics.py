@@ -151,6 +151,7 @@ if __name__=='__main__':
     ari_ = True
     pcr_ = True
     cell_cycle_ = True
+    isolated_labels_ = True
     hvgs_ = True
     kBET_ = True
     lisi_ = True
@@ -181,6 +182,7 @@ if __name__=='__main__':
                               ari_=ari_,
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
+                              isolated_labels_=isolated_labels_, n_isolated=None,
                               kBET_=kBET_,
                               lisi_=lisi_
                              )

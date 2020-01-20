@@ -290,6 +290,96 @@ def ari(adata, group1, group2):
     
     from sklearn.metrics.cluster import adjusted_rand_score
     return adjusted_rand_score(group1, group2)
+
+### Isolated label score
+def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster", 
+                    cluster=True, n=None, all_=False, verbose=True):
+    """
+    score how well labels of isolated labels are distiguished in the dataset by
+        1. clustering-based approach
+        2. silhouette score
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+        n: max number of batches per label for label to be considered as isolated.
+            if n=1, take labels that are present for a single batch
+            if n=None, consider any label that is missing at least 1 batch
+        all_: return scores for all isolated labels instead of aggregated mean
+    return:
+        by default, mean of scores for each isolated label
+        retrieve dictionary of scores for each label if `all_` is specified
+    """
+    
+    scores = {}
+    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key,
+                                          n=n, verbose=verbose)
+    for label in isolated_labels:
+        score = score_isolated_label(adata, label_key, batch_key, cluster_key,
+                                     label, cluster=cluster, verbose=verbose)
+        scores[label] = score
+    
+    if all_:
+        return scores
+    return np.mean(list(scores.values()))
+
+def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
+    """
+    get labels that are considered isolated by the number of batches
+    """
+    
+    tmp = adata.obs[[label_key, batch_key]].drop_duplicates()
+    batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
+    
+    # threshold for determining when label is considered isolated
+    n_batch = adata.obs[batch_key].nunique()
+    if n is None:
+        n = batch_per_lab.min().tolist()[0]
+    
+    if verbose:
+        print(f"isolated labels: no more than {n} batches per label")
+    
+    labels = batch_per_lab[batch_per_lab[batch_key] <= n].index.tolist()
+    if len(labels) == 0 and verbose:
+        print(f"no isolated labels with less than {n} batches")
+    return labels
+
+def score_isolated_label(adata, label_key, batch_key, cluster_key,
+                         label, cluster=True, verbose=False, **kwargs):
+    """
+    compute label score for a single label
+    params:
+        cluster: if True, use clustering approach, otherwise use silhouette score approach
+    """
+    
+    import sklearn.metrics as scm
+    adata_tmp = adata.copy()
+    
+    # cluster optimizing over cluster with largest number of isolated label per batch
+    def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
+        sub = adata.obs[adata.obs[label_key] == label].copy()
+        if argmax:
+            return sub[cluster_key].value_counts().argmax()
+        return sub[cluster_key].value_counts().max()
+    
+    if cluster:
+        opt_louvain(adata_tmp, label_key, cluster_key, function=max_label_per_batch,
+                    label=label, verbose=False)
+    
+        largest_cluster = max_label_per_batch(adata_tmp, label_key, 
+                                              cluster_key, label, argmax=True)
+        y_pred = adata_tmp.obs[cluster_key] == largest_cluster
+        y_true = adata_tmp.obs[label_key] == label
+        score = scm.f1_score(y_pred, y_true)
+    else:
+        adata_tmp.obs['group'] = adata_tmp.obs[label_key] == label
+        score = silhouette(adata_tmp, group_key='group', **kwargs)
+    
+    del adata_tmp
+    
+    if verbose:
+        print(f"{label}: {score}")
+    
+    return score
+    
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
@@ -355,11 +445,11 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             raise ValueError(message)
         
         if verbose:
-            print('score cell cycle')
+            print("score cell cycle")
         score_cell_cycle(raw_sub, organism=organism)
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        before = pc_regression(raw_sub.X, covariate, n_comps=n_comps, pca_sd=None, verbose=verbose)
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
         scores_before.append(before)
         
         after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
@@ -475,7 +565,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
             svd_solver = 'full'
     
         if verbose:
-            print("PCA")
+            print("compute PCA")
         pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
                         return_info=True, svd_solver=svd_solver, copy=True)
         X_pca = pca[0].copy()
@@ -487,7 +577,7 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     
     ## PC Regression
     if verbose:
-        print("PC regression")
+        print("fit regression on PCs")
     
     # one-hot encode categorical values
     covariate = pd.get_dummies(covariate).to_numpy()
@@ -793,6 +883,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
+            isolated_labels_=False, n_isolated=None,
             kBET_=False, kBET_sub=0.5, lisi_=False, type_ = None
            ):
     """
@@ -823,7 +914,8 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if nmi_:
         print('NMI...')
-        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key, method=nmi_method, nmi_dir=nmi_dir)
+        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key,
+                    method=nmi_method, nmi_dir=nmi_dir)
     else:
         nmi_score = np.nan
     results['NMI_cluster/label'] = nmi_score
@@ -845,7 +937,7 @@ def metrics(adata, adata_int, batch_key, label_key,
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
-        sil_clus =np.nan
+        sil_clus = np.nan
     results['ASW_label'] = sil_global
     results['ASW_label/batch'] = sil_clus
 
@@ -859,14 +951,26 @@ def metrics(adata, adata_int, batch_key, label_key,
     if cell_cycle_:
         print('cell cycle effect...')
         cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
-                              agg_func=np.mean, organism=organism)
+                           agg_func=np.mean, organism=organism)
     else:
         cc_score = np.nan
     results['cell_cycle_conservation'] = cc_score
     
+    if isolated_labels_:
+        print("isolated labels...")
+        il_score_clus = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
+                                cluster=True, n=n_isolated, verbose=False)
+        il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
+                                cluster=False, n=n_isolated, verbose=False)
+    else:
+        il_score_clus = np.nan
+        il_score_sil  = np.nan
+    results['isolated_label_F1'] = il_score_clus
+    results['isolated_label_silhouette'] = il_score_sil
+    
     if kBET_:
         print('kBET...')
-        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_ = type_,
+        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
                            subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
@@ -876,7 +980,6 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('LISI score...')
         ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
                                         verbose=verbose)
-
     else:
         ilisi_score = np.nan
         clisi_score = np.nan

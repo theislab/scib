@@ -1,9 +1,10 @@
+import os
+import numpy as np
+import pandas as pd
 import scanpy as sc
 from scIB import clustering as cl
 from scIB.tests import utils
 from scIB import metrics as me
-from scIB.integration import *
-import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -114,18 +115,15 @@ def hvg_overlap():
     print(f"score: {score}")
     assert score == 1
     
-def metrics_all_methods():
-    adata = utils.create_adata_dummy()
+def isolated_labels():
+    adata = utils.create_adata_dummy(pca=True, n_top_genes=2000, neighbors=True)
     
-    methods = {
-        'scanorama': runScanorama,
-        'trvae': runTrVae,
-        'seurat': runSeurat,
-        'harmony': runHarmony,
-        'mnn': runMNN,
-        'bbknn': runBBKNN,
-        'conos': runConos,
-        'scvi': runScvi
-    }
-    # for name, func in methods.items():
-      
+    # test 2 different implementations of score
+    for impl in [True, False]:
+        score = me.isolated_labels(adata, label_key='celltype', 
+                                   batch_key='batch', cluster=impl,
+                                   n=4, verbose=True)
+        print(f"score: {score}")
+        assert score <= 1
+        assert score >= 0
+
