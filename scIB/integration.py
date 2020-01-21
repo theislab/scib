@@ -79,6 +79,32 @@ def runTrVae(adata, batch, hvg=None):
     return adata
 
 
+def runTrVaep(adata, batch, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import trvaep
+
+    n_batches = adata.obs[batch].nunique()
+    
+    model = trvaep.CVAE(adata.n_vars, num_classes=n_batches,
+            encoder_layer_sizes=[64], decoder_layer_sizes=[64], latent_dim=10, alpha=0.0001,
+            use_mmd=True, beta=1)
+    
+    trainer = trvaep.Trainer(model, adata, print_every=2000)
+    
+    trainer.train_trvae(200, 512)
+
+    # Get latent representation
+    latent_y = model.get_y(
+        adata.X, model.label_encoder.transform(adata.obs["batch"]))
+    adata.obsm['X_emb'] = latent_y
+
+    # Get reconstructed feature space:
+    data = model.reconstruct(adata.X, model.label_encoder.transform(adata.obs[batch]))
+    adata.X = data
+
+    return adata
+    
+
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
     # Expects data only on HVGs

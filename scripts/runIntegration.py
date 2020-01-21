@@ -62,6 +62,7 @@ if __name__=='__main__':
     methods = {
         'scanorama': scIB.integration.runScanorama,
         'trvae': scIB.integration.runTrVae,
+        'trvaep': scIB.integration.runTrVaep,
         'seurat': scIB.integration.runSeurat,
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
