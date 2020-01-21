@@ -91,7 +91,8 @@ def runTrVaep(adata, batch, hvg=None):
                         alpha=0.0001, use_mmd=True, beta=5,
                         output_activation="ReLU")
     
-    trainer = trvaep.Trainer(model, adata, condition_key=batch)
+    # Note: set seed for reproducibility of results
+    trainer = trvaep.Trainer(model, adata, condition_key=batch, seed=42)
     
     trainer.train_trvae(300, 512, early_patience=50)
 
