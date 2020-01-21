@@ -107,8 +107,8 @@ def runTrVaep(adata, batch, hvg=None):
     adata.obsm['X_emb'] = latent_y
 
     # Get reconstructed feature space:
-    data = model.reconstruct(x=dat_dense, y=adata.obs[batch].tolist(),
-                             target=adata.obs[batch].value_counts().idxmax())
+    data = model.predict(x=dat_dense, y=adata.obs[batch].tolist(),
+                         target=adata.obs[batch].value_counts().idxmax())
     adata.X = data
 
     return adata
