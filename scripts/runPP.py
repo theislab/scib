@@ -23,9 +23,8 @@ def runPP(inPath, outPath, hvg, batch, rout):
         del adata.var['highly_variable']
     
     if hvg > 500:
-        if method==scIB.integration.runSeurat:
+        if seurat:
             hvgs= scIB.preprocessing.hvg_batch(adata,batch_key=batch, target_genes=hvg, adataOut=False)
-            print(hvgs)
         else:
             adata = scIB.preprocessing.hvg_batch(adata,
                                                 batch_key=batch,
@@ -49,13 +48,14 @@ def runPP(inPath, outPath, hvg, batch, rout):
                 if not adata.layers[key].has_sorted_indices:
                     adata.layers[key].sort_indices()
         ro.globalenv['adata']=adata
+        ro.r('adata <- as.Seurat(adata,counts=NULL, data="X")')
         ro.r(f'saveRDS(adata, file="{outPath}")')
         
         if hvgs is not None:
             hvg_out = outPath+'_hvg.rds'
             ro.globalenv['hvgs']=hvgs
             ro.r('unlist(hvgs)')
-            ro.r('saveRDS(hvgs, file="{hvg_out}")'
+            ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
 
 
     else:
@@ -70,14 +70,15 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_file', required=True)
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
-    parser.add_argument('-r', '--rout', help='Save output for R methods', action='store_true'))
+    parser.add_argument('-r', '--rout', help='Save output for R methods', action='store_true')
+    parser.add_argument('-s', '--seurat', help='Generate output for seurat', action='store_true')
 
     args = parser.parse_args()
     file = args.input_file
     out = args.output_file
     batch = args.batch
     hvg = int(args.hvgs)
-    method = args.method
     rout = args.rout
+    seurat = args.seurat
     
-    runPP(file, out, run, hvg, batch,rout)
+    runPP(file, out, hvg, batch,rout)
