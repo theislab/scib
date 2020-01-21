@@ -16,16 +16,21 @@ def runPP(inPath, outPath, hvg, batch, rout):
     """
 
     adata = sc.read(inPath)
+    hvgs=None
 
     # remove HVG if already precomputed
     if 'highly_variable' in adata.var:
         del adata.var['highly_variable']
     
     if hvg > 500:
-        adata = scIB.preprocessing.hvg_batch(adata,
-                                             batch_key=batch,
-                                             target_genes=hvg,
-                                             adataOut=True)
+        if method==scIB.integration.runSeurat:
+            hvgs= scIB.preprocessing.hvg_batch(adata,batch_key=batch, target_genes=hvg, adataOut=False)
+            print(hvgs)
+        else:
+            adata = scIB.preprocessing.hvg_batch(adata,
+                                                batch_key=batch,
+                                                target_genes=hvg,
+                                                adataOut=True)
     if rout:
         import rpy2.robjects as ro
         import anndata2ri
@@ -44,7 +49,13 @@ def runPP(inPath, outPath, hvg, batch, rout):
                 if not adata.layers[key].has_sorted_indices:
                     adata.layers[key].sort_indices()
         ro.globalenv['adata']=adata
-        ro.r(f'saveRDS(adata, file="{outPath}"')
+        ro.r(f'saveRDS(adata, file="{outPath}")')
+        
+        if hvgs is not None:
+            hvg_out = outPath+'_hvg.rds'
+            ro.globalenv['hvgs']=hvgs
+            ro.r('unlist(hvgs)')
+            ro.r('saveRDS(hvgs, file="{hvg_out}")'
 
 
     else:
