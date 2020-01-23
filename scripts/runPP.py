@@ -35,7 +35,7 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
 
 
     if rout:
-        scIB.preprocessing.saveSeurat(adata, outPath, hvgs
+        scIB.preprocessing.saveSeurat(adata, outPath, hvgs)
         '''
         import rpy2.robjects as ro
         import anndata2ri
