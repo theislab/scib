@@ -16,10 +16,7 @@ def runIntegration(inPath, outPath, method, hvg, batch, scale):
     """
 
     adata = sc.read(inPath)
-    if scale:
-        adata = scIB.preprocessing.scale_batch(adata, batch)
-
-
+    
     if timing:
         integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
@@ -45,7 +42,6 @@ if __name__=='__main__':
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
     parser.add_argument("-t", '--timing', help='Activate runtime and memory profiling', action='store_true')
-    parser.add_argument('-s', '--scale', action='store_true', help='Scale the data per batch')
 
     args = parser.parse_args()
     file = args.input_file

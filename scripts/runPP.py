@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runPP(inPath, outPath, hvg, batch, rout):
+def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
     """
     params:
         method: name of method
@@ -16,7 +16,7 @@ def runPP(inPath, outPath, hvg, batch, rout):
     """
 
     adata = sc.read(inPath)
-    hvgs=None
+    hvgs=adata.var.index
 
     # remove HVG if already precomputed
     if 'highly_variable' in adata.var:
@@ -30,6 +30,10 @@ def runPP(inPath, outPath, hvg, batch, rout):
                                                 batch_key=batch,
                                                 target_genes=hvg,
                                                 adataOut=True)
+    if scale:
+        adata = scIB.preprocessing.scale_batch(adata, batch)
+
+
     if rout:
         import rpy2.robjects as ro
         import anndata2ri
@@ -71,7 +75,8 @@ if __name__=='__main__':
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
     parser.add_argument('-r', '--rout', help='Save output for R methods', action='store_true')
-    parser.add_argument('-s', '--seurat', help='Generate output for seurat', action='store_true')
+    parser.add_argument('-s', '--scale', action='store_true', help='Scale the data per batch')
+    parser.add_argument('-l', '--seurat', help='Generate output for seurat including hvg list', action='store_true')
 
     args = parser.parse_args()
     file = args.input_file
@@ -80,5 +85,6 @@ if __name__=='__main__':
     hvg = int(args.hvgs)
     rout = args.rout
     seurat = args.seurat
+    scale = args.scale
     
-    runPP(file, out, hvg, batch,rout)
+    runPP(file, out, hvg, batch, rout, scale, seurat)
