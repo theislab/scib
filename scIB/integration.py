@@ -138,73 +138,6 @@ def runScvi(adata, batch, hvg=None):
     return adata
 
 
-def runSeurat(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import time
-    import os
-    tmpName = "/tmp/seurat+"time.time()+".RDS"
-    saveSeurat(adata, tmpName)
-    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runSeurat.R '+tmpName+' '+batch+' '+tmpName+'_out.RDS')
-    adata_out = readSeurat(tmpName+'_out.RDS')
-
-    return adata_out
-
-    
-    """ro.r('library(Seurat)')
-    ro.r('library(scater)')
-    anndata2ri.activate()
-
-    if issparse(adata.X):
-        if not adata.X.has_sorted_indices:
-            adata.X.sort_indices()
-
-    for key in adata.layers:
-        if issparse(adata.layers[key]):
-            if not adata.layers[key].has_sorted_indices:
-                adata.layers[key].sort_indices()
-
-    ro.globalenv['adata'] = adata
-    
-    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
-
-    # Fix error if levels are 0 and 1
-    # ro.r(f'sobj$batch <- as.character(sobj${batch})')
-    ro.r(f'Idents(sobj) = "{batch}"')
-
-    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
-    #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
-
-    ro.r('anchors = FindIntegrationAnchors('+
-        'object.list = batch_list, '+
-        'anchor.features = 2000,'+
-        'scale = T,'+
-        'l2.norm = T,'+
-        'dims = 1:30,'+
-        'k.anchor = 5,'+
-        'k.filter = 200,'+
-        'k.score = 30,'+
-        'max.features = 200,'+
-        'eps = 0)'
-    )
-    ro.r('integrated = IntegrateData('+
-        'anchorset = anchors,'+
-        'new.assay.name = "integrated",'+
-        'features = NULL,'+
-        'features.to.integrate = NULL,'+
-        'dims = 1:30,'+
-        'k.weight = 100,'+
-        'weight.reduction = NULL,'+
-        'sd.weight = 1,'+
-        'sample.tree = NULL,'+
-        'preserve.order = F,'+
-        'do.cpp = T,'+
-        'eps = 0,'+
-        'verbose = T)'
-    )
-    integrated = ro.r('as.SingleCellExperiment(integrated)')
-    anndata2ri.deactivate()
-    return integrated"""
-
 def runHarmony(adata, batch, hvg = None):
     checkSanity(adata, batch, hvg)
     #import_rpy2()
@@ -244,48 +177,6 @@ def runBBKNN(adata, batch, hvg=None):
     if adata.n_obs >=1e5:
         corrected = bbknn.bbknn(adata, batch_key=batch,trim=30, neighbors_within_batch=30, copy=True)
     return corrected
-
-def runConos(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import time
-    import os
-    tmpName = "/tmp/conos+"time.time()
-    saveSeurat(adata, tmpName+'.RDS')
-    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runConos.R '+tmpName+'.RDS '+batch+' '+tmpName)
-    adata_out = readConos(tmpName)
-
-    return adata_out
-
-    """anndata2ri.activate()
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
-    ro.r('library(conos)')
-
-    ro.globalenv['adata_c'] = adata
-    ro.r('sobj = as.Seurat(adata_c, counts = "counts", data = "X")')
-    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
-
-    ro.r('con <- Conos$new(batch_list)')
-    ro.r('con$buildGraph(k=15, k.self=5, space="PCA", ncomps=30)')
-    os.mkdir('conos_tmp')
-    ro.r('saveConosForScanPy(con, output.path="conos_tmp/", verbose=T))')
-
-    DATA_PATH = os.path.expanduser('conos_tmp/')
-    pca_df = pd.read_csv(DATA_PATH+'pca.csv')
-    
-    graph_conn_mtx = sp.io.mmread(DATA_PATH + "graph_connectivities.mtx")
-    graph_dist_mtx = sp.io.mmread(DATA_PATH + "graph_distances.mtx")
-    
-    out = adata.copy()
-    
-    out.X_pca = pca_df.values
-    
-    out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
-    
-    anndata2ri.deactivate()
-    return out
-    """
-    
 
 
 if __name__=="__main__":
