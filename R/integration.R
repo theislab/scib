@@ -11,6 +11,7 @@ saveSeuratObject = function(sobj, path) {
 runSeurat = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
+	  print('test')
 
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
@@ -67,10 +68,10 @@ preP <- function(so, vars.to.regress=NULL, verbose=TRUE, n.pcs=100) {
   return(so)
 }
 
-runConos = function(data, batch) {
+runConos = function(sobj, batch) {
 	require(conos)
 	require(Seurat)
-	sobj <- loadSeuratObject(data)
+	#sobj <- loadSeuratObject(data)
 	batch_list <- SplitObject(sobj, split.by=batch)
  	pp <- lapply(batch_list, preP)
  
