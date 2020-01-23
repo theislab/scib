@@ -35,6 +35,8 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
 
 
     if rout:
+        scIB.preprocessing.saveSeurat(adata, outPath, hvgs
+        '''
         import rpy2.robjects as ro
         import anndata2ri
         from scipy.sparse import issparse
@@ -60,6 +62,7 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
             ro.globalenv['hvgs']=hvgs
             ro.r('unlist(hvgs)')
             ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
+            '''
 
 
     else:
