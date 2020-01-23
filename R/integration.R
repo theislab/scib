@@ -94,8 +94,12 @@ saveConos = function(con, outdir) {
                    verbose=TRUE)
 }
 
-runHarmony = function(pca, method, batch) {
+runHarm = function(sobj, batch) {
 	require(harmony)
-	harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
-	return(harmonyEmb)
+	require(Seurat)
+	sobj <- ScaleData(sobj)
+	sobj <- RunPCA(sobj, features=rownames(sobj@assays$RNA))
+	sobj <- RunHarmony(sobj, batch)
+	#harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
+	return(sobj)
 }

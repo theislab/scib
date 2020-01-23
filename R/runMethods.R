@@ -28,5 +28,9 @@ if(opt$method=='conos'){
 	out = runConos(sobj, opt$b)
 }
 
+if(opt$method=='harmony'){
+	
+	out=runHarm(sobj, opt$b)
+}
 saveSeuratObject(out, opt$o)
 
