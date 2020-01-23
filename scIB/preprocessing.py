@@ -412,7 +412,7 @@ def score_cell_cycle(adata, organism='mouse'):
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
     
-def saveSeurat(adata, path):
+def saveSeurat(adata, path, hvgs=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
@@ -433,7 +433,14 @@ def saveSeurat(adata, path):
     # Fix error if levels are 0 and 1
     # ro.r(f'sobj$batch <- as.character(sobj${batch})')
     ro.r(f'Idents(sobj) = "{batch}"')
-    ro.r(f'saveRDS(sobj, file="{path}")')
+    ro.r(f'saveRDS(sobj, file="{path}")') 
+    if hvgs is not None:
+        hvg_out = outPath+'_hvg.rds'
+        ro.globalenv['hvgs']=hvgs
+        ro.r('unlist(hvgs)')
+        ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
+
+
     anndata2ri.deactivate()
     
 def saveConos(adata, batch, path):
