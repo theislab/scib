@@ -16,9 +16,11 @@ source('integration.R')
 sobj = loadSeuratObject(opt$i)
 
 if(opt$method=='seurat'){
-	hvg<-2000
 	if(!is.na(opt$hvg)) {
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+	}
+	else {
+		hvg <- rownames(sobj@assays$RNA)
 	}
 	
 	out = runSeurat(sobj, opt$b, hvg)

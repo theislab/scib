@@ -11,7 +11,6 @@ saveSeuratObject = function(sobj, path) {
 runSeurat = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
-	  print('test')
 
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
