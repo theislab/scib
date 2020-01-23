@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runIntegration(inPath, outPath, method, hvg, batch):
+def runIntegration(inPath, outPath, method, hvg, batch, scale):
     """
     params:
         method: name of method
@@ -16,15 +16,10 @@ def runIntegration(inPath, outPath, method, hvg, batch):
     """
 
     adata = sc.read(inPath)
+    if scale:
+        adata = scIB.preprocessing.scale_batch(adata, batch)
 
-    """
-    if hvg > 500:
-        adata = scIB.preprocessing.hvg_batch(adata,
-                                             batch_key=batch,
-                                             target_genes=hvg,
-                                             adataOut=True)
-    """
-    
+
     if timing:
         integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
 
@@ -50,6 +45,7 @@ if __name__=='__main__':
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
     parser.add_argument("-t", '--timing', help='Activate runtime and memory profiling', action='store_true')
+    parser.add_argument('-s', '--scale', action='store_true', help='Scale the data per batch')
 
     args = parser.parse_args()
     file = args.input_file
@@ -57,20 +53,23 @@ if __name__=='__main__':
     batch = args.batch
     hvg = int(args.hvgs)
     timing = args.timing
+    scale = args.scale
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
         'trvae': scIB.integration.runTrVae,
+        'trvaep': scIB.integration.runTrVaep,
         'seurat': scIB.integration.runSeurat,
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
         'conos': scIB.integration.runConos,
-        'scvi': scIB.integration.runScvi
+        'scvi': scIB.integration.runScvi,
+        'combat': scIB.integration.runCombat
     }
     
     if method not in methods.keys():
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch)
+    runIntegration(file, out, run, hvg, batch, scale)

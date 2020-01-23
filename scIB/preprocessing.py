@@ -179,7 +179,41 @@ def normalize(adata, min_mean = 0.1):
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
+def scale_batch(adata, batch):
+    """
+    Function to scale the gene expression values of each batch separately.
+    """
 
+    checkAdata(adata)
+    checkBatch(batch, adata.obs)
+
+    # Store layers for after merge (avoids vstack error in merge)
+    adata_copy = adata.copy()
+    tmp = dict()
+    for lay in list(adata_copy.layers):
+        tmp[lay] = adata_copy.layers[lay]
+        del adata_copy.layers[lay]
+
+    split = splitBatches(adata_copy, batch)
+
+    for i in split:
+        sc.pp.scale(i)
+
+    adata_scaled = merge_adata(split)
+
+    # Reorder to original obs_name ordering
+    adata_scaled = adata_scaled[adata.obs_names]
+
+    # Add layers again
+    for key in tmp:
+        adata_scaled.layers[key] = tmp[key]
+
+    del tmp
+    del adata_copy
+    
+    return adata_scaled
+
+    
 def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000, min_genes=500, step_size=1000):
 ### Feature Selection
     """
@@ -360,14 +394,21 @@ def score_cell_cycle(adata, organism='mouse'):
         s_genes: S-phase genes
         g2m_genes: G2- and M-phase genes
     """
-    cc_files = {'mouse': ['scIB/resources/s_genes_tirosh.txt', 'scIB/resources/g2m_genes_tirosh.txt'],
-                'human': ['scIB/resources/s_genes_tirosh_hm.txt', 'scIB/resources/g2m_genes_tirosh_hm.txt']}
+    import pathlib
+    root = pathlib.Path(__file__).parent
+    
+    cc_files = {'mouse': [root / 'resources/s_genes_tirosh.txt',
+                          root / 'resources/g2m_genes_tirosh.txt'],
+                'human': [root / 'resources/s_genes_tirosh_hm.txt',
+                          root / 'resources/g2m_genes_tirosh_hm.txt']}
     
     s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
     g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
-        raise ValueError("cell cycle genes not in adata")
-
+        rand_choice = np.random.randint(1,adata.n_vars,10)
+        rand_genes = adata.var_names[rand_choice].tolist()
+        raise ValueError(f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}")
+    
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
     

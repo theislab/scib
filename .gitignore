@@ -1,3 +1,5 @@
+*test_output*
+
 __pycache__/
 testing.h5ad
 .vscode/settings.json
@@ -5,8 +7,11 @@ data
 .ipynb_checkpoints
 scIB.egg-info
 *cache*
+.snakemake
 
 .Rproj.user
 Benchmarking_data_integration.Rproj
 .DS_Store
 .Rhistory
+
+.idea/

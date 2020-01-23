@@ -10,7 +10,6 @@ import scanpy as sc
 import scipy as sp
 #import numpy as np
 from scIB.utils import *
-from scIB.preprocessing import *
 from memory_profiler import profile
 import os
 import pandas as pd
@@ -79,6 +78,45 @@ def runTrVae(adata, batch, hvg=None):
     
     return adata
 
+
+def runTrVaep(adata, batch, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import trvaep
+
+    n_batches = adata.obs[batch].nunique()
+    
+    model = trvaep.CVAE(adata.n_vars, num_classes=n_batches,
+                        encoder_layer_sizes=[64, 32],
+                        decoder_layer_sizes=[32, 64], latent_dim=10,
+                        alpha=0.0001, use_mmd=True, beta=1,
+                        output_activation="ReLU")
+    
+    # Note: set seed for reproducibility of results
+    trainer = trvaep.Trainer(model, adata, condition_key=batch, seed=42)
+    
+    trainer.train_trvae(300, 512, early_patience=50)
+
+    # Get latent representation
+    if issparse(adata.X):
+        dat_dense = adata.X.A
+    else:
+        dat_dense = adata.X
+
+    # Get the dominant batch covariate
+    main_batch = adata.obs[batch].value_counts().idxmax()
+
+    latent_y = model.get_y(
+        dat_dense, c=model.label_encoder.transform(
+            np.tile(np.array([main_batch]), len(adata))))
+    adata.obsm['X_emb'] = latent_y
+
+    # Get reconstructed feature space:
+    data = model.predict(x=dat_dense, y=adata.obs[batch].tolist(),
+                         target=main_batch)
+    adata.X = data
+
+    return adata
+    
 
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
@@ -178,6 +216,20 @@ def runBBKNN(adata, batch, hvg=None):
         corrected = bbknn.bbknn(adata, batch_key=batch,trim=30, neighbors_within_batch=30, copy=True)
     return corrected
 
+
+if __name__=="__main__":
+    adata = sc.read('testing.h5ad')
+    #emb, corrected = runScanorama(adata, 'method', False)
+    #print(emb)
+    #print(corrected)
+
+
+        
+
+
+def runCombat(adata, batch):
+    sc.pp.combat(adata, key=batch)
+    return adata
 
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')

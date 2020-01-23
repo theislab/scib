@@ -3,6 +3,7 @@
 
 import scanpy as sc
 import scIB
+import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -67,40 +68,81 @@ if __name__=='__main__':
     print("reading adata after integration")
     adata_int = sc.read(args.integrated, cache=True)
     print(adata_int)
+
     if (n_hvgs is not None):
         if (adata_int.n_vars < n_hvgs):
             raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+       
+    # check input files
+    if adata.n_obs != adata_int.n_obs:
+        message = "The datasets have different numbers of cells before and after integration."
+        message += "Please make sure that both datasets match."
+        raise ValueError(message)
+    
+    #check if the obsnames were changed and rename them in that case
+    if len(set(adata.obs_names).difference(set(adata_int.obs_names))) > 0:
+        #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
+        new_obs_names = ['-'.join(idx.split('-')[:-1]) for idx in adata_int.obs_names]
 
+        if len(set(adata.obs_names).difference(set(new_obs_names))):
+            adata_int.obs_names = new_obs_names
+        else:
+            raise ValueError('obs_names changed after integration!')
+            
+    #batch_key might be overwritten, so we match it to the pre-integrated labels
+    adata_int.obs[batch_key] = adata_int.obs[batch_key].astype('category')
+    if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
+        #pandas uses the table index to match the correct labels 
+        adata_int.obs[batch_key] = adata.obs[batch_key]
+        #print(adata.obs[batch_key].value_counts())
+        #print(adata_int.obs[batch_key].value_counts())
+
+
+    if (n_hvgs is not None) and (adata_int.n_vars < n_hvgs):
+        # check number of HVGs to be computed
+        message = "There are fewer genes in the uncorrected adata "
+        message += "than specified for HVG selection."
+        raise ValueError(message)    
+    
     # DATA REDUCTION
     # select options according to type
-    if adata.n_vars > adata_int.n_vars: # no HVG selection if output is not already subsetted
-        n_hvgs = None
-    pca = True
-    neighbors = True
+    
+    # case 1: full expression matrix, default settings
+    precompute_pca = True
+    recompute_neighbors = True
     embed = 'X_pca'
     
+    # distinguish between subsetted and full expression matrix
+    # compute HVGs only if output is already subsetted
+    if adata.n_vars > adata_int.n_vars:
+        n_hvgs = None
+    
+    # case 2: embedding output
     if (type_ == "embed"):
         n_hvgs = None
         embed = "X_emb"
         # legacy check
         if ('emb' in adata_int.uns) and (adata_int.uns['emb']):
             adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
+    
+    # case3: kNN graph output
     elif (type_ == "knn"):
         n_hvgs = None
-        pca = False
+        precompute_pca = False
+        recompute_neighbors = False
     
     if verbose:
         print('reduce integrated data:')
         print(f'    HVG selection:\t{n_hvgs}')
-        message = f'    neighbourhood graph:\t{neighbors}'
-        if neighbors:
+        message = f'    compute neighbourhood graph:\t{recompute_neighbors}'
+        if recompute_neighbors:
             message += f' on {embed}'
         print(message)
-        print(f'    PCA:\t{pca}')
+        print(f'    precompute PCA:\t{precompute_pca}')
     scIB.preprocessing.reduce_data(adata_int,
                                    n_top_genes=n_hvgs,
-                                   neighbors=neighbors, use_rep=embed,
-                                   pca=pca, umap=False)
+                                   neighbors=recompute_neighbors, use_rep=embed,
+                                   pca=precompute_pca, umap=False)
     
     # METRICS
     print("computing metrics")
@@ -109,12 +151,17 @@ if __name__=='__main__':
     ari_ = True
     pcr_ = True
     cell_cycle_ = True
+    isolated_labels_ = True
+    hvgs_ = True
     kBET_ = True
     lisi_ = True
-    if (type_ == "knn"):
+    if (type_ == "embed"):
+        hvgs_ = False
+    elif (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
+        hvgs_ = False
     
     if verbose:
         print(f'type:\t{type_}')
@@ -122,11 +169,12 @@ if __name__=='__main__':
         print(f'    NMI:\t{nmi_}')
         print(f'    ARI:\t{ari_}')
         print(f'    cell cycle:\t{cell_cycle_}')
+        print(f'    HVGs:\t{hvgs_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
-                              hvgs=n_hvgs, cluster_nmi=cluster_nmi,
+                              hvgs=hvgs_, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
                               type_ = type_, 
@@ -134,6 +182,7 @@ if __name__=='__main__':
                               ari_=ari_,
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
+                              isolated_labels_=isolated_labels_, n_isolated=None,
                               kBET_=kBET_,
                               lisi_=lisi_
                              )
