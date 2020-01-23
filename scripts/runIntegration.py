@@ -55,11 +55,9 @@ if __name__=='__main__':
         'scanorama': scIB.integration.runScanorama,
         'trvae': scIB.integration.runTrVae,
         'trvaep': scIB.integration.runTrVaep,
-        'seurat': scIB.integration.runSeurat,
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
-        'conos': scIB.integration.runConos,
         'scvi': scIB.integration.runScvi,
         'combat': scIB.integration.runCombat
     }
