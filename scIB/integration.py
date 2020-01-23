@@ -87,8 +87,8 @@ def runTrVaep(adata, batch, hvg=None):
     
     model = trvaep.CVAE(adata.n_vars, num_classes=n_batches,
                         encoder_layer_sizes=[64, 32],
-                        decoder_layer_sizes=[64, 32], latent_dim=10,
-                        alpha=0.0001, use_mmd=True, beta=5,
+                        decoder_layer_sizes=[32, 64], latent_dim=10,
+                        alpha=0.0001, use_mmd=True, beta=1,
                         output_activation="ReLU")
     
     # Note: set seed for reproducibility of results
@@ -101,14 +101,18 @@ def runTrVaep(adata, batch, hvg=None):
         dat_dense = adata.X.A
     else:
         dat_dense = adata.X
-        
+
+    # Get the dominant batch covariate
+    main_batch = adata.obs[batch].value_counts().idxmax()
+
     latent_y = model.get_y(
-        dat_dense, model.label_encoder.transform(adata.obs[batch]))
+        dat_dense, c=model.label_encoder.transform(
+            np.tile(np.array([main_batch]), len(adata))))
     adata.obsm['X_emb'] = latent_y
 
     # Get reconstructed feature space:
     data = model.predict(x=dat_dense, y=adata.obs[batch].tolist(),
-                         target=adata.obs[batch].value_counts().idxmax())
+                         target=main_batch)
     adata.X = data
 
     return adata
