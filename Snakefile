@@ -99,12 +99,13 @@ rule all:
 
 ## INTEGRATION
 rule integration:
-     input: 
-         expand(get_filename_pattern("integration", "single"),
+    input: 
+        expand(get_filename_pattern("integration", "single"),
                 scenario="mouse_brain", #DATA_SCENARIOS.keys(),
                 scaling=SCALING,
                 hvg=FEATURE_SELECTION.keys(),
                 method=METHODS)
+    message: "Integration done"
 
 #rule integration_single:
 #    input:
@@ -126,6 +127,7 @@ rule metrics:
         tables = get_all_file_patterns("metrics"),
         script = "scripts/merge_metrics.py"
     output: get_filename_pattern("metrics", "final")
+    message: "Merge all metrics"
     shell: "python {input.script} -i {input.tables} -o {output} --root {ROOT}"
 
 rule metrics_single:
@@ -134,6 +136,7 @@ rule metrics_single:
         i      = get_filename_pattern("integration", "single"),
         script = "scripts/metrics.py"
     output: get_filename_pattern("metrics", "single")
+    message: "Metrics {wildcards}"
     params:
         batch_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="batch_key"),
         label_key = lambda wildcards: get_from_scenario(wildcards.scenario, key="label_key"),
