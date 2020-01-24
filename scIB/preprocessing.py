@@ -410,3 +410,94 @@ def score_cell_cycle(adata, organism='mouse'):
         raise ValueError(f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}")
     
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+
+    
+def saveSeurat(adata, path, hvgs=None):
+    ro.r('library(Seurat)')
+    ro.r('library(scater)')
+    anndata2ri.activate()
+
+    if issparse(adata.X):
+        if not adata.X.has_sorted_indices:
+            adata.X.sort_indices()
+
+    for key in adata.layers:
+        if issparse(adata.layers[key]):
+            if not adata.layers[key].has_sorted_indices:
+                adata.layers[key].sort_indices()
+
+    ro.globalenv['adata'] = adata
+    
+    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+
+    # Fix error if levels are 0 and 1
+    # ro.r(f'sobj$batch <- as.character(sobj${batch})')
+    ro.r(f'Idents(sobj) = "{batch}"')
+    ro.r(f'saveRDS(sobj, file="{path}")') 
+    if hvgs is not None:
+        hvg_out = outPath+'_hvg.rds'
+        ro.globalenv['hvgs']=hvgs
+        ro.r('unlist(hvgs)')
+        ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
+
+
+    anndata2ri.deactivate()
+    
+def saveConos(adata, batch, path):
+    split = splitBatches(adata, batch)
+    for i in range(len(split)):
+        sc.pp.highly_variable_genes(split[i], flavor='cell_ranger')
+        sc.pp.pca(split[i], svd_solver='arpack')
+        saveSeurat(split[i], path+'_'+str(i)+'.rds')
+        
+def readSeurat(path):
+    anndata2ri.activate()
+    ro.r('library(Seurat)')
+    ro.r('library(scater)')
+    ro.r(f'sobj <- readRDS("{path}")')
+    adata = ro.r('as.SingleCellExperiment(sobj)')
+    anndata2ri.deactivate()
+    return(adata)
+    
+def readConos(path):
+    from scipy.io import mmread
+    gene_df = pd.read_csv(path + "genes.csv")
+
+    metadata = pd.read_csv(path + "metadata.csv")
+    metadata.index = metadata.CellId
+    del metadata["CellId"]
+
+    embedding_df = pd.read_csv(path + "embedding.csv")
+    # Decide between using PCA or pseudo-PCA
+    pseudopca_df = pd.read_csv(path + "pseudopca.csv")
+    #pca_df = pd.read_csv(path + "pca.csv")
+
+    graph_conn_mtx = mmread(path + "graph_connectivities.mtx")
+    graph_dist_mtx = mmread(path + "graph_distances.mtx")
+    
+    adata = sc.read_mtx(path+ "raw_count_matrix.mtx")
+    
+    
+    adata.var_names = gene_df["gene"].values
+    adata.obs_names = metadata.index.values
+
+    adata.obs = metadata.copy()
+
+    # Depends on which PCA you loaded
+    adata.X_pca = pseudopca_df.values
+    adata.obsm['X_pca'] = pseudopca_df.values
+
+    # Name according to embedding you saved
+    adata.X_umap = embedding_df.values
+    adata.obsm['X_umap'] = embedding_df.values
+
+    adata.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
+
+    # Assign raw counts to .raw slot, load in normalised counts
+    #adata.raw = adata
+    #adata_temp = sc.read_mtx(DATA_PATH + "count_matrix.mtx")
+    #adata.X = adata_temp.X
+    
+    return adata
+
+    

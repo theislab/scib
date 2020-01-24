@@ -178,7 +178,17 @@ def runScvi(adata, batch, hvg=None):
 
 def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    ro.r('library(Seurat)')
+    import time
+    import os
+    tmpName = "/tmp/seurat+"time.time()+".RDS"
+    saveSeurat(adata, tmpName)
+    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runSeurat.R '+tmpName+' '+batch+' '+tmpName+'_out.RDS')
+    adata_out = readSeurat(tmpName+'_out.RDS')
+
+    return adata_out
+
+    
+    """ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
 
@@ -231,7 +241,7 @@ def runSeurat(adata, batch, hvg=None):
     )
     integrated = ro.r('as.SingleCellExperiment(integrated)')
     anndata2ri.deactivate()
-    return integrated
+    return integrated"""
 
 def runHarmony(adata, batch, hvg = None):
     checkSanity(adata, batch, hvg)
@@ -275,7 +285,16 @@ def runBBKNN(adata, batch, hvg=None):
 
 def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
-    anndata2ri.activate()
+    import time
+    import os
+    tmpName = "/tmp/conos+"time.time()
+    saveSeurat(adata, tmpName+'.RDS')
+    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runConos.R '+tmpName+'.RDS '+batch+' '+tmpName)
+    adata_out = readConos(tmpName)
+
+    return adata_out
+
+    """anndata2ri.activate()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     ro.r('library(conos)')
@@ -303,12 +322,24 @@ def runConos(adata, batch, hvg=None):
     
     anndata2ri.deactivate()
     return out
+    """
+    
+
+
+if __name__=="__main__":
+    adata = sc.read('testing.h5ad')
+    #emb, corrected = runScanorama(adata, 'method', False)
+    #print(emb)
+    #print(corrected)
+
+
+        
+
 
 def runCombat(adata, batch):
     sc.pp.combat(adata, key=batch)
     return adata
 
-    
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
     #emb, corrected = runScanorama(adata, 'method', False)
