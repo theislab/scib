@@ -99,6 +99,7 @@ runHarm = function(sobj, batch) {
 	sobj <- ScaleData(sobj)
 	sobj <- RunPCA(sobj, features=rownames(sobj@assays$RNA))
 	sobj <- RunHarmony(sobj, batch)
+	sobj@reductions['X_emb'] <- sobj@reductions$harmony
 	#harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
 	return(sobj)
 }
