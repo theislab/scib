@@ -1,5 +1,7 @@
 ROOT: /storage/groups/ml01/workspace/scIB
 
+timing: false
+
 FEATURE_SELECTION:
   hvg: 2000
   full_feature: 0
@@ -10,30 +12,24 @@ SCALING:
 
 METHODS: # method name : ouput type(s)
   mnn: 
-    run: python
     output_type: full
   scanorama:
-    run: python
     output_type:
       - embed
       - full
   seurat: 
-    run: R
+    R: true
     output_type: full
   trvae:
-    run: python
     output_type: embed
   trvaep:
-    run: python
     output_type: embed
   harmony:
-    run: R
+    R: true
     output_type: embed
   bbknn:
-    run: python
     output_type: knn
   scvi:
-    run: python
     output_type: embed
 
 DATA_SCENARIOS:
@@ -49,12 +45,19 @@ DATA_SCENARIOS:
     organism: human
     assay: expression
     file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
-  immune_cell:
-    batch_key: batch
-    label_key: final_annotation
-    organism: human
-    assay: expression
-    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
+#  immune_cell_hum:
+#    batch_key: batch
+#    label_key: final_annotation
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
+#  immune_cell_hum_mou:
+#    batch_key: batch
+#    label_key: final_annotation
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human_mou.h5ad
+
     #mouse_atlas:
     #batch_key: study # TODO: we need batch over all samples as well
     #label_key: cell_type_union
