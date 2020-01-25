@@ -18,22 +18,51 @@ rule integration:
                 method   = cfg.get_all_methods())
     message: "Integration done"
 
-
-# TODO: add preprocessing
-
-
-rule integration_single:
+print(cfg.get_filename_pattern("prepare", "single_by_setting"))
+rule integration_prepare:
     input:
         adata  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
-        script = "scripts/runIntegration.py"
-    output: cfg.get_filename_pattern("integration", "single")
+        script = "scripts/runPP.py"
+    output:
+        cfg.get_filename_pattern("prepare", "single_by_setting")
+    message:
+        "Preparing adata for {wildcards}"
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg)
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        scale     = lambda wildcards: "-s" if wildcards.scaling == "scaled" else "",
+        rout      = lambda wildcards: "-r" if cfg.get_from_method(wildcards.method, "R") else "",
+        seurat    = lambda wildcards: "-l" if wildcards.method == "seurat" else ""
     shell:
         """
-        python {input.script} -i {input.adata} -o {output} \
-            -b {params.batch_key} --method {wildcards.method} --hvgs {params.hvgs}
+        python {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
+            --hvgs {params.hvgs} {params.scale} {params.rout} {params.seurat}
+        """
+
+rule integration_run:
+    input:
+        adata  = cfg.get_filename_pattern("prepare", "single_by_setting"),
+        pyscript = "scripts/runIntegration.py",
+        rscript = "R/runMethods.R"
+    output:
+        cfg.get_filename_pattern("integration", "single")
+    params:
+        batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        cmd       = lambda wildcards: "Rscript" if cfg.get_from_method(wildcards.method, "R")
+                                       else "python",
+        timing    = "-t" if cfg.timing else ""
+    shell:
+        """
+        if [ {params.cmd} -eq "Rscript"]
+        then
+            SCRIPT={input.rscript}
+        else
+            SCRIPT={input.pyscript}
+        fi
+        
+        {params.cmd} $SCRIPT -i {input.adata} -o {output} -b {params.batch_key} \
+            --method {wildcards.method} --hvgs {params.hvgs} {params.timing}
         """
 
 rule metrics:

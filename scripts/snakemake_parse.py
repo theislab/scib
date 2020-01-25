@@ -24,9 +24,10 @@ class ParsedConfig:
         self.SCALING           = config["SCALING"]
         self.FEATURE_SELECTION = config["FEATURE_SELECTION"]
         self.METHODS           = config["METHODS"]
+        self.timing            = config["timing"]
         
-        self.OUTPUT_FILE_TYPES = ['integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'by_method']
+        self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
+        self.OUTPUT_LEVEL      = ['single', 'final', 'by_setting', 'single_by_setting']
         self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
     
@@ -60,7 +61,8 @@ class ParsedConfig:
             raise ValueError(f"{method} not defined as method")
         
         if key not in self.METHODS[method]:
-            raise ValueError(f"{key} not a valid attribute of scenario {scenario}")
+            return ""
+            #raise ValueError(f"{key} not a valid attribute of scenario {scenario}")
         
         return self.METHODS[method][key]
     
@@ -87,23 +89,24 @@ class ParsedConfig:
             
         if level not in self.OUTPUT_LEVEL:
             raise ValueError(f"{level} not a valid output level")
-
-        if file_type == 'integration':
-            suffix = "{method}.h5ad"
-        elif file_type in ['metrics', 'cc_variance']:
-            suffix = "{method}_{o_type}.csv"
-        else:
-            raise ValueError(f"{file_type} is not a valid file type")
-
-        if level == 'single':
-            return join_path(self.ROOT,  "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
-        elif level == 'by_method':
-            return join_path(self.ROOT, "{{scenario}}", file_type, "{{scaling}}", "{{hvg}}", 
-                             "{method}_{o_type}.csv")
-        elif level == 'final':
+        
+        file_suffixes = {
+            "prepare"     : "{method}.h5ad",
+            "integration" : "{method}.h5ad",
+            "metrics"     : "{method}_{o_type}.csv",
+            "cc_variance" : "{method}_{o_type}.csv"
+        }
+        
+        suffix = file_suffixes[file_type]
+        
+        if level == "single":
+            return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
+        elif level == "single_by_setting":
+            return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
+        elif level == "by_setting":
+            return join_path(self.ROOT, "{{scenario}}", file_type, "{{scaling}}", "{{hvg}}", suffix)
+        elif level == "final":
             return join_path(self.ROOT, f"{file_type}.csv")
-        else:
-            raise ValueError(f"{level} is not a valid level")
     
     
     def get_all_file_patterns(self, file_type, output_types=None):
@@ -136,7 +139,7 @@ class ParsedConfig:
             if not ot:
                 continue # skip if method does not have any
             
-            file_pattern = self.get_filename_pattern(file_type, "by_method")
+            file_pattern = self.get_filename_pattern(file_type, "by_setting")
             
             if file_type == 'integration':
                 expanded = expand(file_pattern, method=method)
