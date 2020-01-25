@@ -139,7 +139,7 @@ class ParsedConfig:
             if not ot:
                 continue # skip if method does not have any
             
-            file_pattern = self.get_filename_pattern(file_type, "by_setting")
+            file_pattern = self.get_filename_pattern(file_type, "by_method")
             
             if file_type == 'integration':
                 expanded = expand(file_pattern, method=method)

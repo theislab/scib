@@ -18,51 +18,78 @@ rule integration:
                 method   = cfg.get_all_methods())
     message: "Integration done"
 
-print(cfg.get_filename_pattern("prepare", "single_by_setting"))
 rule integration_prepare:
     input:
         adata  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
         script = "scripts/runPP.py"
     output:
-        cfg.get_filename_pattern("prepare", "single_by_setting")
+        join_path(cfg.get_filename_pattern("prepare", "directory_by_setting"), "adata_pre.{prep}")
     message:
-        "Preparing adata for {wildcards}"
+        """
+        Preparing adata
+        wildcards: {wildcards}
+        parameters: {params}
+        output: {output}
+        """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
         scale     = lambda wildcards: "-s" if wildcards.scaling == "scaled" else "",
-        rout      = lambda wildcards: "-r" if cfg.get_from_method(wildcards.method, "R") else "",
-        seurat    = lambda wildcards: "-l" if wildcards.method == "seurat" else ""
+        rout      = lambda wildcards: "-r" if wildcards.prep == "RDS" else "",
+        seurat    = lambda wildcards: "-l" if wildcards.prep == "RDS" else ""
+    benchmark:
+        join_path(cfg.get_filename_pattern("prepare", "directory_by_setting"),
+                  "prep_{prep}.benchmark")
     shell:
         """
         python {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
             --hvgs {params.hvgs} {params.scale} {params.rout} {params.seurat}
         """
 
+def get_prep_adata(wildcards):
+    """
+    get R or python adata file depending on integration method
+    """
+    if cfg.get_from_method(wildcards.method, "R"):
+        prep = "RDS"
+    else:
+        prep = "h5ad"
+    return expand(rules.integration_prepare.output, **wildcards, prep=prep)
+
 rule integration_run:
     input:
-        adata  = cfg.get_filename_pattern("prepare", "single_by_setting"),
+        adata  = get_prep_adata,
         pyscript = "scripts/runIntegration.py",
-        rscript = "R/runMethods.R"
+        rscript = "scripts/R/runMethods.R"
     output:
         cfg.get_filename_pattern("integration", "single")
+    message:
+        """
+        Run {wildcards.method} on {wildcards.scaling} data
+        feature selection: {wildcards.hvg}
+        dataset: {wildcards.scenario}
+        command: {params.cmd}
+        hvgs: {params.hvgs}
+        """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
-        cmd       = lambda wildcards: "Rscript" if cfg.get_from_method(wildcards.method, "R")
-                                       else "python",
+        hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata[0]),
+        cmd       = lambda wildcards: "python" if not cfg.get_from_method(wildcards.method, "R")
+                                       else f"conda run -n {cfg.r_env} Rscript",
         timing    = "-t" if cfg.timing else ""
+    benchmark:
+        f'{cfg.get_filename_pattern("integration", "single")}.benchmark'
     shell:
         """
-        if [ {params.cmd} -eq "Rscript"]
+        if [ "{params.cmd}" = "python" ]
         then
-            SCRIPT={input.rscript}
-        else
             SCRIPT={input.pyscript}
+        else
+            SCRIPT={input.rscript}
         fi
         
         {params.cmd} $SCRIPT -i {input.adata} -o {output} -b {params.batch_key} \
-            --method {wildcards.method} --hvgs {params.hvgs} {params.timing}
+            --method {wildcards.method} {params.hvgs} {params.timing}
         """
 
 rule metrics:

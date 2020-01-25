@@ -1,6 +1,7 @@
 ROOT: /storage/groups/ml01/workspace/scIB
-
+r_env : conosTest
 timing: false
+
 
 FEATURE_SELECTION:
   hvg: 2000
@@ -21,11 +22,14 @@ METHODS: # method name : ouput type(s)
     R: true
     output_type: full
   trvae:
-    output_type: embed
+    output_type: 
+      - embed
+      - full
   trvaep:
-    output_type: embed
+    output_type:
+      - embed
+      - full
   harmony:
-    R: true
     output_type: embed
   bbknn:
     output_type: knn
