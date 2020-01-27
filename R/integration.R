@@ -104,25 +104,46 @@ runHarm = function(sobj, batch) {
 	return(sobj)
 }
 
-runLiger = function(sobj, hvg, num.cores=24, k=20, res=0.4, small.clust.thresh=20) {
+runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     require(liger)
     require(Seurat)
 
     # Create Liger object
-    lobj = seuratToLiger(sobj)
+    lobj = seuratToLiger(sobj, combined.seurat=T, meta.var=batch, renormalize=F,
+                         remove.missing=F)
+    
+    # We only pass nomarlized data, so store it as such
+    lobj@norm.data <- lobj@raw.data
 
     # Assign hvgs
+    #lobj <- selectGenes(lobj)  # Definitely works!
     lobj@var.genes <- hvg
 
+    lobj <- scaleNotCenter(lobj, remove.missing=F) # Can't do our own scaling atm
+    
+    # If we pass scaled data, could try:
+    #test = lapply(lobj@norm.data, as.matrix)
+    #names(test) <- names(lobj@norm.data)
+    #lobj@scale.data <- test
+    
+
     # Suggest a k. Coarse suggestion is 20.
-    #k.suggest <- suggestK(lobj, num.cores=num.cores, gen.new=T, return.results=T, plot.log2=F,
-                          nrep = 5)
+    #k.suggest <- suggestK(lobj, num.cores=num.cores, gen.new=T, return.data=T, plot.log2=F,
+    #                      nrep = 5)
 
     lobj <- optimizeALS(lobj, k=k, thresh=5e-5, nrep=3)
 
     lobj <- quantileAlignSNF(lobj, resolution=res, small.clust.thresh=small.clust.thresh)
 
-    seurat_obj = ligerToSeurat(ligerex, use.liger.genes = T)
+    # Store embedding in correct place
+    lobj@X_emb <- lobj@H.norm
 
+    seurat_obj = ligerToSeurat(ligerex, use.liger.genes = T)
+    # Other possibility:
+    # seurat_obj@reductions['X_emb'] <- lobj@H.norm
+
+    # Note:
+    # Need to check whether H.norm slot is moved to correct place in Seurat object
+    
     return(seurat_obj)
 }
