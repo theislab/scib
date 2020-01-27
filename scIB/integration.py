@@ -180,7 +180,7 @@ def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import time
     import os
-    tmpName = "/tmp/seurat+"time.time()+".RDS"
+    tmpName = "/tmp/seurat"+time.time()+".RDS"
     saveSeurat(adata, tmpName)
     os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runSeurat.R '+tmpName+' '+batch+' '+tmpName+'_out.RDS')
     adata_out = readSeurat(tmpName+'_out.RDS')
