@@ -37,6 +37,9 @@ rule integration_prepare:
         scale     = lambda wildcards: "-s" if wildcards.scaling == "scaled" else "",
         rout      = lambda wildcards: "-r" if wildcards.prep == "RDS" else "",
         seurat    = lambda wildcards: "-l" if wildcards.prep == "RDS" else ""
+    benchmark:
+        join_path(cfg.get_filename_pattern("prepare", "directory_by_setting"),
+                  "prep_{prep}.benchmark")
     shell:
         """
         python {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
@@ -47,7 +50,7 @@ def get_prep_adata(wildcards):
     """
     get R or python adata file depending on integration method
     """
-    if cfg.get_from_method(wildcards.method, "R") == True:
+    if cfg.get_from_method(wildcards.method, "R"):
         prep = "RDS"
     else:
         prep = "h5ad"
@@ -60,12 +63,21 @@ rule integration_run:
         rscript = "R/runMethods.R"
     output:
         cfg.get_filename_pattern("integration", "single")
+    message:
+        """
+        Run {wildcards.method} on {wildcards.scaling} data
+        feature selection: {wildcards.hvg}
+        dataset: {wildcards.scenario}
+        params: {params}
+        """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
         cmd       = lambda wildcards: "Rscript" if cfg.get_from_method(wildcards.method, "R")
                                        else "python",
         timing    = "-t" if cfg.timing else ""
+    benchmark:
+        f'{cfg.get_filename_pattern("integration", "single")}.benchmark'
     shell:
         """
         if [ {params.cmd} = "Rscript" ]
