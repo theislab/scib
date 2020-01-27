@@ -287,7 +287,7 @@ def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import time
     import os
-    tmpName = "/tmp/conos+"time.time()
+    tmpName = "/tmp/conos"+time.time()
     saveSeurat(adata, tmpName+'.RDS')
     os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runConos.R '+tmpName+'.RDS '+batch+' '+tmpName)
     adata_out = readConos(tmpName)
