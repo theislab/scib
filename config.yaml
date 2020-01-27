@@ -21,16 +21,23 @@ METHODS: # method name : ouput type(s)
     R: true
     output_type: full
   trvae:
-    output_type: embed
+    output_type: 
+      - embed
+      - full
   trvaep:
-    output_type: embed
+    output_type:
+      - embed
+      - full
   harmony:
-    R: true
     output_type: embed
   bbknn:
     output_type: knn
   scvi:
     output_type: embed
+  conos:
+    output_type: knn
+  combat:
+    output_type: full
 
 DATA_SCENARIOS:
   pancreas:
