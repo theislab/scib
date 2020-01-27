@@ -37,6 +37,10 @@ METHODS: # method name : ouput type(s)
     output_type: knn
   scvi:
     output_type: embed
+  conos:
+    output_type: knn
+  combat:
+    output_type: full
 
 DATA_SCENARIOS:
   pancreas:
