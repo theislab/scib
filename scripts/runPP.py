@@ -10,9 +10,12 @@ warnings.filterwarnings('ignore')
 def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
     """
     params:
-        method: name of method
-        batch: name of `adata.obs` column of the batch
-        max_genes_hvg: maximum number of HVG
+        inPath: path of the anndata object
+        outPath: path of the preprocessed file to be written
+        hvg: number of highly variable genes to use
+        rout: set to true to save a Seurat object
+        scale: set to true to activate scaling
+        seurat: set to true to produce hvg list
     """
 
     adata = sc.read(inPath)
@@ -35,35 +38,8 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
 
 
     if rout:
-        scIB.preprocessing.saveSeurat(adata, outPath, hvgs)
-        '''
-        import rpy2.robjects as ro
-        import anndata2ri
-        from scipy.sparse import issparse
-
-        ro.r('library(Seurat)')
-        ro.r('library(scater)')
-        anndata2ri.activate()
-
-        if issparse(adata.X):
-            if not adata.X.has_sorted_indices:
-                adata.X.sort_indices()
-
-        for key in adata.layers:
-            if issparse(adata.layers[key]):
-                if not adata.layers[key].has_sorted_indices:
-                    adata.layers[key].sort_indices()
-        ro.globalenv['adata']=adata
-        ro.r('adata <- as.Seurat(adata,counts=NULL, data="X")')
-        ro.r(f'saveRDS(adata, file="{outPath}")')
+        scIB.preprocessing.saveSeurat(adata, outPath, hvgs, batch)
         
-        if hvgs is not None:
-            hvg_out = outPath+'_hvg.rds'
-            ro.globalenv['hvgs']=hvgs
-            ro.r('unlist(hvgs)')
-            ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
-            '''
-
 
     else:
         sc.write(outPath, adata)
