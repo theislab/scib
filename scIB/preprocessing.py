@@ -412,7 +412,7 @@ def score_cell_cycle(adata, organism='mouse'):
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
     
-def saveSeurat(adata, path, hvgs=None):
+def saveSeurat(adata, path, batch, hvgs=None):
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
@@ -435,7 +435,7 @@ def saveSeurat(adata, path, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")') 
     if hvgs is not None:
-        hvg_out = outPath+'_hvg.rds'
+        hvg_out = path+'_hvg.rds'
         ro.globalenv['hvgs']=hvgs
         ro.r('unlist(hvgs)')
         ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
@@ -443,13 +443,7 @@ def saveSeurat(adata, path, hvgs=None):
 
     anndata2ri.deactivate()
     
-def saveConos(adata, batch, path):
-    split = splitBatches(adata, batch)
-    for i in range(len(split)):
-        sc.pp.highly_variable_genes(split[i], flavor='cell_ranger')
-        sc.pp.pca(split[i], svd_solver='arpack')
-        saveSeurat(split[i], path+'_'+str(i)+'.rds')
-        
+       
 def readSeurat(path):
     anndata2ri.activate()
     ro.r('library(Seurat)')
