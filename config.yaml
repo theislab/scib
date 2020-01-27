@@ -1,5 +1,5 @@
 ROOT: /storage/groups/ml01/workspace/scIB
-
+r_env : conosTest
 timing: false
 
 FEATURE_SELECTION:
@@ -35,6 +35,7 @@ METHODS: # method name : ouput type(s)
   scvi:
     output_type: embed
   conos:
+    R: true
     output_type: knn
   combat:
     output_type: full

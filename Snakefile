@@ -68,13 +68,13 @@ rule integration_run:
         Run {wildcards.method} on {wildcards.scaling} data
         feature selection: {wildcards.hvg}
         dataset: {wildcards.scenario}
-        params: {params}
+        command: {params.cmd}
         """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
-        cmd       = lambda wildcards: "Rscript" if cfg.get_from_method(wildcards.method, "R")
-                                       else "python",
+        hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata),
+        cmd       = lambda wildcards: "python" if not cfg.get_from_method(wildcards.method, "R")
+                                       else f"conda run -n {cfg.r_env} Rscript",
         timing    = "-t" if cfg.timing else ""
     benchmark:
         f'{cfg.get_filename_pattern("integration", "single")}.benchmark'
