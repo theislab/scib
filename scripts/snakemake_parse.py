@@ -25,6 +25,7 @@ class ParsedConfig:
         self.FEATURE_SELECTION = config["FEATURE_SELECTION"]
         self.METHODS           = config["METHODS"]
         self.timing            = config["timing"]
+        self.r_env             = config["r_env"]
         
         self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
         self.OUTPUT_LEVEL      = ['single', 'final', 'by_method', 'directory_by_setting']
@@ -52,8 +53,7 @@ class ParsedConfig:
         if key not in self.FEATURE_SELECTION:
             raise ValueError(f"{key} not a valid key for scaling")
         
-        return self.FEATURE_SELECTION[key]
-    
+        return self.FEATURE_SELECTION[key]    
     
     def get_from_method(self, method, key):
         
@@ -66,6 +66,14 @@ class ParsedConfig:
         
         return self.METHODS[method][key]
     
+    def get_hvg(self, wildcards, adata_path):
+        
+        n_hvgs = self.get_feature_selection(wildcards.hvg)
+        if n_hvgs > 0 and self.get_from_method(wildcards.method, "R"):
+            return adata_path + "_hvg.rds"
+        
+        return n_hvgs
+
     
     def get_from_scenario(self, scenario, key):
         
