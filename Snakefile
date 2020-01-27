@@ -18,7 +18,6 @@ rule integration:
                 method   = cfg.get_all_methods())
     message: "Integration done"
 
-print(cfg.get_filename_pattern("prepare", "single_by_setting"))
 rule integration_prepare:
     input:
         adata  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
@@ -26,7 +25,11 @@ rule integration_prepare:
     output:
         cfg.get_filename_pattern("prepare", "single_by_setting")
     message:
-        "Preparing adata for {wildcards}"
+        """
+        Preparing adata
+        wildcards: {wildcards}
+        parameters: {params}
+        """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
@@ -54,7 +57,7 @@ rule integration_run:
         timing    = "-t" if cfg.timing else ""
     shell:
         """
-        if [ {params.cmd} -eq "Rscript"]
+        if [ {params.cmd} = "Rscript" ]
         then
             SCRIPT={input.rscript}
         else
