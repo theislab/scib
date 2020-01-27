@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runIntegration(inPath, outPath, method, hvg, batch, scale):
+def runIntegration(inPath, outPath, method, hvg, batch):
     """
     params:
         method: name of method
@@ -49,7 +49,6 @@ if __name__=='__main__':
     batch = args.batch
     hvg = int(args.hvgs)
     timing = args.timing
-    scale = args.scale
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
@@ -66,4 +65,4 @@ if __name__=='__main__':
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch, scale)
+    runIntegration(file, out, run, hvg, batch)
