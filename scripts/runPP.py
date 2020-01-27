@@ -26,6 +26,7 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
         del adata.var['highly_variable']
     
     if hvg > 500:
+        print("Computing HVGs ...")
         if seurat:
             hvgs= scIB.preprocessing.hvg_batch(adata,batch_key=batch, target_genes=hvg, adataOut=False)
         else:
@@ -34,15 +35,18 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
                                                 target_genes=hvg,
                                                 adataOut=True)
     if scale:
+        print("Scaling data ...")
         adata = scIB.preprocessing.scale_batch(adata, batch)
 
 
     if rout:
+        print("Save as RDS")
         scIB.preprocessing.saveSeurat(adata, outPath, batch, hvgs)
         
-
     else:
+        print("Save as HDF5")
         sc.write(outPath, adata)
+
 
 if __name__=='__main__':
     import argparse
