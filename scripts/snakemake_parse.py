@@ -27,7 +27,7 @@ class ParsedConfig:
         self.timing            = config["timing"]
         
         self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'by_setting', 'single_by_setting']
+        self.OUTPUT_LEVEL      = ['single', 'final', 'by_method', 'directory_by_setting']
         self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
     
@@ -101,9 +101,9 @@ class ParsedConfig:
         
         if level == "single":
             return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
-        elif level == "single_by_setting":
-            return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
-        elif level == "by_setting":
+        elif level == "directory_by_setting":
+            return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}")
+        elif level == "by_method":
             return join_path(self.ROOT, "{{scenario}}", file_type, "{{scaling}}", "{{hvg}}", suffix)
         elif level == "final":
             return join_path(self.ROOT, f"{file_type}.csv")
@@ -139,7 +139,7 @@ class ParsedConfig:
             if not ot:
                 continue # skip if method does not have any
             
-            file_pattern = self.get_filename_pattern(file_type, "by_setting")
+            file_pattern = self.get_filename_pattern(file_type, "by_method")
             
             if file_type == 'integration':
                 expanded = expand(file_pattern, method=method)

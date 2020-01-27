@@ -23,28 +23,39 @@ rule integration_prepare:
         adata  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
         script = "scripts/runPP.py"
     output:
-        cfg.get_filename_pattern("prepare", "single_by_setting")
+        join_path(cfg.get_filename_pattern("prepare", "directory_by_setting"), "adata_pre.{prep}")
     message:
         """
         Preparing adata
         wildcards: {wildcards}
         parameters: {params}
+        output: {output}
         """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
         scale     = lambda wildcards: "-s" if wildcards.scaling == "scaled" else "",
-        rout      = lambda wildcards: "-r" if cfg.get_from_method(wildcards.method, "R") else "",
-        seurat    = lambda wildcards: "-l" if wildcards.method == "seurat" else ""
+        rout      = lambda wildcards: "-r" if wildcards.prep == "RDS" else "",
+        seurat    = lambda wildcards: "-l" if wildcards.prep == "RDS" else ""
     shell:
         """
         python {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
             --hvgs {params.hvgs} {params.scale} {params.rout} {params.seurat}
         """
 
+def get_prep_adata(wildcards):
+    """
+    get R or python adata file depending on integration method
+    """
+    if cfg.get_from_method(wildcards.method, "R") == True:
+        prep = "RDS"
+    else:
+        prep = "h5ad"
+    return expand(rules.integration_prepare.output, **wildcards, prep=prep)
+
 rule integration_run:
     input:
-        adata  = cfg.get_filename_pattern("prepare", "single_by_setting"),
+        adata  = get_prep_adata,
         pyscript = "scripts/runIntegration.py",
         rscript = "R/runMethods.R"
     output:
