@@ -38,7 +38,7 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
 
 
     if rout:
-        scIB.preprocessing.saveSeurat(adata, outPath, hvgs, batch)
+        scIB.preprocessing.saveSeurat(adata, outPath, batch, hvgs)
         
 
     else:
