@@ -417,12 +417,12 @@ def saveSeurat(adata, path, hvgs=None):
     ro.r('library(scater)')
     anndata2ri.activate()
 
-    if issparse(adata.X):
+    if sparse.issparse(adata.X):
         if not adata.X.has_sorted_indices:
             adata.X.sort_indices()
 
     for key in adata.layers:
-        if issparse(adata.layers[key]):
+        if sparse.issparse(adata.layers[key]):
             if not adata.layers[key].has_sorted_indices:
                 adata.layers[key].sort_indices()
 
