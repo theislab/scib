@@ -116,34 +116,22 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     lobj@norm.data <- lobj@raw.data
 
     # Assign hvgs
-    #lobj <- selectGenes(lobj)  # Definitely works!
     lobj@var.genes <- hvg
 
     lobj <- scaleNotCenter(lobj, remove.missing=F) # Can't do our own scaling atm
     
-    # If we pass scaled data, could try:
-    #test = lapply(lobj@norm.data, as.matrix)
-    #names(test) <- names(lobj@norm.data)
-    #lobj@scale.data <- test
-    
-
-    # Suggest a k. Coarse suggestion is 20.
-    #k.suggest <- suggestK(lobj, num.cores=num.cores, gen.new=T, return.data=T, plot.log2=F,
-    #                      nrep = 5)
-
+    # Use tutorial coarse k suggests of 20.
     lobj <- optimizeALS(lobj, k=k, thresh=5e-5, nrep=3)
 
     lobj <- quantileAlignSNF(lobj, resolution=res, small.clust.thresh=small.clust.thresh)
 
-    # Store embedding in correct place
-    lobj@X_emb <- lobj@H.norm
+    # Store embedding in initial Seurat object
+    # Code taken from ligerToSeurat() function from LIGER
+    inmf.obj <- new(
+      Class = "DimReduc", feature.loadings = t(lobj@W),
+      cell.embeddings = lobj@H.norm, key = "X_emb"
+    )
+    sobj@reductions['X_emb'] <- inmf.obj
 
-    seurat_obj = ligerToSeurat(ligerex, use.liger.genes = T)
-    # Other possibility:
-    # seurat_obj@reductions['X_emb'] <- lobj@H.norm
-
-    # Note:
-    # Need to check whether H.norm slot is moved to correct place in Seurat object
-    
-    return(seurat_obj)
+    return(sobj)
 }
