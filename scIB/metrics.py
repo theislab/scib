@@ -739,9 +739,9 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
-    ilisi_score = np.nanmedian((lisi_score[batch_key]-min_ilisi)/np.min(1e-32, max_ilisi - min_ilisi))
+    ilisi_score = np.nanmedian(lisi_score[batch_key])
     # cLISI: 1 good, 2 bad
-    clisi_score = np.nanmedian((lisi_score[label_key] - min_clisi)/np.min(1e-32, max_clisi - min_clisi))
+    clisi_score = np.nanmedian(lisi_score[label_key])
     
     if scale:
         #Comment: Scaling should be applied at the end when all scenarios are rated 
