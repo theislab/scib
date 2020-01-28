@@ -109,7 +109,7 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     require(Seurat)
 
     # We should be passing counts, but if not, assign data to make it run
-    if(dim(sobj@assays$RNA@counts) != dim(sobj@assays$RNA@data)) {
+    if(all(dim(sobj@assays$RNA@counts) != dim(sobj@assays$RNA@data))) {
         sobj@assays$RNA@counts = sobj@assays$RNA@counts
     }
 
