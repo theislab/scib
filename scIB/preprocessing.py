@@ -451,6 +451,14 @@ def readSeurat(path):
     ro.r(f'sobj <- readRDS("{path}")')
     adata = ro.r('as.SingleCellExperiment(sobj)')
     anndata2ri.deactivate()
+
+    #Test for 'X_EMB'
+    if 'X_EMB' in adata.obsm:
+        if 'X_emb' in adata.obsm:
+            print('overwriting existing `adata.obsm["X_emb"] in the adata object')
+        adata.obsm['X_emb'] = adata.obsm['X_EMB']
+        del adata.obsm['X_EMB']
+    
     return(adata)
     
 def readConos(path):
