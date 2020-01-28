@@ -38,6 +38,6 @@ if __name__=='__main__':
     #scale to 1 good and 0 bad
     res['iLISI']=(res['iLISI']-min_il)/(max_il-min_il)
     
-    results = res.T
+    results = res #do not transpose the file
     #write output file
     results.to_csv(args.output)
