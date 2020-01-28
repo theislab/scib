@@ -428,7 +428,7 @@ def saveSeurat(adata, path, batch, hvgs=None):
 
     ro.globalenv['adata'] = adata
     
-    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
+    ro.r('sobj = as.Seurat(adata, counts="counts", data = "X")')
 
     # Fix error if levels are 0 and 1
     # ro.r(f'sobj$batch <- as.character(sobj${batch})')
