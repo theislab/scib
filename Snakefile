@@ -60,7 +60,7 @@ rule integration_run:
     input:
         adata  = get_prep_adata,
         pyscript = "scripts/runIntegration.py",
-        rscript = "scripts/R/runMethods.R"
+        rscript = "scripts/runMethods.R"
     output:
         cfg.get_filename_pattern("integration", "single")
     message:
