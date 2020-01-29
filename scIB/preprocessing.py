@@ -413,6 +413,7 @@ def score_cell_cycle(adata, organism='mouse'):
 
     
 def saveSeurat(adata, path, batch, hvgs=None):
+    import re
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
@@ -435,7 +436,8 @@ def saveSeurat(adata, path, batch, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")') 
     if hvgs is not None:
-        hvg_out = path+'_hvg.rds'
+        hvg_out = re.sub('\.RDS$', '', path)+'_hvg.RDS'
+        #hvg_out = path+'_hvg.rds'
         ro.globalenv['hvgs']=hvgs
         ro.r('unlist(hvgs)')
         ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
@@ -451,6 +453,14 @@ def readSeurat(path):
     ro.r(f'sobj <- readRDS("{path}")')
     adata = ro.r('as.SingleCellExperiment(sobj)')
     anndata2ri.deactivate()
+
+    #Test for 'X_EMB'
+    if 'X_EMB' in adata.obsm:
+        if 'X_emb' in adata.obsm:
+            print('overwriting existing `adata.obsm["X_emb"] in the adata object')
+        adata.obsm['X_emb'] = adata.obsm['X_EMB']
+        del adata.obsm['X_EMB']
+    
     return(adata)
     
 def readConos(inPath):
