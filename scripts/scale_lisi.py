@@ -30,7 +30,7 @@ if __name__=='__main__':
     #scale to 1 good and 0 bad
     max_cl = np.max([2,res['cLISI'].max()]) #take the max of 2 and observed score
     min_cl = np.min([1,res['cLISI'].min()]) #take the min of 1 and observed score
-    res['cLISI'] = 1 - (res['cLISI']-min_cl)/(max_cl-min_cl) 
+    res['cLISI'] = (res['cLISI']-min_cl)/(max_cl-min_cl) 
     
     #original iLISI in [1,max] with 1 bad and max good
     max_il = np.max([2,res['iLISI'].max()])
