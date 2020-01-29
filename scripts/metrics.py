@@ -13,6 +13,7 @@ RESULT_TYPES = [
     "embed", # embedded/latent space
     "knn" # only corrected neighbourhood graph as output
 ]
+ASSAYS = ["expression", "atac"]
 
 if __name__=='__main__':
     """
@@ -33,7 +34,8 @@ if __name__=='__main__':
     
     parser.add_argument('--organism', required=True)
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
-    parser.add_argument('--hvgs', default=None, help='Number of highly variable genes', type=int)
+    parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
+    parser.add_argument('--hvgs', default=0, help='Number of highly variable genes. Use 0 to specify that no feature selection had been used.', type=int)
     parser.add_argument('-v', '--verbose', action='store_true')
     
     args = parser.parse_args()
@@ -42,8 +44,9 @@ if __name__=='__main__':
     type_ = args.type
     batch_key = args.batch_key
     label_key = args.label_key
+    assay = args.assay
     organism = args.organism
-    n_hvgs = args.hvgs
+    n_hvgs = args.hvgs if args.hvgs > 0 else None
     
     # set prefix for output and results column name
     base = os.path.basename(args.integrated)
@@ -55,6 +58,7 @@ if __name__=='__main__':
         print(f'    type:\t{type_}')
         print(f'    batch_key:\t{batch_key}')
         print(f'    label_key:\t{label_key}')
+        print(f'    assay:\t{assay}')
         print(f'    organism:\t{organism}')
         print(f'    n_hvgs:\t{n_hvgs}')
         print(f'    out_prefix:\t{out_prefix}')
@@ -144,8 +148,8 @@ if __name__=='__main__':
                                    neighbors=recompute_neighbors, use_rep=embed,
                                    pca=precompute_pca, umap=False)
     
-    # METRICS
     print("computing metrics")
+    # DEFAULT
     silhouette_ = True
     nmi_ = True
     ari_ = True
@@ -155,6 +159,8 @@ if __name__=='__main__':
     hvgs_ = True
     kBET_ = True
     lisi_ = True
+    
+    # by output type
     if (type_ == "embed"):
         hvgs_ = False
     elif (type_ == "knn"):
@@ -163,12 +169,17 @@ if __name__=='__main__':
         cell_cycle_ = False
         hvgs_ = False
     
+     # by assay
+    if args.assay == 'atac':
+        cell_cycle_ = False
+    
     if verbose:
         print(f'type:\t{type_}')
         print(f'    ASW:\t{silhouette_}')
         print(f'    NMI:\t{nmi_}')
         print(f'    ARI:\t{ari_}')
         print(f'    cell cycle:\t{cell_cycle_}')
+        print(f'    HVGs:\t{isolated_labels_}')
         print(f'    HVGs:\t{hvgs_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
