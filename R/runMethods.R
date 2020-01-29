@@ -34,5 +34,17 @@ if(opt$method=='harmony'){
 	
 	out=runHarm(sobj, opt$b)
 }
+
+if(opt$method=='liger'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+	}
+	else {
+		hvg <- rownames(sobj@assays$RNA)
+	}
+	
+	out = runLiger(sobj, opt$b, hvg)
+}
+
 saveSeuratObject(out, opt$o)
 

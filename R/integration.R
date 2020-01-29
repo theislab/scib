@@ -103,3 +103,39 @@ runHarm = function(sobj, batch) {
 	#harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
 	return(sobj)
 }
+
+runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
+    require(liger)
+    require(Seurat)
+
+    # Only counts is converted to liger object. To pass our own normalized data, 
+    # store it in the "counts" slot
+    sobj@assays$RNA@counts = sobj@assays$RNA@data
+
+    # Create Liger object
+    lobj = seuratToLiger(sobj, combined.seurat=T, meta.var=batch, renormalize=F,
+                         remove.missing=F)
+    
+    # We only pass nomarlized data, so store it as such
+    lobj@norm.data <- lobj@raw.data
+
+    # Assign hvgs
+    lobj@var.genes <- hvg
+
+    lobj <- scaleNotCenter(lobj, remove.missing=F) # Can't do our own scaling atm
+    
+    # Use tutorial coarse k suggests of 20.
+    lobj <- optimizeALS(lobj, k=k, thresh=5e-5, nrep=3)
+
+    lobj <- quantileAlignSNF(lobj, resolution=res, small.clust.thresh=small.clust.thresh)
+
+    # Store embedding in initial Seurat object
+    # Code taken from ligerToSeurat() function from LIGER
+    inmf.obj <- new(
+      Class = "DimReduc", feature.loadings = t(lobj@W),
+      cell.embeddings = lobj@H.norm, key = "X_emb"
+    )
+    sobj@reductions['X_emb'] <- inmf.obj
+
+    return(sobj)
+}
