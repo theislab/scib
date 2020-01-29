@@ -108,10 +108,9 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     require(liger)
     require(Seurat)
 
-    # We should be passing counts, but if not, assign data to make it run
-    if(all(dim(sobj@assays$RNA@counts) != dim(sobj@assays$RNA@data))) {
-        sobj@assays$RNA@counts = sobj@assays$RNA@counts
-    }
+    # Only counts is converted to liger object. To pass our own normalized data, 
+    # store it in the "counts" slot
+    sobj@assays$RNA@counts = sobj@assays$RNA@data
 
     # Create Liger object
     lobj = seuratToLiger(sobj, combined.seurat=T, meta.var=batch, renormalize=F,
