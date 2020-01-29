@@ -1,0 +1,150 @@
+---
+title: "Visualization scIB"
+author: "Marta Interlandi"
+date: "9/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup_environment, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(cowplot)
+library(fmsb)
+library(dplyr)
+library(tidyr)
+library(ggforce)
+library(tibble)
+library(RColorBrewer)
+library(dynutils)
+library(stringr)
+library(R.utils)
+
+setwd("/home/python_scRNA/Munich/visualization/")
+source("./knit_table.R")
+
+
+```
+
+# Plot metrics summary table
+
+Metrics in group 1:
+- PCR batch
+- ASW label/batch
+- iLISI
+- kBet
+
+Metrics group 2:
+- NMI
+- ARI
+- ASW label
+- cLISI
+- CC conservation
+
+```{r read}
+# Load .csv file containing metrics 
+metrics_tab_lab <- read.csv("./metrics_scIBvis_template.csv", sep = ";") ## change sep in case you have ","
+
+# get metrics names from columns
+metrics <- colnames(metrics_tab_lab)[-1]
+metrics <- gsub("\\.", "/", metrics)
+metrics <- gsub("_", " ", metrics)
+metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "iso label"), to = c("Cell type ASW", "Batch ASW", "CC conservation", "Isolated label"))
+
+
+# get methods info from rownames
+methods_info  <- as.character(metrics_tab_lab[,1])
+
+# data scenario name to be save in file name
+data.scenario <- sapply(str_split(methods_info, "/"), function(x) x[1])[1]
+
+# info on scaling data
+scaling <- sapply(str_split(methods_info, "/"), function(x) x[3])
+
+# info on HVG selection
+hvg <- sapply(str_split(methods_info, "/"), function(x) x[4])
+hvg <- plyr::mapvalues(hvg, from = c("hvg", "full_feature"), to = c("HVG", "FULL"))
+
+methods <- sapply(str_split(methods_info, "/"), function(x) x[5])
+
+methods_name <- sapply(str_split(methods, "_"), function(x) x[1])
+methods_name <- capitalize(methods_name)
+methods_name <- plyr::mapvalues(methods_name, from = c("Seurat", "Mnn", "Bbknn", "Trvae"), to = c("Seurat v3", "MNN", "BBKNN", "TrVAE"))
+
+
+method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
+method_groups <- plyr::mapvalues(method_groups, from = c("knn", "embed", "full"), to = c("KNN", "Embeddings", "Features"))
+
+
+
+##### Create dataframe 
+metrics_tab <- as.data.frame(metrics_tab_lab[, -1])
+metrics_tab[metrics_tab == ""] <- NA
+colnames(metrics_tab) <- metrics
+
+#add Methods column
+metrics_tab <- add_column(metrics_tab, "Method" = methods_name, .before = 1)
+
+# reorder columns by groups
+col.ordered <- c("Method", "PCR batch", "Batch ASW", "iLISI", "kBET", "NMI cluster/label", "ARI cluster/label", "Cell type ASW", "cLISI", "CC conservation", "Isolated label")
+metrics_tab <- metrics_tab[, col.ordered]
+
+## Scores should be already scaled [0,1]
+#metrics_tab[,-1] <- as.numeric(as.matrix(metrics_tab[, -1]))
+#metrics_tab[,-1] <- apply(metrics_tab[,-1], 2, function(x) scale_minmax(x))
+
+# calculate average score by group and overall
+score_group1 <- rowMeans(metrics_tab[, 2:5], na.rm = T)
+score_group2 <- rowMeans(metrics_tab[, 6:11], na.rm = T)
+score_all <- rowMeans(metrics_tab[, 2:11], na.rm = T) 
+
+metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
+metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
+metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = "kBET")
+
+metrics_tab <- add_column(metrics_tab, "method_group" = method_groups, .after = "Method")
+metrics_tab <- add_column(metrics_tab, "Features" = hvg, .after = "method_group")
+metrics_tab <- add_column(metrics_tab, "Scaling" = scaling, .after = "Features")
+
+
+# order methods by the overall score
+metrics_tab <- metrics_tab[order(metrics_tab$method_group, metrics_tab$`Overall Score`,  decreasing = T), ]
+
+
+
+
+```
+
+
+# Defining column_info, row_info and palettes
+
+```{r cndio}
+
+row_info <- data.frame(id = metrics_tab$Method, group = metrics_tab$method_group)  
+
+# remove column method_group that we needed only for ordering
+metrics_tab <- metrics_tab[, colnames(metrics_tab) != "method_group"]
+
+column_info <- data.frame(id = colnames(metrics_tab),
+                          group = c("Text", "Text", "Text", "Score overall", rep("Removal of batch effects", 5), rep("Cell type label variance", 7)), 
+                          geom = c("text", "text", "text", "bar", "bar", rep("circle", 4), "bar", rep("circle", 6)),
+                          width = c(3,2,2.5,2,2, rep(1,4), 2, rep(1,6)),
+                          overlay = F)
+
+
+palettes <- list("Score overall" = colorRampPalette(rev(brewer.pal(9, "YlGnBu")))(nrow(metrics_tab)),
+                 "Removal of batch effects" = colorRampPalette(rev(brewer.pal(9, "BuPu")))(nrow(metrics_tab)),
+                 "Cell type label variance" = colorRampPalette(rev(brewer.pal(9, "RdPu")))(nrow(metrics_tab)))
+
+
+g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes)  
+ggsave(paste0(data.scenario, "_summary_metrics.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
+
+
+
+
+
+```
