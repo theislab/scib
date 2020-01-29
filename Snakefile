@@ -60,7 +60,7 @@ rule integration_run:
     input:
         adata  = get_prep_adata,
         pyscript = "scripts/runIntegration.py",
-        rscript = "R/runMethods.R"
+        rscript = "scripts/R/runMethods.R"
     output:
         cfg.get_filename_pattern("integration", "single")
     message:
@@ -81,15 +81,15 @@ rule integration_run:
         f'{cfg.get_filename_pattern("integration", "single")}.benchmark'
     shell:
         """
-        if [ {params.cmd} = "Rscript" ]
+        if [ "{params.cmd}" = "python" ]
         then
-            SCRIPT={input.rscript}
-        else
             SCRIPT={input.pyscript}
+        else
+            SCRIPT={input.rscript}
         fi
         
         {params.cmd} $SCRIPT -i {input.adata} -o {output} -b {params.batch_key} \
-            --method {wildcards.method} --hvgs {params.hvgs} {params.timing}
+            --method {wildcards.method} {params.hvgs} {params.timing}
         """
 
 rule metrics:

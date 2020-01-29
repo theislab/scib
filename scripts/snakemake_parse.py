@@ -69,10 +69,14 @@ class ParsedConfig:
     def get_hvg(self, wildcards, adata_path):
         
         n_hvgs = self.get_feature_selection(wildcards.hvg)
-        if n_hvgs > 0 and self.get_from_method(wildcards.method, "R"):
-            return adata_path + "_hvg.rds"
         
-        return n_hvgs
+        if n_hvgs == 0:
+                return ""
+        
+        if self.get_from_method(wildcards.method, "R"):
+            return f'-v "{adata_path}_hvg.rds"'
+        
+        return f"-v {n_hvgs}"
 
     
     def get_from_scenario(self, scenario, key):

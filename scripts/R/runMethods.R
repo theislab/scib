@@ -8,11 +8,14 @@ option_list <- list(make_option(c("-m", "--method"), type="character", default=N
 		    make_option(c("-t", "--timing"), action="store_true", default=FALSE, help="time the function run"))
 
 
-
 opt = parse_args(OptionParser(option_list=option_list))
 
 #args <- commandArgs(trailingOnly=T)
-source('integration.R')
+args <- commandArgs(trailingOnly = FALSE)
+script_name <- sub("--file=", "", args[grep("--file=", args)])
+script_dir <- dirname(script_name)
+source(file.path(script_dir, 'integration.R'))
+
 sobj = loadSeuratObject(opt$i)
 
 if(opt$method=='seurat'){
