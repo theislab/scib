@@ -74,7 +74,10 @@ class ParsedConfig:
                 return ""
         
         if self.get_from_method(wildcards.method, "R"):
-            return f'-v "{adata_path}_hvg.rds"'
+            path_parts = adata_path.split('.')
+            path_parts[-2] += '_hvg'
+            hvg_path = '.'.join(path_parts)
+            return f'-v "{hvg_path}"'
         
         return f"-v {n_hvgs}"
 
