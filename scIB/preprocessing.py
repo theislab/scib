@@ -413,6 +413,7 @@ def score_cell_cycle(adata, organism='mouse'):
 
     
 def saveSeurat(adata, path, batch, hvgs=None):
+    import re
     ro.r('library(Seurat)')
     ro.r('library(scater)')
     anndata2ri.activate()
@@ -435,7 +436,8 @@ def saveSeurat(adata, path, batch, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")') 
     if hvgs is not None:
-        hvg_out = path+'_hvg.rds'
+        hvg_out = re.sub('\.RDS$', '', path)+'_hvg.RDS'
+        #hvg_out = path+'_hvg.rds'
         ro.globalenv['hvgs']=hvgs
         ro.r('unlist(hvgs)')
         ro.r(f'saveRDS(hvgs, file="{hvg_out}")')
