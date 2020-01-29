@@ -1,3 +1,4 @@
+# Change directory to script dir
 getScriptPath <- function(){
 	    cmd.args <- commandArgs()
     m <- regexpr("(?<=^--file=).+", cmd.args, perl=TRUE)
@@ -6,7 +7,7 @@ getScriptPath <- function(){
 	    if(length(script.dir) > 1) stop("can't determine script dir: more than one '--file' argument detected")
 	    return(script.dir)
 }
-# Setting the script path would then be:
+
 setwd(getScriptPath())
 
 library('optparse')
@@ -22,9 +23,7 @@ option_list <- list(make_option(c("-m", "--method"), type="character", default=N
 
 opt = parse_args(OptionParser(option_list=option_list))
 
-#args <- commandArgs(trailingOnly=T)
-#source(here('R','integration.R'))
-source('../R/integration.R', chdir=T)
+source('../R/integration.R')
 sobj = loadSeuratObject(opt$i)
 
 if(opt$method=='seurat'){
@@ -46,5 +45,17 @@ if(opt$method=='harmony'){
 	
 	out=runHarm(sobj, opt$b)
 }
+
+if(opt$method=='liger'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+	}
+	else {
+		hvg <- rownames(sobj@assays$RNA)
+	}
+	
+	out = runLiger(sobj, opt$b, hvg)
+}
+
 saveSeuratObject(out, opt$o)
 
