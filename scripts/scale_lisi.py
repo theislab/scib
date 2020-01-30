@@ -25,16 +25,16 @@ if __name__=='__main__':
     file = args.input
     res = pd.read_csv(file, index_col=0)
     
-    #select columns with LISI score and scale
-    #original cLISI in [1,max] with 1 good and max bad
+    #select columns with LISI score and scale (assuming scale=True in metrics call)
+    #original cLISI in [0,1] with 1 good and 0 bad
     #scale to 1 good and 0 bad
-    max_cl = np.max([2,res['cLISI'].max()]) #take the max of 2 and observed score
-    min_cl = np.min([1,res['cLISI'].min()]) #take the min of 1 and observed score
+    max_cl = np.max([1,res['cLISI'].max()]) #take the max of 2 and observed score
+    min_cl = np.min([0,res['cLISI'].min()]) #take the min of 1 and observed score
     res['cLISI'] = (res['cLISI']-min_cl)/(max_cl-min_cl) 
     
-    #original iLISI in [1,max] with 1 bad and max good
-    max_il = np.max([2,res['iLISI'].max()])
-    min_il = np.min([1,res['iLISI'].min()])
+    #original iLISI in [0,max] with 0 bad and max good
+    max_il = np.max([1,res['iLISI'].max()])
+    min_il = np.min([0,res['iLISI'].min()])
     #scale to 1 good and 0 bad
     res['iLISI']=(res['iLISI']-min_il)/(max_il-min_il)
     
