@@ -175,14 +175,22 @@ palettes
                           ymax = rep(row_pos$ymax, ncol(dat_mat)),
                           size = 4)
   
-  text_data$colors <- NA
-  text_data$colors <- ifelse(text_data$label_value == "HVG", "darkgreen", "black")
+  text_data$colors <- "black"
+  text_data[text_data$label_value == "HVG", "colors"] <- "darkgreen"
+  text_data[text_data$label_value == "FULL", "colors"] <- "grey30"
   
-  
+  text_data[text_data$label_value == "scaled", "colors"] <- "darkred"
+  text_data[text_data$label_value == "unscaled", "colors"] <- "grey30"
+  # 
+  # text_data$colors <- ifelse(text_data$label_value == "HVG", "darkgreen", "black")
+  # text_data$colors <- ifelse(text_data$label_value == "scaled", "darkred", "black")
+  # text_data$colors <- ifelse(text_data$label_value == "FULL", "darkgreen", "black")
+  # text_data$colors <- ifelse(text_data$label_value == "scaled", "darkred", "black")
+  # 
   # ADD COLUMN NAMES
   df <- column_pos %>% filter(id != "Method")
   # remove segment for HVG label
-  df <- df[df$id != "HVG_label",]
+  #df <- df[df$id != "HVG_label",]
   if (nrow(df) > 0) {
     segment_data <- segment_data %>% bind_rows(
       df %>% transmute(x = x, xend = x, y = -.3, yend = -.1, size = .5)
@@ -200,7 +208,7 @@ palettes
   }
   
   # remove HVG_label
-  text_data <- text_data[text_data$label_value != "HVG_label",]
+  #text_data <- text_data[text_data$label_value != "HVG_label",]
   
   
   # GENERATE ROW ANNOTATION
