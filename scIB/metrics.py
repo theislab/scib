@@ -456,6 +456,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         scores_after.append(after)
         
         score = 1 - abs(after - before)/before # scaled result
+        if score < 0:
+            # Here variance contribution becomes more than twice as large as before
+            if verbose:
+                print("Variance contrib more than twice as large after integration.")
+                print("Setting score to 0.")
+            score = 0
+        
         scores_final.append(score)
         
         if verbose:
@@ -494,7 +501,12 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
-        return (pcr_before - pcr_after)/pcr_before
+        score = (pcr_before - pcr_after)/pcr_before
+        if score < 0:
+            print("Variance contribution increased after integration!")
+            print("Setting PCR comparison score to 0.")
+            score = 0
+        return score
     else:
         return pcr_after - pcr_before
 
