@@ -494,7 +494,7 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
-        return abs(pcr_after - pcr_before)/pcr_before
+        return (pcr_before - pcr_after)/pcr_before
     else:
         return pcr_after - pcr_before
 
@@ -744,7 +744,9 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     clisi_score = np.nanmedian(lisi_score[label_key])
     
     if scale:
+        #Comment: Scaling should be applied at the end when all scenarios are rated 
         ilisi_score = ilisi_score - 1
+        #scale clisi score to 0 bad 1 good
         clisi_score = 2 - clisi_score
     
     return ilisi_score, clisi_score
@@ -776,19 +778,25 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
     ro.globalenv['batch'] = batch
     #print(matrix.shape)
     #print(len(batch))
-
-    if type_ == 'knn':
-        ro.globalenv['knn_graph'] = knn
-        ro.globalenv['k0'] = np.min([knn.shape[1], matrix.shape[0]])
-
+    
     if verbose:
         print("kBET estimation")
     #k0 = len(batch) if len(batch) < 50 else 'NULL'
     if type_ == 'knn':
+        ro.globalenv['knn_graph'] = knn
+        ro.globalenv['k0'] = np.min([knn.shape[1], matrix.shape[0]])
         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
     else:
-         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
-
+        #in this case, we do a knn search in R with FNN package
+        #FNN has an upper limit for the data size it can handle
+        size_max = 2**31 - 1 #limit before R uses long vector format
+        #if the input matrix is potentially too large, we set an upper limit for k0
+        if (matrix.shape[0]*matrix.shape[1]) >= size_max:
+            ro.globalenv['k0'] = np.floor(size_max/matrix.shape[0])
+            batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, k0=k0, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+        else:
+            batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+            
     anndata2ri.deactivate()
     try:
         ro.r("batch.estimate$average.pval")[0]
@@ -814,11 +822,12 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
         dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0], 
-                                   adata.uns['neighbors']['params']['n_neighbors']-1))
+        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+                                   n_nn))
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
             get_idx = dist_mat[0] == cell_id
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
     
     matrix = adata.obsm[embed]
     
