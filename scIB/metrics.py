@@ -814,11 +814,12 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
         dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0], 
-                                   adata.uns['neighbors']['params']['n_neighbors']-1))
+        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+                                   n_nn))
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
             get_idx = dist_mat[0] == cell_id
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])]
+            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
     
     matrix = adata.obsm[embed]
     
