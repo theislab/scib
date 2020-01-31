@@ -744,7 +744,9 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     clisi_score = np.nanmedian(lisi_score[label_key])
     
     if scale:
+        #Comment: Scaling should be applied at the end when all scenarios are rated 
         ilisi_score = ilisi_score - 1
+        #scale clisi score to 0 bad 1 good
         clisi_score = 2 - clisi_score
     
     return ilisi_score, clisi_score
