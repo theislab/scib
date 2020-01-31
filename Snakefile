@@ -9,13 +9,20 @@ rule all:
     input:
         cfg.get_filename_pattern("metrics", "final")
 
+# NOTE: this rule will not run atm, since we need to split the expand() for
+# R and python based methods
 rule integration:
-    input: 
-        expand(cfg.get_filename_pattern("integration", "single"),
+    input:
+        expand(cfg.get_filename_pattern("integration", "single", "h5ad"),
                 scenario = cfg.get_all_scenarios(),
                 scaling  = cfg.get_all_scalings(),
                 hvg      = cfg.get_all_feature_selections(),
-                method   = cfg.get_all_methods())
+                method   = cfg.get_all_methods("python")),
+        expand(cfg.get_filename_pattern("integration", "single", "rds_to_h5ad"),
+                scenario = cfg.get_all_scenarios(),
+                scaling  = cfg.get_all_scalings(),
+                hvg      = cfg.get_all_feature_selections(),
+                method   = cfg.get_all_methods("R"))
     message: "Integration done"
 
 rule integration_prepare:
@@ -56,13 +63,16 @@ def get_prep_adata(wildcards):
         prep = "h5ad"
     return expand(rules.integration_prepare.output, **wildcards, prep=prep)
 
-rule integration_run:
+# ------------------------------------------------------------------------------
+# Python specific integration rule.
+# TODO: decorate with some detailed information
+# ------------------------------------------------------------------------------
+rule integration_run_python:
     input:
         adata  = get_prep_adata,
-        pyscript = "scripts/runIntegration.py",
-        rscript = "scripts/runMethods.R"
+        pyscript = "scripts/runIntegration.py"
     output:
-        cfg.get_filename_pattern("integration", "single")
+        cfg.get_filename_pattern("integration", "single", "h5ad")
     message:
         """
         Run {wildcards.method} on {wildcards.scaling} data
@@ -74,22 +84,64 @@ rule integration_run:
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata[0]),
-        cmd       = lambda wildcards: "python" if not cfg.get_from_method(wildcards.method, "R")
-                                       else f"conda run -n {cfg.r_env} Rscript",
         timing    = "-t" if cfg.timing else ""
     benchmark:
-        f'{cfg.get_filename_pattern("integration", "single")}.benchmark'
+        f'{cfg.get_filename_pattern("integration", "single", "h5ad")}.benchmark'
     shell:
         """
-        if [ "{params.cmd}" = "python" ]
-        then
-            SCRIPT={input.pyscript}
-        else
-            SCRIPT={input.rscript}
-        fi
-        
-        {params.cmd} $SCRIPT -i {input.adata} -o {output} -b {params.batch_key} \
+        python {input.pyscript} -i {input.adata} -o {output} -b {params.batch_key} \
             --method {wildcards.method} {params.hvgs} {params.timing}
+        """
+
+# ------------------------------------------------------------------------------
+# R specific integration rule.
+# TODO: decorate with some detailed information
+# ------------------------------------------------------------------------------
+rule integration_run_r:
+    input:
+        adata  = get_prep_adata,
+        rscript = "scripts/runMethods.R"
+    output:
+        cfg.get_filename_pattern("integration", "single", "rds")
+    message:
+        """
+        Run {wildcards.method} on {wildcards.scaling} data
+        feature selection: {wildcards.hvg}
+        dataset: {wildcards.scenario}
+        command: {params.cmd}
+        hvgs: {params.hvgs}
+        """
+    params:
+        batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
+        hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata[0]),
+        cmd       = f"conda run -n {cfg.r_env} Rscript",
+        timing    = "-t" if cfg.timing else ""
+    benchmark:
+        f'{cfg.get_filename_pattern("integration", "single", "rds")}.benchmark'
+    shell:
+        """
+        {params.cmd} {input.rscript} -i {input.adata} -o {output} -b {params.batch_key} \
+            --method {wildcards.method} {params.hvgs} {params.timing}
+        """
+
+# ------------------------------------------------------------------------------
+# Simply converts the RDS files created by the R scripts to h5ad files for
+# further processing with the metrics rule
+# ------------------------------------------------------------------------------
+rule convert_RDS_h5ad:
+    input:
+        i = cfg.get_filename_pattern("integration", "single", "rds"),
+        rscript = "scripts/runPost.py"
+    output:
+        cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
+    shell:
+        """
+        if [ {wildcards.method} == "conos" ]
+        then
+            python {input.script} -i {input.i} -o {output} -c
+        else
+            python {input.script} -i {input.i} -o {output}
+        fi
         """
 
 rule metrics:
@@ -103,7 +155,8 @@ rule metrics:
 rule metrics_single:
     input:
         u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
-        i      = cfg.get_filename_pattern("integration", "single"),
+        i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad") if cfg.get_from_method(wildcards.method, "R")
+                                   else cfg.get_filename_pattern("integration", "single", "h5ad")
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
     message: "Metrics {wildcards}"
@@ -146,4 +199,3 @@ rule cc_single:
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
         """
-
