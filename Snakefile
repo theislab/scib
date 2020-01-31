@@ -4,6 +4,8 @@ import pathlib
 configfile: "config.yaml"
 cfg = ParsedConfig(config)
 
+wildcard_constraints:
+    hvg = "hvg|full_feature"
 
 rule all:
     input:
@@ -78,7 +80,7 @@ rule integration_run_python:
         Run {wildcards.method} on {wildcards.scaling} data
         feature selection: {wildcards.hvg}
         dataset: {wildcards.scenario}
-        command: {params.cmd}
+        command: "python"
         hvgs: {params.hvgs}
         """
     params:
@@ -131,7 +133,7 @@ rule integration_run_r:
 rule convert_RDS_h5ad:
     input:
         i = cfg.get_filename_pattern("integration", "single", "rds"),
-        rscript = "scripts/runPost.py"
+        script = "scripts/runPost.py"
     output:
         cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
     shell:
@@ -156,7 +158,7 @@ rule metrics_single:
     input:
         u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
         i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad") if cfg.get_from_method(wildcards.method, "R")
-                                   else cfg.get_filename_pattern("integration", "single", "h5ad")
+                                   else cfg.get_filename_pattern("integration", "single", "h5ad"),
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
     message: "Metrics {wildcards}"

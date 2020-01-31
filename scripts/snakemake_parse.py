@@ -50,9 +50,9 @@ class ParsedConfig:
             is_r = self.get_from_method(method, "R")
             if framework == "both":
                 all_methods.append(method)
-            elif framework == "python" && !is_r:
+            elif (framework == "python") and (not is_r):
                 all_methods.append(method)
-            elif framework == "R" && is_r:
+            elif (framework == "R") and (is_r):
                 all_methods.append(method)
 
         return all_methods
@@ -107,7 +107,7 @@ class ParsedConfig:
         return self.DATA_SCENARIOS[scenario][key]
 
 
-    def get_filename_pattern(self, file_type, level, file_suffix):
+    def get_filename_pattern(self, file_type, level, file_suffix=None):
         """
         file_type: one of ['integration', 'metrics', 'cc_variance']
         level: one of ['single', 'final', 'by_method']
@@ -119,7 +119,7 @@ class ParsedConfig:
         if level not in self.OUTPUT_LEVEL:
             raise ValueError(f"{level} not a valid output level")
 
-        if file_suffix not in ["rds", "rds_to_h5ad", "h5ad"]:
+        if file_suffix not in ["rds", "rds_to_h5ad", "h5ad", None]:
             raise ValueError(f"{file_suffix} not a valid output file suffix")
 
         file_suffixes = {
@@ -132,9 +132,11 @@ class ParsedConfig:
         # in case of R, we need a different suffix for the integration part
         if file_suffix == "rds":
             file_suffixes["integration"] = "R/{method}.RDS"
-        elif file_suffix == "rds_h5ad":
+        elif file_suffix == "rds_to_h5ad":
             file_suffixes["integration"] = "R/{method}.h5ad"
 
+        suffix = file_suffixes[file_type]
+        
         if level == "single":
             return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
         elif level == "directory_by_setting":
