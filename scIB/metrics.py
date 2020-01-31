@@ -494,7 +494,7 @@ def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, sca
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
-        return abs(pcr_after - pcr_before)/pcr_before
+        return (pcr_before - pcr_after)/pcr_before
     else:
         return pcr_after - pcr_before
 
