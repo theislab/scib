@@ -780,6 +780,11 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
     if type_ == 'knn':
         ro.globalenv['knn_graph'] = knn
         ro.globalenv['k0'] = np.min([knn.shape[1], matrix.shape[0]])
+    else: 
+        #in this case, we do a knn search in R with FNN package
+        #FNN has an upper limit for the data size it can handle
+        size_max = 2**31 - 1 #limit before R uses long vector format 
+        ro.globalenv['k0'] = np.floor(size_max/matrix.shape[0])
 
     if verbose:
         print("kBET estimation")
@@ -787,7 +792,7 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
     if type_ == 'knn':
         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
     else:
-         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+         batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, k0=k0, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
 
     anndata2ri.deactivate()
     try:
