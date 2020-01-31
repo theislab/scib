@@ -45,14 +45,15 @@ rule integration_prepare:
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
         scale     = lambda wildcards: "-s" if wildcards.scaling == "scaled" else "",
         rout      = lambda wildcards: "-r" if wildcards.prep == "RDS" else "",
-        seurat    = lambda wildcards: "-l" if wildcards.prep == "RDS" else ""
+        seurat    = lambda wildcards: "-l" if wildcards.prep == "RDS" else "",
+        cmd       = f"conda run -n {cfg.py_env} python"
     benchmark:
         join_path(cfg.get_filename_pattern("prepare", "directory_by_setting"),
                   "prep_{prep}.benchmark")
     shell:
         """
-        python {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
-            --hvgs {params.hvgs} {params.scale} {params.rout} {params.seurat}
+        {params.cmd} {input.script} -i {input.adata} -o {output} -b {params.batch_key} \
+        --hvgs {params.hvgs} {params.scale} {params.rout} {params.seurat}
         """
 
 def get_prep_adata(wildcards):
@@ -80,19 +81,20 @@ rule integration_run_python:
         Run {wildcards.method} on {wildcards.scaling} data
         feature selection: {wildcards.hvg}
         dataset: {wildcards.scenario}
-        command: "python"
+        command: {params.cmd}
         hvgs: {params.hvgs}
         """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata[0]),
-        timing    = "-t" if cfg.timing else ""
+        timing    = "-t" if cfg.timing else "",
+        cmd       = f"conda run -n {cfg.py_env} python"
     benchmark:
         f'{cfg.get_filename_pattern("integration", "single", "h5ad")}.benchmark'
     shell:
         """
-        python {input.pyscript} -i {input.adata} -o {output} -b {params.batch_key} \
-            --method {wildcards.method} {params.hvgs} {params.timing}
+        {params.cmd} {input.pyscript} -i {input.adata} -o {output} \
+	      -b {params.batch_key} --method {wildcards.method} {params.hvgs} {params.timing}
         """
 
 # ------------------------------------------------------------------------------
@@ -136,13 +138,19 @@ rule convert_RDS_h5ad:
         script = "scripts/runPost.py"
     output:
         cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
+    message:
+        """
+        Convert integrated data from {wildcards.method} into h5ad
+        """
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
     shell:
         """
         if [ {wildcards.method} == "conos" ]
         then
-            python {input.script} -i {input.i} -o {output} -c
+            {params.cmd} {input.script} -i {input.i} -o {output} -c
         else
-            python {input.script} -i {input.i} -o {output}
+            {params.cmd} {input.script} -i {input.i} -o {output}
         fi
         """
 
@@ -152,7 +160,9 @@ rule metrics:
         script = "scripts/merge_metrics.py"
     output: cfg.get_filename_pattern("metrics", "final")
     message: "Merge all metrics"
-    shell: "python {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell: "{params.cmd} {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
 
 rule metrics_single:
     input:
@@ -167,11 +177,12 @@ rule metrics_single:
         label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
         organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
         assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg)
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        cmd       = f"conda run -n {cfg.py_env} python"	
     shell:
         """
         OUT_DIR=$(dirname {output})
-        python {input.script} -u {input.u} -i {input.i} -o $OUT_DIR \
+        {params.cmd} {input.script} -u {input.u} -i {input.i} -o $OUT_DIR \
         -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
         """
@@ -182,7 +193,9 @@ rule cc_variation:
         tables = cfg.get_all_file_patterns("cc_variance", output_types=["full", "embed"]),
         script = "scripts/merge_cc_variance.py"
     output: cfg.get_filename_pattern("cc_variance", "final")
-    shell: "python {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell: "{params.cmd} {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
 
 rule cc_single:
     input:
@@ -194,14 +207,14 @@ rule cc_single:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
         assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg)
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        cmd       = f"conda run -n {cfg.py_env} python"
     shell:
         """
-        python {input.script} -u {input.u} -i {input.i} -o {output} \
+        {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} \
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
         """
-
 
 rule scale_lisi:
     input:
@@ -209,8 +222,10 @@ rule scale_lisi:
         script = "scripts/scale_halfopen.py"
     output: cfg.get_filename_pattern("metrics", "scaled_final")
     message: "Rescale LISI in merged metrics"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
     shell:
         """
-        python {input.script} -i {input.i} -o {output}
+        {params.cmd} {input.script} -i {input.i} -o {output}
         """
     

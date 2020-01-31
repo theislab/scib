@@ -1,5 +1,6 @@
 ROOT: /storage/groups/ml01/workspace/scIB
 r_env : conosTest
+py_env : snakemake_test
 timing: false
 
 FEATURE_SELECTION:
@@ -11,37 +12,37 @@ SCALING:
   - scaled
 
 METHODS: # method name : ouput type(s)
-  mnn: 
-    output_type: full
-  scanorama:
-    output_type:
-      - embed
-      - full
+  # mnn: 
+  #   output_type: full
+  # scanorama:
+  #   output_type:
+  #     - embed
+  #     - full
   seurat: 
     R: true
     output_type: full
-  trvae:
-    output_type: 
-      - embed
-      - full
-  trvaep:
-    output_type:
-      - embed
-      - full
-  harmony:
-    output_type: embed
-  bbknn:
-    output_type: knn
+  # trvae:
+  #   output_type: 
+  #     - embed
+  #     - full
+  # trvaep:
+  #   output_type:
+  #     - embed
+  #     - full
+  # harmony:
+  #   output_type: embed
+  # bbknn:
+  #   output_type: knn
   scvi:
     output_type: embed
   conos:
     R: true
     output_type: knn
-  combat:
-    output_type: full
-  liger:
-    R: true
-    output_type: embed
+  # combat:
+  #   output_type: full
+  # liger:
+  #   R: true
+  #   output_type: embed
 
 DATA_SCENARIOS:
   pancreas:
@@ -50,12 +51,12 @@ DATA_SCENARIOS:
     organism: human
     assay: expression
     file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/human_pancreas/human_pancreas_norm.h5ad
-  lung_atlas:
-    batch_key: batch
-    label_key: cell_type
-    organism: human
-    assay: expression
-    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
+#  lung_atlas:
+#    batch_key: batch
+#    label_key: cell_type
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
 #  immune_cell_hum:
 #    batch_key: batch
 #    label_key: final_annotation
