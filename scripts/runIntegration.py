@@ -27,7 +27,7 @@ def runIntegration(inPath, outPath, method, hvg, batch):
         integrated.uns['runtime'] = integrated_tmp[1]
 
     else:
-        method(adata, batch)
+        integrated = method(adata, batch)
     
     sc.write(outPath, integrated)
 
