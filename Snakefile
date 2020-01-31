@@ -9,7 +9,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        cfg.get_filename_pattern("metrics", "final")
+        cfg.get_filename_pattern("metrics", "scaled_final")
 
 # NOTE: this rule will not run atm, since we need to split the expand() for
 # R and python based methods
@@ -201,3 +201,16 @@ rule cc_single:
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
         """
+
+
+rule scale_lisi:
+    input:
+        i = cfg.get_filename_pattern("metrics", "final"),
+        script = "scripts/scale_halfopen.py"
+    output: cfg.get_filename_pattern("metrics", "scaled_final")
+    message: "Rescale LISI in merged metrics"
+    shell:
+        """
+        python {input.script} -i {input.i} -o {output}
+        """
+    
