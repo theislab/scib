@@ -463,8 +463,18 @@ def readSeurat(path):
     
     return(adata)
     
-def readConos(path):
+def readConos(inPath):
+    from time import time
+    from shutil import rmtree
     from scipy.io import mmread
+    from os import mkdir
+    import pandas as pd
+    
+    path = "/tmp/conos"+str(int(time()))+"/"
+    mkdir(path)
+    ro.r('library(conos)')
+    ro.r(f'con <- readRDS("{inPath}")')
+    ro.r(f'saveConosForScanPy(con, output.path="{path}", pseudo.pca=TRUE, pca=TRUE)')
     gene_df = pd.read_csv(path + "genes.csv")
 
     metadata = pd.read_csv(path + "metadata.csv")
@@ -501,6 +511,8 @@ def readConos(path):
     #adata.raw = adata
     #adata_temp = sc.read_mtx(DATA_PATH + "count_matrix.mtx")
     #adata.X = adata_temp.X
+
+    rmtree(path)
     
     return adata
 
