@@ -28,7 +28,7 @@ if __name__=='__main__':
     scenario= pd.Series([idx.split('/')[0] for idx in res.index], dtype='category')
     
     #select columns with LISI score, PCR and cc variance (halfopen support)
-    columns_oi = ['cLISI', 'iLISI', 'PCR_batch', 'cell_cycle_conservation']
+    columns_oi = ['cLISI', 'iLISI']#, 'PCR_batch', 'cell_cycle_conservation']
     #select only those columns, which are present in the input file
     columns = res.columns[np.in1d(res.columns, columns_oi)]
     
