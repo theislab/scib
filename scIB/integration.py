@@ -94,7 +94,7 @@ def runTrVaep(adata, batch, hvg=None):
     # Note: set seed for reproducibility of results
     trainer = trvaep.Trainer(model, adata, condition_key=batch, seed=42)
     
-    trainer.train_trvae(300, 512, early_patience=50)
+    trainer.train_trvae(300, 1024, early_patience=50)
 
     # Get latent representation
     if issparse(adata.X):
