@@ -1,6 +1,6 @@
 ROOT: /storage/groups/ml01/workspace/scIB
 r_env : conosTest
-py_env : snakemake_test
+py_env : sc-tutorial
 timing: false
 
 FEATURE_SELECTION:
@@ -12,34 +12,34 @@ SCALING:
   - scaled
 
 METHODS: # method name : ouput type(s)
-  # mnn: 
-  #   output_type: full
-  # scanorama:
-  #   output_type:
-  #     - embed
-  #     - full
+  mnn: 
+    output_type: full
+  scanorama:
+    output_type:
+      - embed
+      - full
   seurat: 
     R: true
     output_type: full
-  # trvae:
-  #   output_type: 
-  #     - embed
-  #     - full
-  # trvaep:
-  #   output_type:
-  #     - embed
-  #     - full
+  trvae:
+    output_type: 
+      - embed
+      - full
+  trvaep:
+    output_type:
+      - embed
+      - full
   # harmony:
   #   output_type: embed
-  # bbknn:
-  #   output_type: knn
+  bbknn:
+    output_type: knn
   scvi:
     output_type: embed
   conos:
     R: true
     output_type: knn
-  # combat:
-  #   output_type: full
+  combat:
+    output_type: full
   # liger:
   #   R: true
   #   output_type: embed
