@@ -201,7 +201,7 @@ if __name__=='__main__':
     if verbose:
         print(results)
     # save metrics' results
-    results.to_csv(os.path.join(args.output, f'{out_prefix}_metrics.csv'))
+    results.to_csv(os.path.join(args.output, f'{out_prefix}.csv'))
 
     print("done")
 
