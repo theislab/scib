@@ -29,8 +29,9 @@ METHODS: # method name : ouput type(s)
     output_type:
       - embed
       - full
-  # harmony:
-  #   output_type: embed
+ harmony:
+   R: true
+   output_type: embed
   bbknn:
     output_type: knn
   scvi:
@@ -40,9 +41,9 @@ METHODS: # method name : ouput type(s)
     output_type: knn
   combat:
     output_type: full
-  # liger:
-  #   R: true
-  #   output_type: embed
+ liger:
+   R: true
+   output_type: embed
 
 DATA_SCENARIOS:
   pancreas:
