@@ -478,8 +478,12 @@ def readConos(inPath):
     
     ro.r('library(conos)')
     ro.r(f'con <- readRDS("{inPath}")')
-    ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE)')
-    gene_df = pd.read_csv(dir_path + "genes.csv")
+    ro.r('meta <- function(sobj) {return(sobj@meta.data)}')
+    ro.r('metalist <- lapply(con$samples, meta)')
+    ro.r('library(data.table)')
+    ro.r('metaM <- do.call(rbind,unname(metalist))')
+    ro.r(f'saveConosForScanPy(con, output.path="{path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
+    gene_df = pd.read_csv(path + "genes.csv")
 
     metadata = pd.read_csv(dir_path + "metadata.csv")
     metadata.index = metadata.CellId
