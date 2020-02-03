@@ -88,7 +88,7 @@ if __name__=='__main__':
         #rename adata_int.obs[batch_key] labels by overwriting them with the pre-integration labels
         new_obs_names = ['-'.join(idx.split('-')[:-1]) for idx in adata_int.obs_names]
 
-        if len(set(adata.obs_names).difference(set(new_obs_names))):
+        if len(set(adata.obs_names).difference(set(new_obs_names))) == 0:
             adata_int.obs_names = new_obs_names
         else:
             raise ValueError('obs_names changed after integration!')
