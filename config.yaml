@@ -29,9 +29,9 @@ METHODS: # method name : ouput type(s)
     output_type:
       - embed
       - full
- harmony:
-   R: true
-   output_type: embed
+  harmony:
+    R: true
+    output_type: embed
   bbknn:
     output_type: knn
   scvi:
