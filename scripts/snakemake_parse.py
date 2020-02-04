@@ -27,7 +27,7 @@ class ParsedConfig:
         self.timing            = config["timing"]
         self.r_env             = config["r_env"]
         self.py_env            = config["py_env"]
-        self.conv_env            = config["conv_env"]
+        self.conv_env          = config["conv_env"]
 
         self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
         self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 'directory_by_setting']
