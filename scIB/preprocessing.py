@@ -482,8 +482,8 @@ def readConos(inPath):
     ro.r('metalist <- lapply(con$samples, meta)')
     ro.r('library(data.table)')
     ro.r('metaM <- do.call(rbind,unname(metalist))')
-    ro.r(f'saveConosForScanPy(con, output.path="{path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
-    gene_df = pd.read_csv(path + "genes.csv")
+    ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
+    gene_df = pd.read_csv(dir_path + "genes.csv")
 
     metadata = pd.read_csv(dir_path + "metadata.csv")
     metadata.index = metadata.CellId
@@ -492,7 +492,7 @@ def readConos(inPath):
     embedding_df = pd.read_csv(dir_path + "embedding.csv")
     # Decide between using PCA or pseudo-PCA
     pseudopca_df = pd.read_csv(dir_path + "pseudopca.csv")
-    #pca_df = pd.read_csv(path + "pca.csv")
+    #pca_df = pd.read_csv(dir_path + "pca.csv")
 
     graph_conn_mtx = mmread(dir_path + "graph_connectivities.mtx")
     graph_dist_mtx = mmread(dir_path + "graph_distances.mtx")
