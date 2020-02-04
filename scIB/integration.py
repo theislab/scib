@@ -85,6 +85,10 @@ def runTrVaep(adata, batch, hvg=None):
 
     n_batches = adata.obs[batch].nunique()
     
+    # Densify the data matrix
+    if issparse(adata.X):
+        adata.X = adata.X.A
+
     model = trvaep.CVAE(adata.n_vars, num_classes=n_batches,
                         encoder_layer_sizes=[64, 32],
                         decoder_layer_sizes=[32, 64], latent_dim=10,
@@ -94,24 +98,19 @@ def runTrVaep(adata, batch, hvg=None):
     # Note: set seed for reproducibility of results
     trainer = trvaep.Trainer(model, adata, condition_key=batch, seed=42)
     
-    trainer.train_trvae(300, 512, early_patience=50)
-
-    # Get latent representation
-    if issparse(adata.X):
-        dat_dense = adata.X.A
-    else:
-        dat_dense = adata.X
+    trainer.train_trvae(300, 1024, early_patience=50)
 
     # Get the dominant batch covariate
     main_batch = adata.obs[batch].value_counts().idxmax()
 
+    # Get latent representation
     latent_y = model.get_y(
-        dat_dense, c=model.label_encoder.transform(
+        adata.X, c=model.label_encoder.transform(
             np.tile(np.array([main_batch]), len(adata))))
     adata.obsm['X_emb'] = latent_y
 
     # Get reconstructed feature space:
-    data = model.predict(x=dat_dense, y=adata.obs[batch].tolist(),
+    data = model.predict(x=adata.X, y=adata.obs[batch].tolist(),
                          target=main_batch)
     adata.X = data
 

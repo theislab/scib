@@ -467,11 +467,15 @@ def readConos(inPath):
     from time import time
     from shutil import rmtree
     from scipy.io import mmread
-    from os import mkdir
+    from os import mkdir, path
     import pandas as pd
     
-    path = "/tmp/conos"+str(int(time()))+"/"
-    mkdir(path)
+    dir_path = "/tmp/conos"+str(int(time()))
+    while path.isdir(dir_path):
+        dir_path += '2'
+    dir_path += '/'
+    mkdir(dir_path)
+    
     ro.r('library(conos)')
     ro.r(f'con <- readRDS("{inPath}")')
     ro.r('meta <- function(sobj) {return(sobj@meta.data)}')
@@ -481,19 +485,19 @@ def readConos(inPath):
     ro.r(f'saveConosForScanPy(con, output.path="{path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
     gene_df = pd.read_csv(path + "genes.csv")
 
-    metadata = pd.read_csv(path + "metadata.csv")
+    metadata = pd.read_csv(dir_path + "metadata.csv")
     metadata.index = metadata.CellId
     del metadata["CellId"]
 
-    embedding_df = pd.read_csv(path + "embedding.csv")
+    embedding_df = pd.read_csv(dir_path + "embedding.csv")
     # Decide between using PCA or pseudo-PCA
-    pseudopca_df = pd.read_csv(path + "pseudopca.csv")
+    pseudopca_df = pd.read_csv(dir_path + "pseudopca.csv")
     #pca_df = pd.read_csv(path + "pca.csv")
 
-    graph_conn_mtx = mmread(path + "graph_connectivities.mtx")
-    graph_dist_mtx = mmread(path + "graph_distances.mtx")
+    graph_conn_mtx = mmread(dir_path + "graph_connectivities.mtx")
+    graph_dist_mtx = mmread(dir_path + "graph_distances.mtx")
     
-    adata = sc.read_mtx(path+ "raw_count_matrix.mtx")
+    adata = sc.read_mtx(dir_path+ "raw_count_matrix.mtx")
     
     
     adata.var_names = gene_df["gene"].values
@@ -516,7 +520,7 @@ def readConos(inPath):
     #adata_temp = sc.read_mtx(DATA_PATH + "count_matrix.mtx")
     #adata.X = adata_temp.X
 
-    rmtree(path)
+    rmtree(dir_path)
     
     return adata
 

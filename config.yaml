@@ -1,0 +1,97 @@
+ROOT: /storage/groups/ml01/workspace/scIB
+r_env : conosTest
+py_env : sc-tutorial
+conv_env : benchmarking_data_integration_dev
+timing: false
+
+FEATURE_SELECTION:
+  hvg: 2000
+  full_feature: 0
+
+SCALING:
+  - unscaled
+  - scaled
+
+METHODS: # method name : ouput type(s)
+  mnn: 
+    output_type: full
+  scanorama:
+    output_type:
+      - embed
+      - full
+  seurat:
+    R: true
+    output_type: full
+  trvae:
+    no_scale: true
+    output_type: 
+      - embed
+      - full
+  trvaep:
+    no_scale: true
+    output_type:
+      - embed
+      - full
+  harmony:
+    R: true
+    output_type: embed
+  bbknn:
+    output_type: knn
+  scvi:
+    no_scale: true
+    output_type: embed
+  conos:
+    R: true
+    output_type: knn
+  combat:
+    output_type: full
+  liger:
+    no_scale: true
+    R: true
+    output_type: embed
+
+DATA_SCENARIOS:
+  pancreas:
+    batch_key: tech
+    label_key: celltype
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/human_pancreas/human_pancreas_norm.h5ad
+#  lung_atlas:
+#    batch_key: batch
+#    label_key: cell_type
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
+#  immune_cell_hum:
+#    batch_key: batch
+#    label_key: final_annotation
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
+#  immune_cell_hum_mou:
+#    batch_key: batch
+#    label_key: final_annotation
+#    organism: human
+#    assay: expression
+#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human_mou.h5ad
+
+    #mouse_atlas:
+    #batch_key: study # TODO: we need batch over all samples as well
+    #label_key: cell_type_union
+    #organsism: mouse
+    #assay: expression
+    #file: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
+    #mouse_brain:
+    #batch_key: study
+    #label_key: cell_type
+    #organism: mouse
+    #assay: expression
+    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
+    #  mouse_brain_atac:
+    #    batch_key: batchname
+    #label_key: cell_type_consensus
+    #organism: mouse
+    #assay: atac
+    #file: /mnt/znas/icb_zstore01/groups/ce01/workspace/Benchmarking_data_integration/data/brain_atac/atac_brain_processed.h5ad
+
