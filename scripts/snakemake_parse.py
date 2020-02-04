@@ -30,7 +30,8 @@ class ParsedConfig:
         self.conv_env          = config["conv_env"]
 
         self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 'directory_by_setting']
+        self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 
+                                  'by_method_scaling', 'directory_by_setting']
         self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
     def get_all_scalings(self):
@@ -77,7 +78,7 @@ class ParsedConfig:
             raise ValueError(f"{method} not defined as method")
 
         if key not in self.METHODS[method]:
-            return ""
+            return False
             #raise ValueError(f"{key} not a valid attribute of scenario {scenario}")
 
         return self.METHODS[method][key]
@@ -104,7 +105,7 @@ class ParsedConfig:
             raise ValueError(f"{scenario} not defined as scenario")
 
         if key not in self.DATA_SCENARIOS[scenario]:
-            raise ValueError(f"{key} not a valid attribute of method {method}")
+            return False
 
         return self.DATA_SCENARIOS[scenario][key]
 
@@ -145,6 +146,8 @@ class ParsedConfig:
             return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}")
         elif level == "by_method":
             return join_path(self.ROOT, "{{scenario}}", file_type, "{{scaling}}", "{{hvg}}", suffix)
+        elif level == "by_method_scaling":
+            return join_path(self.ROOT, "{{scenario}}", file_type, "{scaling}", "{{hvg}}", suffix)
         elif level == "final":
             return join_path(self.ROOT, f"{file_type}.csv")
         elif level == "scaled_final":
@@ -177,29 +180,36 @@ class ParsedConfig:
         for method in self.METHODS:
 
             ot = self.get_from_method(method, "output_type")
-
             # keep only types to be considered
             ot = [x for x in as_list(ot) if x in as_list(output_types)]
             if not ot:
                 continue # skip if method does not have any
+            
+            # skip scaling for certain methods
+            scaling = self.SCALING.copy()
+            skip_scaling = self.get_from_method(method, "no_scale")
+            if skip_scaling and "scaled" in scaling:
+                scaling.remove("scaled")
+
+            file_level = "by_method_scaling"
 
             if file_type == 'integration':
                 is_r = self.get_from_method(method, "R")
                 if is_r:
-                    file_pattern = self.get_filename_pattern(file_type, "by_method", "rds_to_h5ad")
+                    file_pattern = self.get_filename_pattern(file_type, file_level, "rds_to_h5ad")
                 else:
-                    file_pattern = self.get_filename_pattern(file_type, "by_method", "h5ad")
+                    file_pattern = self.get_filename_pattern(file_type, file_level, "h5ad")
 
-                expanded = expand(file_pattern, method=method)
+                expanded = expand(file_pattern, method=method, scaling=scaling)
+
             elif file_type in ['metrics', 'cc_variance']:
-                file_pattern = self.get_filename_pattern(file_type, "by_method")
-                expanded = expand(file_pattern, method=method, o_type=ot)
+                file_pattern = self.get_filename_pattern(file_type, file_level)
+                expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
             else:
                 raise ValueError(f"{file_type} is not a valid file type")
 
             for p in expanded:
                 f = expand(p, scenario=self.get_all_scenarios(),
-                           scaling=self.get_all_scalings(),
                            hvg=self.get_all_feature_selections())
                 all_files.extend(f)
 
