@@ -670,9 +670,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
         empty_dist = np.flatnonzero(nn_dists.sum(1) == 0) 
         nn_dists = np.delete(nn_dists, empty_dist, 0)
         nn_index = np.delete(nn_index, empty_dist, 0)
-    
-    if verbose:
-        if out_cells > 0:
+        if verbose:
             print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
     
     if perplexity is None:
@@ -858,7 +856,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         index_out = []
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
             get_idx = dist_mat[0] == cell_id
-            if get_idx.sum() >= n_nn:
+            num_idx = get_idx.sum()
+            if num_idx >= n_nn:
                 nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
             else:
                 index_out.append(get_idx.sum())
@@ -869,9 +868,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         #remove all indexes in nn_index and nn_dists, which are 0
             empty_dist = np.flatnonzero(nn_index.sum(1) == 0) 
             nn_index = np.delete(nn_index, empty_dist, 0)
-        
-        if verbose:
-            if out_cells > 0:
+            if verbose:
                 print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
     
     matrix = adata.obsm[embed]
