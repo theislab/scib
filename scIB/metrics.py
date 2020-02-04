@@ -636,7 +636,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
     
     if 'neighbors' not in adata.uns:
-        raise AttributeError(f"key 'neighbors' not found. Please make sure that a" +
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
                              "kNN graph has been computed")
     elif verbose:
         print("using precomputed kNN graph")
@@ -650,13 +650,22 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
     nn_dists = nn_index
+    index_out = []
     for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
         get_idx = dist_mat[0] == cell_id
         #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
         #potential enhancement: handle case where less than n_nn neighbours are reported
-        nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
-        nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])[:n_nn]
-        
+        if get_idx.sum() >= n_nn:
+            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
+            nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])[:n_nn]
+        else:
+            index_out.append(get_idx.sum())
+    
+    if verbose:
+        out_cells = len(index_out)
+        if out_cells > 0:
+            print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
+    
     if perplexity is None:
         # use LISI default
         perplexity = np.floor(nn_index.shape[1]/3)
@@ -837,9 +846,18 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                    n_nn))
+        index_out = []
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
             get_idx = dist_mat[0] == cell_id
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
+            if get_idx.sum() >= n_nn:
+                nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
+            else:
+                index_out.append(get_idx.sum())
+        
+        if verbose:
+            out_cells = len(index_out)
+            if out_cells > 0:
+                print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
     
     matrix = adata.obsm[embed]
     
