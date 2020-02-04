@@ -23,10 +23,12 @@ METHODS: # method name : ouput type(s)
     R: true
     output_type: full
   trvae:
+    no_scale: true
     output_type: 
       - embed
       - full
   trvaep:
+    no_scale: true
     output_type:
       - embed
       - full
@@ -36,6 +38,7 @@ METHODS: # method name : ouput type(s)
   bbknn:
     output_type: knn
   scvi:
+    no_scale: true
     output_type: embed
   conos:
     R: true
@@ -43,6 +46,7 @@ METHODS: # method name : ouput type(s)
   combat:
     output_type: full
   liger:
+    no_scale: true
     R: true
     output_type: embed
 
