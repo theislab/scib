@@ -687,14 +687,23 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     ro.r("library(lisi)")
     
     if verbose:
-        print("importing knn-graph")
+        print("importing knn-graph")  
     ro.globalenv['nn_indx'] = nn_index.T
     ro.globalenv['nn_dst'] = nn_dists.T
-    ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
-    ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
-    ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
-    ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
     ro.globalenv['perplexity'] = perplexity
+    if out_cells > 0:  
+        batch_adapt = np.delete(adata.obs[batch_key].cat.codes.values, empty_dist)
+        label_adapt = np.delete(adata.obs[label_key].cat.codes.values, empty_dist)
+        ro.globalenv['batch'] = batch_adapt
+        ro.globalenv['n_batches'] = len(np.unique(batch_adapt))
+        ro.globalenv['label'] = label_adapt
+        ro.globalenv['n_labels'] = len(np.unique(label_adapt))
+    else:
+        ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
+        ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
+        ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
+        ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
+        
     
     if verbose:
         print("LISI score estimation")
