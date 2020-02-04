@@ -1,6 +1,7 @@
 ROOT: /storage/groups/ml01/workspace/scIB
 r_env : conosTest
 py_env : sc-tutorial
+conv_env : benchmarking_data_integration_dev
 timing: false
 
 FEATURE_SELECTION:

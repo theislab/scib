@@ -143,7 +143,7 @@ rule convert_RDS_h5ad:
         Convert integrated data from {wildcards.method} into h5ad
         """
     params:
-        cmd = f"conda run -n {cfg.py_env} python"
+        cmd = f"conda run -n {cfg.conv_env} python"
     shell:
         """
         if [ {wildcards.method} == "conos" ]
