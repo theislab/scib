@@ -74,7 +74,7 @@ DATA_SCENARIOS:
     label_key: final_annotation
     organism: human
     assay: expression
-    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human_mou.h5ad
+    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_hum_mou.h5ad
   simulation_1:
     batch_key: Batch
     label_key: Group
