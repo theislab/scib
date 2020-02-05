@@ -27,11 +27,11 @@ METHODS: # method name : ouput type(s)
     output_type: 
       - embed
       - full
-  trvaep:
-    no_scale: true
-    output_type:
-      - embed
-      - full
+  # trvaep:
+  #   no_scale: true
+  #   output_type:
+  #     - embed
+  #     - full
   harmony:
     R: true
     output_type: embed
@@ -57,24 +57,30 @@ DATA_SCENARIOS:
     organism: human
     assay: expression
     file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/human_pancreas/human_pancreas_norm.h5ad
-#  lung_atlas:
-#    batch_key: batch
-#    label_key: cell_type
-#    organism: human
-#    assay: expression
-#    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
-#  immune_cell_hum:
-#    batch_key: batch
-#    label_key: final_annotation
-#    organism: human
-#    assay: expression
-#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
-#  immune_cell_hum_mou:
-#    batch_key: batch
-#    label_key: final_annotation
-#    organism: human
-#    assay: expression
-#    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human_mou.h5ad
+  lung_atlas:
+    batch_key: batch
+    label_key: cell_type
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/lung/Lung_atlas_final_fixed.h5ad
+  immune_cell_hum:
+    batch_key: batch
+    label_key: final_annotation
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human.h5ad
+  immune_cell_hum_mou:
+    batch_key: batch
+    label_key: final_annotation
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_human_mou.h5ad
+  simulation_1:
+    batch_key: Batch
+    label_key: Group
+    organism: human
+    assay: expression
+    file: /storage/groups/ml01/workspace/scIB/simulations_1/sim1_qc.h5ad
 
     #mouse_atlas:
     #batch_key: study # TODO: we need batch over all samples as well
