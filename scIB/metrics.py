@@ -694,7 +694,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if verbose:
         print("importing knn-graph")  
-    ro.globalenv['nn_indx'] = nn_index.T
+    ro.globalenv['nn_indx'] = nn_index.astype('int').T
     ro.globalenv['nn_dst'] = nn_dists.T
     ro.globalenv['perplexity'] = perplexity
     if out_cells > 0:  
@@ -903,7 +903,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     for clus in adata.obs[label_key].unique():
         idx = np.where((adata.obs[label_key] == clus))[0]
         if type_ == 'knn':
-            nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
+            nn_index_tmp = nn_index[idx,:].astype('int') #reduce nearest neighbor matrix to the desired indices
             nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
             score = kBET_single(
                 matrix[idx, :],
