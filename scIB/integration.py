@@ -141,7 +141,8 @@ def runScvi(adata, batch, hvg=None):
     net_adata = adata.copy()
     net_adata.X = adata.layers['counts']
     del net_adata.layers['counts']
-    net_adata.raw = None # Ensure that the raw counts are not accidentally used
+    # Ensure that the raw counts are not accidentally used
+    del net_adata.raw # Note that this only works from anndata 0.7
 
     # Define batch indices
     le = LabelEncoder()
