@@ -713,8 +713,8 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if verbose:
         print("LISI score estimation")
-    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
-    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
+    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_dst, nn_indx, batch, n_batches, perplexity)") #batch_label_keys)")
+    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_dst, nn_indx, label, n_labels, perplexity)") #batch_label_keys)")
     simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
     simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
     
