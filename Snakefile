@@ -11,20 +11,9 @@ rule all:
     input:
         cfg.get_filename_pattern("metrics", "scaled_final")
 
-# NOTE: this rule will not run atm, since we need to split the expand() for
-# R and python based methods
 rule integration:
     input:
-        expand(cfg.get_filename_pattern("integration", "single", "h5ad"),
-                scenario = cfg.get_all_scenarios(),
-                scaling  = cfg.get_all_scalings(),
-                hvg      = cfg.get_all_feature_selections(),
-                method   = cfg.get_all_methods("python")),
-        expand(cfg.get_filename_pattern("integration", "single", "rds_to_h5ad"),
-                scenario = cfg.get_all_scenarios(),
-                scaling  = cfg.get_all_scalings(),
-                hvg      = cfg.get_all_feature_selections(),
-                method   = cfg.get_all_methods("R"))
+        cfg.get_all_file_patterns("integration")
     message: "Integration done"
 
 rule integration_prepare:
