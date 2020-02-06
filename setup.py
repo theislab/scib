@@ -14,7 +14,6 @@ setup(name='scIB',
       install_requires=[            
           'anndata',
           'scanpy',
-          'anndata',
           'rpy2>=3',
           'bbknn',
           'anndata2ri',
