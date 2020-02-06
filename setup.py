@@ -12,7 +12,7 @@ setup(name='scIB',
       url='https://github.com/theislab/scib',
       keywords = ['benchmark', 'single cell', 'data integration'], 
       install_requires=[            
-          'anndata',
+          'anndata>=0.7',
           'scanpy',
           'rpy2>=3',
           'bbknn',
