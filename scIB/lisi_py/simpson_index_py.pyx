@@ -1,4 +1,9 @@
+import numpy as np
+
 def Hbeta(D_row, beta):
+    """
+    Helper function for simpson index computation
+    """
     P = np.exp(- D_row * beta)
     sumP = P.sum()
     if (sumP == 0):
@@ -11,6 +16,18 @@ def Hbeta(D_row, beta):
 
 def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batches = None,
                           perplexity = 15, tol = 1e-5): 
+    """
+    Simpson index of batch labels subsetted for each group.
+    params:
+        D: distance matrix n_cells x n_nearest_neighbors
+        knn_idx: index of n_nearest_neighbors of each cell
+        batch_labels: a vector of length n_cells with batch info
+        n_batches: number of unique batch labels 
+        perplexity: effective neighborhood size
+        tol: a tolerance for testing effective neighborhood size
+    returns:
+        simpson: the simpson index for the neighborhood of each cell
+    """
     n = D.shape[0]
     P = np.zeros(D.shape[1])
     simpson = np.zeros(n)
