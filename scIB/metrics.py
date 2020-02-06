@@ -658,7 +658,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
     index_out = []
-    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
         get_idx = dist_mat[0] == cell_id
         num_idx = get_idx.sum()
         #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
@@ -876,7 +876,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                    n_nn))
         index_out = []
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
             get_idx = dist_mat[0] == cell_id
             num_idx = get_idx.sum()
             if num_idx >= n_nn:
