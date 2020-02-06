@@ -18,6 +18,7 @@ setup(name='scIB',
           'bbknn',
           'anndata2ri',
           'scanorama',
+          'memory_profiler',
       ],
       classifiers=[
          'Development Status :: 3 - Alpha',      
