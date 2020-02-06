@@ -13,7 +13,7 @@ RESULT_TYPES = [
     "embed", # embedded/latent space
     "knn" # only corrected neighbourhood graph as output
 ]
-ASSAYS = ["expression", "atac"]
+ASSAYS = ["expression", "atac", "simulation"]
 
 if __name__=='__main__':
     """
@@ -171,6 +171,8 @@ if __name__=='__main__':
     
      # by assay
     if args.assay == 'atac':
+        cell_cycle_ = False
+    elif args.assay == 'simulation':
         cell_cycle_ = False
     
     if verbose:

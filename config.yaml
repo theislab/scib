@@ -79,7 +79,7 @@ DATA_SCENARIOS:
     batch_key: Batch
     label_key: Group
     organism: human
-    assay: expression
+    assay: simulation
     file: /storage/groups/ml01/workspace/scIB/simulations_1/sim1_qc.h5ad
 
     #mouse_atlas:
