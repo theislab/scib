@@ -646,13 +646,19 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
         print("Convert nearest neighbor matrix and distances for LISI.")
     dist_mat = sparse.find(adata.uns['neighbors']['distances'])
     #get number of nearest neighbours parameter
-    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+    if 'params' not in adata.uns['neighbors']:
+        #estimate the number of nearest neighbors as the median 
+        #of the distance matrix
+        _, e = np.unique(dist_mat[0], return_counts=True)
+        n_nn = np.nanmedian(e)
+    else:
+        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
     nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
     index_out = []
-    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
         get_idx = dist_mat[0] == cell_id
         num_idx = get_idx.sum()
         #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
@@ -688,7 +694,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if verbose:
         print("importing knn-graph")  
-    ro.globalenv['nn_indx'] = nn_index.T
+    ro.globalenv['nn_indx'] = nn_index.astype('int').T
     ro.globalenv['nn_dst'] = nn_dists.T
     ro.globalenv['perplexity'] = perplexity
     if out_cells > 0:  
@@ -707,8 +713,8 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if verbose:
         print("LISI score estimation")
-    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_indx, nn_dst, batch, n_batches, perplexity)") #batch_label_keys)")
-    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_indx, nn_dst, label, n_labels, perplexity)") #batch_label_keys)")
+    simpson_estimate_batch = ro.r(f"simpson.estimate_batch <- compute_simpson_index(nn_dst, nn_indx, batch, n_batches, perplexity)") #batch_label_keys)")
+    simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_dst, nn_indx, label, n_labels, perplexity)") #batch_label_keys)")
     simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
     simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
     
@@ -859,11 +865,18 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
         dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        #get number of nearest neighbours parameter
+        if 'params' not in adata.uns['neighbors']:
+            #estimate the number of nearest neighbors as the median 
+            #of the distance matrix
+            _, e = np.unique(dist_mat[0], return_counts=True)
+            n_nn = np.nanmedian(e)
+        else:
+            n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                    n_nn))
         index_out = []
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])):
+        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
             get_idx = dist_mat[0] == cell_id
             num_idx = get_idx.sum()
             if num_idx >= n_nn:
@@ -890,7 +903,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     for clus in adata.obs[label_key].unique():
         idx = np.where((adata.obs[label_key] == clus))[0]
         if type_ == 'knn':
-            nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
+            nn_index_tmp = nn_index[idx,:].astype('int') #reduce nearest neighbor matrix to the desired indices
             nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
             score = kBET_single(
                 matrix[idx, :],
