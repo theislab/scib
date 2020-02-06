@@ -646,7 +646,13 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
         print("Convert nearest neighbor matrix and distances for LISI.")
     dist_mat = sparse.find(adata.uns['neighbors']['distances'])
     #get number of nearest neighbours parameter
-    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+    if 'params' not in adata.uns['neighbors']:
+        #estimate the number of nearest neighbors as the median 
+        #of the distance matrix
+        _, e = np.unique(dist_mat[0], return_counts=True)
+        n_nn = np.nanmedian(e)
+    else:
+        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
     nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
@@ -859,7 +865,14 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
         dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        #get number of nearest neighbours parameter
+        if 'params' not in adata.uns['neighbors']:
+            #estimate the number of nearest neighbors as the median 
+            #of the distance matrix
+            _, e = np.unique(dist_mat[0], return_counts=True)
+            n_nn = np.nanmedian(e)
+        else:
+            n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                    n_nn))
         index_out = []
