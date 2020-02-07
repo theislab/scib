@@ -80,7 +80,7 @@ DATA_SCENARIOS:
     label_key: Group
     organism: human
     assay: simulation
-    file: /storage/groups/ml01/workspace/scIB/simulations_1/sim1_qc.h5ad
+    file: /storage/groups/ml01/workspace/scIB/simulations_1/sim1_norm.h5ad
 
     #mouse_atlas:
     #batch_key: study # TODO: we need batch over all samples as well
