@@ -382,7 +382,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     
 ### Highly Variable Genes conservation
-def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
+def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
     hvg_post = adata_post.var.index
     
     adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
@@ -1058,5 +1058,11 @@ def metrics(adata, adata_int, batch_key, label_key,
         clisi_score = np.nan
     results['iLISI'] = ilisi_score
     results['cLISI'] = clisi_score
+    
+    if hvgs:
+        hvg_score = hvg_overlap(adata, adata_int, batch_key)
+    else:
+        hvg_score = np.nan
+    results['hvg_overlap'] = hvg_score
     
     return pd.DataFrame.from_dict(results, orient='index')
