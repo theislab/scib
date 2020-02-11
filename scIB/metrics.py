@@ -393,8 +393,6 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
         
-        same_len = adata_pre_list[i].n_vars != adata_post_list[i].n_vars
-        same_names = adata_pre_list[i].var_names.sort_values() != adata_post_list[i].var_names.sort_values()
         if(not np.array_equal(adata_pre_list[i].var_names.sort_values(),adata_post_list[i].var_names.sort_values())):
             ov = [value for value in adata_pre_list[i].var_names if value in adata_post_list[i].var_names]
             adata_pre_list[i] = adata_pre_list[i][:,ov]
