@@ -172,6 +172,7 @@ if __name__=='__main__':
      # by assay
     if args.assay == 'atac':
         cell_cycle_ = False
+        hvg_score_ = False
     elif args.assay == 'simulation':
         cell_cycle_ = False
     
