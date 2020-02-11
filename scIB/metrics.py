@@ -957,7 +957,7 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            hvgs=True, cluster_nmi=None,
+            hvg_score_=True, cluster_nmi=None,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
@@ -1064,7 +1064,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     results['iLISI'] = ilisi_score
     results['cLISI'] = clisi_score
     
-    if hvgs:
+    if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
         hvg_score = np.nan
