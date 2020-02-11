@@ -21,6 +21,10 @@
 #' @importFrom cowplot theme_nothing
 #'
 #' @export
+#' 
+
+library(dplyr)
+
 scIB_knit_table <- function(
 data,
 column_info,
@@ -32,8 +36,8 @@ usability = FALSE
   row_height <- 1.1
   row_space <- .1
   row_bigspace <- .5
-  col_width <- 1
-  col_space <- .1
+  col_width <- 1.1
+  col_space <- .2
   col_bigspace <- .5
   segment_data <- NULL
   
