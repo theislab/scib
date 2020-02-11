@@ -12,7 +12,7 @@ library(Hmisc)
 library(plyr)
 # library(R.utils)
 
-source("./knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
+source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 # parameters: 
 # - 'csv_file_path' would be the full path of the csv file (or not if you have it in the same folder 
@@ -24,7 +24,7 @@ source("./knit_table.R")# You will need to have in the same folder knit_table.R 
 plotSingleAtlas <- function(csv_file_path, n_metrics_batch = 4, n_metrics_bio = 7){
   
   metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
-  
+
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
@@ -36,7 +36,7 @@ plotSingleAtlas <- function(csv_file_path, n_metrics_batch = 4, n_metrics_bio = 
   ordered.metrics.name <- c("PCR batch", "Batch ASW", "iLISI", "kBET", "NMI cluster/label", "ARI cluster/label", "Cell type ASW", "isolated label F1", "isolated label silhouette", "CC conservation","cLISI")
   # order metrics present in the table
   matching.order <- match(ordered.metrics.name, metrics)
-  metrics <- metrics[matching.order[!is.na(matching.order)]]
+  metrics.ord <- metrics[matching.order[!is.na(matching.order)]]
 
   # get methods info from rownames
   methods_info_full  <- as.character(metrics_tab_lab[,1])
@@ -86,7 +86,7 @@ plotSingleAtlas <- function(csv_file_path, n_metrics_batch = 4, n_metrics_bio = 
     metrics_tab <- add_column(metrics_tab, "Method" = methods_name, .before = 1)
     
     # reorder columns by metrics
-    col.ordered <- c("Method", metrics)
+    col.ordered <- c("Method", metrics.ord)
     metrics_tab <- metrics_tab[, col.ordered]
     
     ## Scores should be already scaled [0,1] - however, we aim to compute the scores based on the min-max scaled metrics
