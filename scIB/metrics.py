@@ -871,6 +871,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             #of the distance matrix
             _, e = np.unique(dist_mat[0], return_counts=True)
             n_nn = np.nanmedian(e)
+            #set type of n_nn to int to avoid type errors downstream
+            n_nn = n_nn.astype('int')
         else:
             n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
