@@ -1,7 +1,7 @@
 from scripts.snakemake_parse import *
 import pathlib
 
-configfile: "config.yaml"
+#configfile: "config.yaml"
 cfg = ParsedConfig(config)
 
 wildcard_constraints:
