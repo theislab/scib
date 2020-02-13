@@ -910,7 +910,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             score = kBET_single(
                 matrix[idx, :],
                 batch[idx],
-                knn = nn_index_tmp,
+                knn = nn_index_tmp+1, #nn_index in python is 0-based and 1-based in R
                 subsample=subsample,
                 verbose=verbose,
                 heuristic=False,
