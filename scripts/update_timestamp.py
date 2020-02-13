@@ -32,25 +32,25 @@ def update_timestamp_task(config, task, update_metrics=True):
 
     for scal in scaling:
         for feat in hvgs:
-            folder_path = '/'.join([folder,task,'prepare',scal,feat])+'/'
+            folder_path = '/'.join([base_folder,task,'prepare',scal,feat])+'/'
             file_base = 'adata_pre'
             for end in prep_endings:
                 filename = file_base+end
                 full_path = folder_path+filename
-                touch_if_exists(file_path)
+                touch_if_exists(full_path)
 
             full_path = folder_path+'prep_h5ad.benchmark'
-            touch_if_exists(file_path)
+            touch_if_exists(full_path)
 
             full_path = folder_path+'prep_RDS.benchmark'
-            touch_if_exists(file_path)
+            touch_if_exists(full_path)
 
     # Integration & convert files
     for scal in scaling:
         for feat in hvgs:
-            folder_base = '/'.join([folder,task,'integration',scal,feat])+'/'
+            folder_base = '/'.join([base_folder,task,'integration',scal,feat])+'/'
             for method in methods:
-                if 'R' in config['METHODS']:
+                if 'R' in config['METHODS'][method]:
                     r_folder = 'R/'
                     method_endings = ['.RDS', '.RDS.benchmark', '.h5ad']
                 else:
@@ -60,7 +60,7 @@ def update_timestamp_task(config, task, update_metrics=True):
                 for end in method_endings:
                     folder_path = folder_base+r_folder
                     full_path = folder_path+method+end
-                    touch_if_exists(file_path)
+                    touch_if_exists(full_path)
 
     # Metrics files
     metric_endings = ['_int_nmi.txt', '.csv']
@@ -68,13 +68,17 @@ def update_timestamp_task(config, task, update_metrics=True):
     if update_metrics:
         for scal in scaling:
             for feat in hvgs:
-                folder_base = '/'.join([folder,task,'metrics',scal,feat])+'/'
+                folder_base = '/'.join([base_folder,task,'metrics',scal,feat])+'/'
                 for method in methods:
-                    for out_type in config['METHODS'][method]['output_type']:
+                    out_types = config['METHODS'][method]['output_type']
+                    if isinstance(out_types, str):
+                        out_types = [out_types]
+
+                    for out_type in out_types:
                         file_base = '_'.join([method,out_type])
                         for end in metric_endings:
-                            file_path = folder_base+file_base+end
-                            touch_if_exists(file_path)
+                            full_path = folder_base+file_base+end
+                            touch_if_exists(full_path)
         
 
 
