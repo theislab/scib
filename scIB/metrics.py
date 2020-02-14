@@ -651,6 +651,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
         #of the distance matrix
         _, e = np.unique(dist_mat[0], return_counts=True)
         n_nn = np.nanmedian(e)
+        n_nn = n_nn.astype('int')
     else:
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
