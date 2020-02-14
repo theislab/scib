@@ -393,9 +393,6 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
         
-        #if(not np.array_equal(adata_pre_list[i].var_names.sort_values(),adata_post_list[i].var_names.sort_values())):
-        
-        #ov = [value for value in adata_pre_list[i].var_names if value in adata_post_list[i].var_names]
         ov = list(set(adata_pre_list[i].var_names).intersection(adata_post_list[i].var_names))
         adata_pre_list[i] = adata_pre_list[i][:,ov]
         adata_post_list[i] = adata_post_list[i][:,ov]
@@ -409,7 +406,6 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
         n_hvg_real = len(tmp_post)
-        #print(len(set(tmp_pre).intersection(set(tmp_post))))
         overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
