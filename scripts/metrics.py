@@ -183,7 +183,7 @@ if __name__=='__main__':
         print(f'    ARI:\t{ari_}')
         print(f'    cell cycle:\t{cell_cycle_}')
         print(f'    HVGs:\t{isolated_labels_}')
-        print(f'    HVGs:\t{hvgs_}')
+        print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
         

@@ -405,7 +405,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
         hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
-        n_hvg_real = len(tmp_post)
+        n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
         overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
