@@ -393,10 +393,13 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
         
-        if(not np.array_equal(adata_pre_list[i].var_names.sort_values(),adata_post_list[i].var_names.sort_values())):
-            ov = [value for value in adata_pre_list[i].var_names if value in adata_post_list[i].var_names]
-            adata_pre_list[i] = adata_pre_list[i][:,ov]
-            adata_post_list[i] = adata_post_list[i][:,ov]
+        #if(not np.array_equal(adata_pre_list[i].var_names.sort_values(),adata_post_list[i].var_names.sort_values())):
+        
+        #ov = [value for value in adata_pre_list[i].var_names if value in adata_post_list[i].var_names]
+        ov = list(set(adata_pre_list[i].var_names).intersection(adata_post_list[i].var_names))
+        adata_pre_list[i] = adata_pre_list[i][:,ov]
+        adata_post_list[i] = adata_post_list[i][:,ov]
+        
         n_hvg_tmp = np.minimum(n_hvg, int(0.5*adata_pre_list[i].n_vars))
         if n_hvg_tmp<n_hvg:
             print(adata_pre_list[i].obs[batch][0]+' has less than the specified number of genes')
