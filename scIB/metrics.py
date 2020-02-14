@@ -382,7 +382,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     
 ### Highly Variable Genes conservation
-def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
+def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
     hvg_post = adata_post.var.index
     
     adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
@@ -392,16 +392,21 @@ def hvg_overlap(adata_post, adata_pre, batch, n_hvg=500):
     for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
         sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(adata_post_list[i], min_cells=1)
-        n_hvg_tmp = np.minimum(n_hvg, int(0.5*len(adata_pre_list[i].var)))
+        
+        ov = list(set(adata_pre_list[i].var_names).intersection(adata_post_list[i].var_names))
+        adata_pre_list[i] = adata_pre_list[i][:,ov]
+        adata_post_list[i] = adata_post_list[i][:,ov]
+        
+        n_hvg_tmp = np.minimum(n_hvg, int(0.5*adata_pre_list[i].n_vars))
         if n_hvg_tmp<n_hvg:
             print(adata_pre_list[i].obs[batch][0]+' has less than the specified number of genes')
-            print('Number of genes: '+str(len(adata_pre_list[i].var)))
+            print('Number of genes: '+str(adata_pre_list[i].n_vars))
         hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
         hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
-        #print(len(set(tmp_pre).intersection(set(tmp_post))))
-        overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_tmp)
+        n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
+        overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
 ### Cell cycle effect
@@ -955,7 +960,7 @@ def measureTM(*args, **kwargs):
 
 
 def metrics(adata, adata_int, batch_key, label_key,
-            hvgs=True, cluster_nmi=None,
+            hvg_score_=True, cluster_nmi=None,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
@@ -1061,5 +1066,11 @@ def metrics(adata, adata_int, batch_key, label_key,
         clisi_score = np.nan
     results['iLISI'] = ilisi_score
     results['cLISI'] = clisi_score
+    
+    if hvg_score_:
+        hvg_score = hvg_overlap(adata, adata_int, batch_key)
+    else:
+        hvg_score = np.nan
+    results['hvg_overlap'] = hvg_score
     
     return pd.DataFrame.from_dict(results, orient='index')

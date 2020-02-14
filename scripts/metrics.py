@@ -156,22 +156,23 @@ if __name__=='__main__':
     pcr_ = True
     cell_cycle_ = True
     isolated_labels_ = True
-    hvgs_ = True
+    hvg_score_ = True
     kBET_ = True
     lisi_ = True
     
     # by output type
     if (type_ == "embed"):
-        hvgs_ = False
+        hvg_score_ = False
     elif (type_ == "knn"):
         silhouette_ = False
         pcr_ = False
         cell_cycle_ = False
-        hvgs_ = False
+        hvg_score_ = False
     
      # by assay
     if args.assay == 'atac':
         cell_cycle_ = False
+        hvg_score_ = False
     elif args.assay == 'simulation':
         cell_cycle_ = False
     
@@ -182,12 +183,12 @@ if __name__=='__main__':
         print(f'    ARI:\t{ari_}')
         print(f'    cell cycle:\t{cell_cycle_}')
         print(f'    HVGs:\t{isolated_labels_}')
-        print(f'    HVGs:\t{hvgs_}')
+        print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
-                              hvgs=hvgs_, cluster_nmi=cluster_nmi,
+                              hvg_score_=hvg_score_, cluster_nmi=cluster_nmi,
                               batch_key=batch_key, label_key=label_key,
                               silhouette_=silhouette_, embed=embed,
                               type_ = type_, 
