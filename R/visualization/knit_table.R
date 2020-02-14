@@ -104,28 +104,29 @@ usability = FALSE
   
   # gather circle data
   ind_circle <- which(column_info$geom == "circle")
-  dat_mat <- as.matrix(data[, ind_circle])
-  col_palette <- data.frame(metric = colnames(dat_mat), 
-                            group = column_info[match(colnames(dat_mat), column_info$id), "group"])
-  
-  col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
-  
-  circle_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
-                                                  function(x) rep(x, nrow(dat_mat)))), 
-                            x0 = unlist(lapply(column_pos$x[ind_circle], 
-                                               function(x) rep(x, nrow(dat_mat)))), 
-                            y0 = rep(row_pos$y, ncol(dat_mat)),
-                            r = row_height/2*as.vector(sqrt(dat_mat))
-                            #r = row_height/2*as.vector(dat_mat)
-  )
-  colors <- NULL
-  for(i in 1:ncol(dat_mat)){
-    palette <- col_palette$palette[[i]]
-    colors <- c(colors, palette[rank(dat_mat[,i])])
+  if(length(ind_circle) > 0){
+    dat_mat <- as.matrix(data[, ind_circle])
+    col_palette <- data.frame(metric = colnames(dat_mat), 
+                              group = column_info[match(colnames(dat_mat), column_info$id), "group"])
+    
+    col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
+    
+    circle_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
+                                                    function(x) rep(x, nrow(dat_mat)))), 
+                              x0 = unlist(lapply(column_pos$x[ind_circle], 
+                                                 function(x) rep(x, nrow(dat_mat)))), 
+                              y0 = rep(row_pos$y, ncol(dat_mat)),
+                              r = row_height/2*as.vector(sqrt(dat_mat))
+                              #r = row_height/2*as.vector(dat_mat)
+    )
+    colors <- NULL
+    for(i in 1:ncol(dat_mat)){
+      palette <- col_palette$palette[[i]]
+      colors <- c(colors, palette[rank(dat_mat[,i], ties.method = "max")])
+    }
+    
+    circle_data$colors <- colors
   }
-  
-  circle_data$colors <- colors
-  
   
   
   # gather bar data
@@ -188,7 +189,7 @@ usability = FALSE
   text_data[text_data$label_value == "scaled", "colors"] <- "darkred"
   text_data[text_data$label_value == "unscaled", "colors"] <- "grey30"
   
-  text_data[(text_data$label_value == "KNN" || text_data$label_value == "features" || 
+  text_data[(text_data$label_value == "graph" || text_data$label_value == "genes" || 
                text_data$label_value == "embeddings"), "size"] <- 2
   
   
@@ -238,14 +239,25 @@ usability = FALSE
   
   
   # determine dsize of current geoms
+  # suppressWarnings({
+  #   minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, circle_data$x - circle_data$r, 
+  #                    text_data$xmin, na.rm = TRUE)
+  #   maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, circle_data$x + circle_data$r, 
+  #                    text_data$xmax, na.rm = TRUE)
+  #   minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend, circle_data$y - circle_data$r,  
+  #                    text_data$ymin, na.rm = TRUE)
+  #   maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend,circle_data$y + circle_data$r,  
+  #                    text_data$ymax, na.rm = TRUE)
+  # })
+  
   suppressWarnings({
-    minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, circle_data$x - circle_data$r, 
+    minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, 
                      text_data$xmin, na.rm = TRUE)
-    maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, circle_data$x + circle_data$r, 
+    maximum_x <- max(column_pos$xmax, segment_data$x, segment_data$xend, 
                      text_data$xmax, na.rm = TRUE)
-    minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend, circle_data$y - circle_data$r,  
+    minimum_y <- min(row_pos$ymin, segment_data$y, segment_data$yend,  
                      text_data$ymin, na.rm = TRUE)
-    maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend,circle_data$y + circle_data$r,  
+    maximum_y <- max(row_pos$ymax, segment_data$y, segment_data$yend, 
                      text_data$ymax, na.rm = TRUE)
   })
   
@@ -262,14 +274,16 @@ usability = FALSE
   rank_groups <- as.character(column_info[column_info$geom == "bar", "group"])
   
   if(usability){
+    rank_minimum_x <- list("RNA" = leg_min_x, 
+                           "Simulation" = leg_min_x+1, 
+                           "Usability" = leg_min_x+2,
+                           "Scalability" = leg_min_x+3)
+    leg_max_x <- leg_min_x+3
+  } else{
     rank_minimum_x <- list("Score overall" = leg_min_x, 
                            "Removal of batch effects" = leg_min_x+1, 
-                           "Cell type label variance" = leg_min_x+2,
-                           "Usability" = leg_min_x+3)
-  }else{
-  rank_minimum_x <- list("Score overall" = leg_min_x, 
-                         "Removal of batch effects" = leg_min_x+1, 
-                         "Cell type label variance" = leg_min_x+2)
+                           "Cell type label variance" = leg_min_x+2)
+    leg_max_x <- leg_min_x+2
   }
   
   rank_title_data <- data.frame(xmin = leg_min_x, 
@@ -295,14 +309,16 @@ usability = FALSE
   }
   
   # create arrow for ranking
-    arrow_data <- data.frame(x = leg_min_x +3.5, 
-                           xend = leg_min_x +3.5, 
+  
+  arrow_data <- data.frame(x = leg_max_x + 1.5, 
+                           xend = leg_max_x +1.5, 
                            y = leg_max_y-4, 
                            yend = leg_max_y -1.5)
   
+  
   # add text next to the arrow
-  arrow_text <- data.frame(xmin = leg_min_x +4, 
-                           xmax = leg_min_x +4.5, 
+  arrow_text <- data.frame(xmin = leg_max_x +2, 
+                           xmax = leg_max_x +2.5, 
                            ymin = c(leg_max_y-2, leg_max_y-4), 
                            ymax = c(leg_max_y-1.5, leg_max_y-3.5 ), 
                            label_value = c("#1", paste0("#", nrow(data))), 
@@ -313,57 +329,60 @@ usability = FALSE
   
   # CREATE LEGEND for circle scores
   # circle legend
-  cir_minimum_x <- middle_pos_x +1
+  if(!usability){
+    cir_minimum_x <- middle_pos_x +1
+    
+    cir_legend_size <- 1
+    cir_legend_space <- .1
   
-  cir_legend_size <- 1
-  cir_legend_space <- .1
-
-  cir_legend_dat <-
-    data.frame(
-      value = seq(0, 1, by = .2),
-      r = row_height/2*seq(0, 1, by = .2)
-    )
-
-
-  x0 <- vector("integer", nrow(cir_legend_dat))
-  for(i in 1:length(x0)){
-    if(i == 1){
-      x0[i] <- cir_minimum_x + cir_legend_space + cir_legend_dat$r[i]
+    cir_legend_dat <-
+      data.frame(
+        value = seq(0, 1, by = .2),
+        r = row_height/2*seq(0, 1, by = .2)
+      )
+  
+  
+    x0 <- vector("integer", nrow(cir_legend_dat))
+    for(i in 1:length(x0)){
+      if(i == 1){
+        x0[i] <- cir_minimum_x + cir_legend_space + cir_legend_dat$r[i]
+      }
+      else {
+        x0[i] <- x0[i-1] + cir_legend_dat$r[i-1] + cir_legend_space + cir_legend_dat$r[i]
+      }
     }
-    else {
-      x0[i] <- x0[i-1] + cir_legend_dat$r[i-1] + cir_legend_space + cir_legend_dat$r[i]
-    }
+  
+    cir_legend_dat$x0 <- x0
+    cir_legend_min_y <- leg_max_y-4
+    cir_legend_dat$y0 <- cir_legend_min_y + 1 + cir_legend_dat$r
+  
+    cir_legend_dat$colors <- colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(cir_legend_dat))
+  
+    cir_maximum_x <- max(cir_legend_dat$x0)
+  
+    cir_title_data <- data_frame(xmin = cir_minimum_x, 
+                                 xmax = cir_maximum_x, 
+                                 ymin = leg_max_y -1, 
+                                 ymax = leg_max_y,
+                                 label_value = "Score", 
+                                 hjust = 0, vjust = 0, fontface = "bold")
+    
+    cir_value_data <- data.frame(xmin = cir_legend_dat$x0 - cir_legend_dat$r,
+                                 xmax = cir_legend_dat$x0 + cir_legend_dat$r,
+                                 ymin = cir_legend_min_y,
+                                 ymax = cir_legend_min_y +3,
+                                 hjust = .5, vjust = 0, size = 2.5,
+                                 label_value = ifelse(cir_legend_dat$value %in% c(0, 1), 
+                                                      paste0(cir_legend_dat$value*100, "%"), ""))
+    
+    circle_data <- bind_rows(circle_data, cir_legend_dat)
+    text_data <- bind_rows(text_data, cir_title_data, cir_value_data)
+  
+  
+    
   }
-
-  cir_legend_dat$x0 <- x0
-  cir_legend_min_y <- leg_max_y-4
-  cir_legend_dat$y0 <- cir_legend_min_y + 1 + cir_legend_dat$r
-
-  cir_legend_dat$colors <- colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(cir_legend_dat))
-
-  cir_maximum_x <- max(cir_legend_dat$x0)
-
-  cir_title_data <- data_frame(xmin = cir_minimum_x, 
-                               xmax = cir_maximum_x, 
-                               ymin = leg_max_y -1, 
-                               ymax = leg_max_y,
-                               label_value = "Score", 
-                               hjust = 0, vjust = 0, fontface = "bold")
   
-  cir_value_data <- data.frame(xmin = cir_legend_dat$x0 - cir_legend_dat$r,
-                               xmax = cir_legend_dat$x0 + cir_legend_dat$r,
-                               ymin = cir_legend_min_y,
-                               ymax = cir_legend_min_y +3,
-                               hjust = .5, vjust = 0, size = 2.5,
-                               label_value = ifelse(cir_legend_dat$value %in% c(0, 1), 
-                                                    paste0(cir_legend_dat$value*100, "%"), ""))
-  
-  circle_data <- bind_rows(circle_data, cir_legend_dat)
-  text_data <- bind_rows(text_data, cir_title_data, cir_value_data)
-
-
   minimum_y <- min(minimum_y, min(text_data$ymin, na.rm = TRUE))
-  
   
   ########################
   ##### COMPOSE PLOT #####
@@ -387,7 +406,7 @@ usability = FALSE
   
   
   # PLOT CIRCLES
-  if (nrow(circle_data) > 0) {
+  if (length(ind_circle) > 0) {
     g <- g + ggforce::geom_circle(aes(x0 = x0, y0 = y0, fill= colors, r = r), circle_data, size=.25)
   }
   
@@ -426,6 +445,8 @@ usability = FALSE
         y = (1 - alphay) * ymin + alphay * ymax
       ) %>%
       filter(label_value != "")
+    # Set fontface for legend bold
+    text_data[text_data$label_value == "Ranking", "fontface"] <- "bold"
     
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = hjust, vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data)
   }

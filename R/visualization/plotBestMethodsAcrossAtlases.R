@@ -15,16 +15,19 @@ library(plyr)
 source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 # parameters: 
-# - 'csv_file_path' would be the full path of the csv file (or not if you have it in the same folder 
-# 'n_metrics_batch' is by default 4 (PCR batch, Batch ASW, iLISI, kBET)
-# 'n_metrics_bio' is by default 7 (NMI cluster/label, ARI cluster/label, Cell type ASW, isolated label F1, isolated label sihlouette, CC conservation, cLISI)
-# in case the csv file does not contain one or more metrics, just modify the number corresponding to the right group
+# - 'csv_atlases_path' would be the full path of the csv file with metrics over simulation + real atlases 
+# - 'csv_usability_path' would be the path of the usability sheet (which does not change)
+# - 'csv_scalability_path' would be the path of the scalability file
 
-
-plotSingleAtlas <- function(csv_file_path){
+plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
+                                         csv_usability_path = "./scIB Usability  - Sheet4.csv", 
+                                         csv_scalability_path = "./scalability_tab.csv", 
+                                         n_atlas_RNA = 3, n_simulation = 1){
   
-  metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
-
+  #csv_atlases_path <- "./test_best.csv"
+  
+  metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
+  
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
@@ -43,22 +46,22 @@ plotSingleAtlas <- function(csv_file_path){
   # order metrics present in the table
   matching.order <- match(c(group_batch, group_bio), metrics)
   metrics.ord <- metrics[matching.order[!is.na(matching.order)]]
-
+  
   # get methods info from rownames
   methods_info_full  <- as.character(metrics_tab_lab[,1])
   
   # in case methods names start with /
   if(substring(methods_info_full[1], 1, 1) == "/"){
-  methods_info_full <- sub("/", "", methods_info_full)
+    methods_info_full <- sub("/", "", methods_info_full)
   }
   
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   
   
-    
+  methods.table.list <- list()
   
-  ###### Plot one figure for each data scenario
+  ###### Get overall score for each data scenario
   for (dt.sc in data.scenarios){
     ind.scen <- grep(paste0(dt.sc, "/"), methods_info_full)
     methods_info <- methods_info_full[ind.scen]
@@ -108,13 +111,13 @@ plotSingleAtlas <- function(csv_file_path){
     } else {
       n_metrics_batch <- n_metrics_batch_original
     }
-
+    
     if(sum(colnames(metrics_tab)[na.col] %in% group_bio) > 0){
       n_metrics_bio <- n_metrics_bio_original - sum(colnames(metrics_tab)[na.col] %in% group_bio)
     } else{
       n_metrics_bio <- n_metrics_bio_original
     }
-      
+    
     metrics_tab <- metrics_tab[, !na.col]
     
     
@@ -140,36 +143,70 @@ plotSingleAtlas <- function(csv_file_path){
     # order methods by the overall score
     metrics_tab <- metrics_tab[order(metrics_tab$`Overall Score`,  decreasing = T), ]
     
-    # Defining column_info, row_info and palettes
-    row_info <- data.frame(id = metrics_tab$Method)
-    
-    column_info <- data.frame(id = colnames(metrics_tab),
-                              group = c("Text", "Text", "Text", "Text", "Score overall", 
-                                        rep("Removal of batch effects", (1 + n_metrics_batch)),
-                                        rep("Cell type label variance", (1 + n_metrics_bio))), 
-                              geom = c("text", "text", "text", "text", "bar", "bar", 
-                                       rep("circle", n_metrics_batch), "bar", rep("circle", n_metrics_bio)),
-                              width = c(3.5,2.5,2,2.5,2,2, rep(1,n_metrics_batch), 2, rep(1,n_metrics_bio)),
-                              overlay = F)
-    
-    # defining colors palette
-    palette.score.all <- colorRampPalette(rev(brewer.pal(9, "YlGnBu")))(nrow(metrics_tab))
-    palette.score.batch <- colorRampPalette(rev(brewer.pal(9, "BuPu")))(nrow(metrics_tab))
-    palette.score.celltype <- colorRampPalette(rev(brewer.pal(9, "RdPu")))(nrow(metrics_tab))
-
-    
-    palettes <- list("Score overall" = palette.score.all,
-                     "Removal of batch effects" = palette.score.batch,
-                     "Cell type label variance" = palette.score.celltype)
-    
-    
-    g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F)  
-    ggsave(paste0(dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
-    
-    
+    metrics_tab <- metrics_tab[, c("Method", "Output", "Features", "Scaling", "Overall Score")]
+    colnames(metrics_tab)[5] <- paste("Score", dt.sc)
+    methods.table.list[[dt.sc]] <- metrics_tab
     
   }
   
+  methods.table.merged <- merge(methods.table.list[[1]], methods.table.list[[2]], by = c("Method", "Output", "Features", "Scaling"),
+                                all = T)
+  for(i in 3:length(methods.table.list)){
+    methods.table.merged <- merge(methods.table.merged, methods.table.list[[i]], by = c("Method", "Output", "Features", "Scaling"),
+                                  all = T)
+  }
+  atlas.ranks <- methods.table.merged
+  atlas.ranks[, 5:ncol(atlas.ranks)] <- apply(atlas.ranks[, 5:ncol(atlas.ranks)], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
+  avg.ranks <- apply(atlas.ranks[, 5:ncol(atlas.ranks)], 1, mean)
   
+  
+  # order atlas.rank by average rank
+  atlas.rank.ord <- atlas.ranks[order(avg.ranks, decreasing = F), ]
+  
+  # Keep best performing solution for each method
+  keep.best <- NULL
+  for(met in unique(atlas.ranks$Method)){
+    keep.best <- c(keep.best, which(atlas.rank.ord$Method == met)[1])
+  }
+  
+  best_methods_tab <- atlas.rank.ord[sort(keep.best),]
+  best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
+                            all = F, sort = F)
+  
+
+
+  ########## ADD USABILITY TABLE
+  usability_mat <- read.csv(csv_usability_path)
+  avg.usability <- rowMeans(usability_mat[,-1])
+  
+  best_methods_tab$Usability <- avg.usability[match(best_methods_tab$Method, usability_mat$Method)]
+  
+  ######### ADD SCALABILITY
+  
+  scalability_mat <- read.csv(csv_scalability_path)
+  best_methods_tab$Scalability <- scalability_mat[match(best_methods_tab$Method, scalability_mat$Method), "Scalability"]
+  
+  # Defining column_info, row_info and palettes
+  row_info <- data.frame(id = best_methods_tab$Method)
+  
+  column_info <- data.frame(id = colnames(best_methods_tab),
+                            group = c("Text", "Text", "Text", "Text",  
+                                      rep("RNA", n_atlas_RNA),
+                                      rep("Simulation", n_simulation), 
+                                      "Usability", "Scalability"), 
+                            geom = c("text", "text", "text", "text", 
+                                     rep("bar", n_atlas_RNA + n_simulation + 2)),
+                            width = c(3.5,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 2)),
+                            overlay = F)
+  
+  # defining colors palette
+  palettes <- list("RNA" = colorRampPalette(rev(brewer.pal(9, "Blues")))(nrow(best_methods_tab)),
+                   "Simulation" = colorRampPalette(rev(brewer.pal(9, "Greens")))(nrow(best_methods_tab)),
+                   "Usability" = colorRampPalette(rev(brewer.pal(9, "Oranges")))(nrow(best_methods_tab)),
+                   "Scalability" = colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(best_methods_tab)))
+  
+  
+  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)  
+  ggsave("BestMethods_summary_metrics.pdf", g, device = cairo_pdf, width = g$width/4, height = g$height/4)
 
 }
