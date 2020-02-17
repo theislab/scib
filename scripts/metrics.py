@@ -65,13 +65,21 @@ if __name__=='__main__':
         print(f'    optimised clustering results:\t{cluster_nmi}')
     
     ###
-    
+
+
+    empty_file = False
+
     print("reading adata before integration")
     adata = sc.read(args.uncorrected, cache=True)
     print(adata)
     print("reading adata after integration")
-    adata_int = sc.read(args.integrated, cache=True)
-    print(adata_int)
+    if os.stat(args.integrated).st_size == 0:
+        print(f'{args.integrated} is empty, setting all metrics to NA.')
+        adata_int = adata
+        empty_file = True
+    else:
+        adata_int = sc.read(args.integrated, cache=True)
+        print(adata_int)
 
     if (n_hvgs is not None):
         if (adata_int.n_vars < n_hvgs):
@@ -143,10 +151,12 @@ if __name__=='__main__':
             message += f' on {embed}'
         print(message)
         print(f'    precompute PCA:\t{precompute_pca}')
-    scIB.preprocessing.reduce_data(adata_int,
-                                   n_top_genes=n_hvgs,
-                                   neighbors=recompute_neighbors, use_rep=embed,
-                                   pca=precompute_pca, umap=False)
+
+    if not empty_file:
+        scIB.preprocessing.reduce_data(adata_int,
+                                       n_top_genes=n_hvgs,
+                                       neighbors=recompute_neighbors, use_rep=embed,
+                                       pca=precompute_pca, umap=False)
     
     print("computing metrics")
     # DEFAULT
@@ -176,13 +186,27 @@ if __name__=='__main__':
     elif args.assay == 'simulation':
         cell_cycle_ = False
     
+    if empty_file:
+        silhouette_=False
+        nmi_=False
+        ari_=False
+        pcr_=False
+        cell_cycle_=False
+        isolated_labels_=False
+        hvg_score_=False
+        kBET_=False
+        lisi_=False
+
+
     if verbose:
         print(f'type:\t{type_}')
         print(f'    ASW:\t{silhouette_}')
         print(f'    NMI:\t{nmi_}')
         print(f'    ARI:\t{ari_}')
+        print(f'    PCR:\t{pcr_}')
         print(f'    cell cycle:\t{cell_cycle_}')
-        print(f'    HVGs:\t{isolated_labels_}')
+        print(f'    iso lab F1:\t{isolated_labels_}')
+        print(f'    iso lab ASW:\t{isolated_labels_ & silhouette_}')
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
