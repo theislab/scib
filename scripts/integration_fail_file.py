@@ -45,3 +45,4 @@ if __name__=='__main__':
 
     #print(full_path)
     Path(full_path).touch()
+    Path(full_path+".benchmark").touch()
