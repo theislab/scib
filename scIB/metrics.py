@@ -1041,8 +1041,11 @@ def metrics(adata, adata_int, batch_key, label_key,
         print("isolated labels...")
         il_score_clus = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
                                 cluster=True, n=n_isolated, verbose=False)
-        il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
-                                cluster=False, n=n_isolated, verbose=False)
+        if silhouette_:
+            il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
+                                           cluster=False, n=n_isolated, verbose=False)
+        else:
+            il_score_sil = np.nan
     else:
         il_score_clus = np.nan
         il_score_sil  = np.nan
