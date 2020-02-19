@@ -975,7 +975,7 @@ def trajectory_conservation(adata_pre, adata_post):
     
     sc.tl.dpt(adata_post_sub)
     adata_post_sub.obs.dpt_pseudotime[adata_post_sub.obs.dpt_pseudotime>1]=0
-    return adata_post_sub.obs.dpt_pseudotime.corr(adata_pre_sub.obs.dpt_pseudotime, 'spearman')
+    return (adata_post_sub.obs.dpt_pseudotime.corr(adata_pre_sub.obs.dpt_pseudotime, 'spearman')+1)/2
 
 ### Time and Memory
 def measureTM(*args, **kwargs):
