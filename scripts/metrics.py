@@ -170,6 +170,7 @@ if __name__=='__main__':
     kBET_ = True
     lisi_ = True
     
+    
     # by output type
     if (type_ == "embed"):
         hvg_score_ = False
@@ -196,6 +197,12 @@ if __name__=='__main__':
         hvg_score_=False
         kBET_=False
         lisi_=False
+    
+    # check if pseudotime data exists in original data
+    if 'dpt_pseudotime' in adata.obs:
+        trajectory_ = True
+    else:
+        trajectory_ = False
 
 
     if verbose:
@@ -210,6 +217,7 @@ if __name__=='__main__':
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
+        print(f'    Trajectory:\t{trajectory_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
                               hvg_score_=hvg_score_, cluster_nmi=cluster_nmi,
@@ -222,7 +230,8 @@ if __name__=='__main__':
                               cell_cycle_=cell_cycle_, organism=organism,
                               isolated_labels_=isolated_labels_, n_isolated=None,
                               kBET_=kBET_,
-                              lisi_=lisi_
+                              lisi_=lisi_,
+                              trajectory_=trajectory_
                              )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
     if verbose:
