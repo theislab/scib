@@ -974,6 +974,7 @@ def trajectory_conservation(adata_pre, adata_post):
     adata_post_sub.uns['iroot'] = get_root(adata_pre_sub, adata_post_sub)
     
     sc.tl.dpt(adata_post_sub)
+    adata_post_sub.obs.dpt_pseudotime[adata_post_sub.obs.dpt_pseudotime>1]=0
     return adata_post_sub.obs.dpt_pseudotime.corr(adata_pre_sub.obs.dpt_pseudotime, 'spearman')
 
 ### Time and Memory
