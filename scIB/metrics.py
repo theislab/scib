@@ -938,6 +938,45 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     
     return kBET_scores
 
+# determine root cell for trajectory conservation metric
+def get_root(adata_pre, adata_post, dpt_dim=3):
+    
+    # minimum DPT candidate cell indices
+    min_dpt = np.flatnonzero(adata_pre.obs["dpt_pseudotime"] == 0)
+    #min_dpt = adata_pre.obs.index[adata_pre.obs.dpt_pseudotime == 0]
+    
+    # compute Diffmap for adata_post
+    sc.tl.diffmap(adata_post)
+    
+    # determine most extreme cell in adata_post Diffmap
+    min_dpt_cell = np.zeros(len(min_dpt))
+    for dim in np.arange(dpt_dim):
+        
+        diffmap_mean = adata_post.obsm["X_diffmap"][:, dim].mean()
+        diffmap_min_dpt = adata_post.obsm["X_diffmap"][min_dpt, dim]
+        
+        # choose optimum function
+        if diffmap_min_dpt.mean() < diffmap_mean:
+            opt = np.argmin
+        else:
+            opt = np.argmax
+        # count opt cell
+        min_dpt_cell[opt(diffmap_min_dpt)] += 1
+    
+    # root cell is cell with max vote
+    return min_dpt[np.argmax(min_dpt_cell)]
+
+def trajectory_conservation(adata_pre, adata_post):
+    cell_subset = adata_pre.obs.index[adata_pre.obs["dpt_pseudotime"].notnull()]
+    adata_pre_sub = adata_pre[cell_subset]
+    adata_post_sub = adata_post[cell_subset]
+    
+    adata_post_sub.uns['iroot'] = get_root(adata_pre_sub, adata_post_sub)
+    
+    sc.tl.dpt(adata_post_sub)
+    adata_post_sub.obs['dpt_pseudotime'][adata_post_sub.obs['dpt_pseudotime']>1]=0
+    return (adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')+1)/2
+
 ### Time and Memory
 def measureTM(*args, **kwargs):
     """
@@ -965,7 +1004,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
             isolated_labels_=False, n_isolated=None,
-            kBET_=False, kBET_sub=0.5, lisi_=False, type_ = None
+            kBET_=False, kBET_sub=0.5, lisi_=False, trajectory_= False, type_ = None
            ):
     """
     summary of all metrics for one Anndata object
@@ -1075,5 +1114,12 @@ def metrics(adata, adata_int, batch_key, label_key,
     else:
         hvg_score = np.nan
     results['hvg_overlap'] = hvg_score
+    
+    if trajectory_:
+        print('Trajectory conservation score...')
+        trajectory_score = trajectory_conservation(adata, adata_int)
+    else:
+        trajectory_score = np.nan
+    results['trajectory'] = trajectory_score
     
     return pd.DataFrame.from_dict(results, orient='index')
