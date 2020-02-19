@@ -187,6 +187,12 @@ if __name__=='__main__':
     elif args.assay == 'simulation':
         cell_cycle_ = False
     
+    # check if pseudotime data exists in original data
+    if 'dpt_pseudotime' in adata.obs:
+        trajectory_ = True
+    else:
+        trajectory_ = False
+
     if empty_file:
         silhouette_=False
         nmi_=False
@@ -197,13 +203,7 @@ if __name__=='__main__':
         hvg_score_=False
         kBET_=False
         lisi_=False
-    
-    # check if pseudotime data exists in original data
-    if 'dpt_pseudotime' in adata.obs:
-        trajectory_ = True
-    else:
-        trajectory_ = False
-
+        trajectory_=False
 
     if verbose:
         print(f'type:\t{type_}')
