@@ -360,6 +360,7 @@ def reduce_data(adata, batch_key=None, subset=False,
             adata.var['highly_variable'] = np.in1d(adata.var_names, hvg_list)
 
         else:
+            print(f"Calculating {n_top_genes} HVGs for reduce_data.")
             sc.pp.highly_variable_genes(adata,
                                         n_top_genes=n_top_genes,
                                         n_bins=n_bins,

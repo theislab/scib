@@ -125,7 +125,7 @@ if __name__=='__main__':
     embed = 'X_pca'
     
     # distinguish between subsetted and full expression matrix
-    # compute HVGs only if output is already subsetted
+    # compute HVGs only if output is not already subsetted
     if adata.n_vars > adata_int.n_vars:
         n_hvgs = None
     
