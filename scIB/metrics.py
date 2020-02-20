@@ -892,19 +892,21 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         #remove all indexes in nn_index and nn_dists, which are 0 
             nn_index = np.delete(nn_index, index_out, 0)
             #adapt adata for the time being
-            adata = adata[np.invert(np.in1d(np.arange(0, adata.shape[0]), index_out))]
+            adata_tmp = adata[np.invert(np.in1d(np.arange(0, adata.shape[0]), index_out))].copy()
             if verbose:
                 print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
+        else:
+            adata_tmp = adata.copy()
     
-    matrix = adata.obsm[embed]
+    matrix = adata_tmp.obsm[embed]
     
     if verbose:
         print(f"batch: {batch_key}")
-    batch = adata.obs[batch_key]
+    batch = adata_tmp.obs[batch_key]
     
     kBET_scores = {'cluster': [], 'kBET': []}
-    for clus in adata.obs[label_key].unique():
-        idx = np.where((adata.obs[label_key] == clus))[0]
+    for clus in adata_tmp.obs[label_key].unique():
+        idx = np.where((adata_tmp.obs[label_key] == clus))[0]
         if type_ == 'knn':
             nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
             nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
