@@ -897,6 +897,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                 print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
         else:
             adata_tmp = adata.copy()
+    else:
+        adata_tmp = adata.copy()
     
     matrix = adata_tmp.obsm[embed]
     
