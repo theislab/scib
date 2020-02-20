@@ -673,26 +673,20 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
             nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
             nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])[:n_nn]
         else:
-            index_out.append(get_idx.sum())
+            index_out.append(cell_id)
     
     out_cells = len(index_out)
     
     if out_cells > 0:
         #remove all indexes in nn_index and nn_dists, which are 0
-        empty_dist = np.flatnonzero(nn_dists.sum(1) == 0) 
-        nn_dists = np.delete(nn_dists, empty_dist, 0)
-        nn_index = np.delete(nn_index, empty_dist, 0)
+        nn_dists = np.delete(nn_dists, index_out, 0)
+        nn_index = np.delete(nn_index, index_out, 0)
         if verbose:
             print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
     
     if perplexity is None:
         # use LISI default
         perplexity = np.floor(nn_index.shape[1]/3)
-    
-    #turn metadata into numeric values (not categorical)
-    meta_tmp = adata.obs[[batch_key, label_key]]
-    meta_tmp[batch_key] = meta_tmp[batch_key].cat.codes
-    meta_tmp[label_key] = meta_tmp[label_key].cat.codes
     
     # run LISI in R
     anndata2ri.activate()
@@ -704,8 +698,8 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     ro.globalenv['nn_dst'] = nn_dists.T
     ro.globalenv['perplexity'] = perplexity
     if out_cells > 0:  
-        batch_adapt = np.delete(adata.obs[batch_key].cat.codes.values, empty_dist)
-        label_adapt = np.delete(adata.obs[label_key].cat.codes.values, empty_dist)
+        batch_adapt = np.delete(adata.obs[batch_key].cat.codes.values, index_out)
+        label_adapt = np.delete(adata.obs[label_key].cat.codes.values, index_out)
         ro.globalenv['batch'] = batch_adapt
         ro.globalenv['n_batches'] = len(np.unique(batch_adapt))
         ro.globalenv['label'] = label_adapt
@@ -890,14 +884,15 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             if num_idx >= n_nn:
                 nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
             else:
-                index_out.append(get_idx.sum())
+                index_out.append(cell_id)
         
         out_cells = len(index_out)
         
         if out_cells > 0:
-        #remove all indexes in nn_index and nn_dists, which are 0
-            empty_dist = np.flatnonzero(nn_index.sum(1) == 0) 
-            nn_index = np.delete(nn_index, empty_dist, 0)
+        #remove all indexes in nn_index and nn_dists, which are 0 
+            nn_index = np.delete(nn_index, index_out, 0)
+            #adapt adata for the time being
+            adata = adata[np.invert(np.in1d(np.arange(0, adata.shape[0]), index_out))]
             if verbose:
                 print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
     
