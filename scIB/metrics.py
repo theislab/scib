@@ -800,7 +800,8 @@ def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batch
     
         #then compute Simpson's Index
         for b in np.arange(0, n_batches,1):
-            q = np.flatnonzero(batch_labels[knn_idx[i]] == b) #indices of cells belonging to batch (b)
+            non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
+            q = np.flatnonzero(batch_labels[non_nan_knn] == b) #indices of cells belonging to batch (b)
             if (len(q) > 0):
                 sumP = np.sum(P[q])
                 simpson[i] += sumP ** 2         
@@ -833,28 +834,28 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
         n_nn = n_nn.astype('int')
     else:
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+    #initialise index and fill it with NaN values
     nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
+    nn_index[:] = np.NaN
     nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                n_nn))
+    nn_dists[:] = np.NaN
     index_out = []
     for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
         get_idx = dist_mat[0] == cell_id
         num_idx = get_idx.sum()
         #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
         #potential enhancement: handle case where less than n_nn neighbours are reported
-        if num_idx >= n_nn:
-            nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
-            nn_dists[cell_id,:] = np.sort(dist_mat[2][get_idx])[:n_nn]
-        else:
+        fin_idx = np.min([num_idx, n_nn])
+        nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
+        nn_dists[cell_id,:fin_idx] = np.sort(dist_mat[2][get_idx])[:fin_idx]
+        if num_idx < n_nn:
             index_out.append(cell_id)
     
     out_cells = len(index_out)
     
     if out_cells > 0:
-        #remove all indexes in nn_index and nn_dists, which are 0
-        nn_dists = np.delete(nn_dists, index_out, 0)
-        nn_index = np.delete(nn_index, index_out, 0)
         if verbose:
             print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
     
@@ -863,35 +864,25 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
         perplexity = np.floor(nn_index.shape[1]/3)
     
     # run LISI in python
-    
     if verbose:
         print("importing knn-graph")  
         
-    if out_cells > 0:  
-        batch_adapt = np.delete(adata.obs[batch_key].cat.codes.values, index_out)
-        label_adapt = np.delete(adata.obs[label_key].cat.codes.values, index_out)
-        batch = batch_adapt
-        n_batches = len(np.unique(batch_adapt))
-        label = label_adapt
-        n_labels = len(np.unique(label_adapt))
-    else:
-        batch = adata.obs[batch_key].cat.codes.values
-        n_batches = len(np.unique(adata.obs[batch_key]))
-        label = adata.obs[label_key].cat.codes.values
-        n_labels = len(np.unique(adata.obs[label_key]))
-        
+    batch = adata.obs[batch_key].cat.codes.values
+    n_batches = len(np.unique(adata.obs[batch_key]))
+    label = adata.obs[label_key].cat.codes.values
+    n_labels = len(np.unique(adata.obs[label_key]))  
     
     if verbose:
         print("LISI score estimation")
     
     simpson_estimate_batch = compute_simpson_index(D = nn_dists, 
-                                                   knn_idx = nn_index.astype('int'),
+                                                   knn_idx = nn_index,
                                                    batch_labels = batch,                           
                                                    n_batches = n_batches,
                                                    perplexity = perplexity, 
                                                    )
     simpson_estimate_label = compute_simpson_index(D = nn_dists, 
-                                                   knn_idx = nn_index.astype('int'),
+                                                   knn_idx = nn_index,
                                                    batch_labels = label,
                                                    n_batches = n_labels,
                                                    perplexity = perplexity
