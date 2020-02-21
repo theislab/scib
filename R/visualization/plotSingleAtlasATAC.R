@@ -19,8 +19,8 @@ plotSingleAtlasATAC <- function(csv_file_path){
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
   metrics <- gsub("_", " ", metrics)
-  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap"), 
-                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation"))
+  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
+                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
   
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
@@ -120,6 +120,7 @@ plotSingleAtlasATAC <- function(csv_file_path){
     
     # order methods by the overall score
     metrics_tab <- metrics_tab[order(metrics_tab$`Overall Score`,  decreasing = T), ]
+    write.csv(metrics_tab, file = paste0("./", dt.sc, "_summary_scores.csv"), quote = F)
     
     # Defining column_info, row_info and palettes
     row_info <- data.frame(id = metrics_tab$Method)
