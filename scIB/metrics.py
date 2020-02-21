@@ -8,6 +8,7 @@ import anndata
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
+from scIB.lisi_py.simpson_index_py import * #lisi function import
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -717,6 +718,8 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     simpson_estimate_label = ro.r(f"simpson.estimate_label <- compute_simpson_index(nn_dst, nn_indx, label, n_labels, perplexity)") #batch_label_keys)")
     simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
     simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
+    
+    
     
     anndata2ri.deactivate()
     
