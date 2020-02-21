@@ -821,7 +821,7 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
         #estimate the number of nearest neighbors as the median 
         #of the distance matrix
         _, e = np.unique(dist_mat[0], return_counts=True)
-        n_nn = np.nanmin(e)
+        n_nn = np.nanmedian(e)
         n_nn = n_nn.astype('int')
     else:
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
@@ -847,7 +847,7 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if out_cells > 0:
         if verbose:
-            print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
+            print(f"{out_cells} had less than {n_nn} neighbors.")
     
     if perplexity is None:
         # use LISI default
@@ -1030,7 +1030,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             #estimate the number of nearest neighbors as the median 
             #of the distance matrix
             _, e = np.unique(dist_mat[0], return_counts=True)
-            n_nn = np.nanmin(e)
+            n_nn = np.nanmedian(e)
             #set type of n_nn to int to avoid type errors downstream
             n_nn = n_nn.astype('int')
         else:
