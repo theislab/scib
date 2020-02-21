@@ -8,7 +8,6 @@ import anndata
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
-from scIB.lisi_py.simpson_index_py import * #lisi function import
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -719,8 +718,6 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     simpson_est_batch = 1/np.squeeze(ro.r("simpson.estimate_batch"))
     simpson_est_label = 1/np.squeeze(ro.r("simpson.estimate_label"))
     
-    
-    
     anndata2ri.deactivate()
     
     # extract results
@@ -728,6 +725,88 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_label)))
     
     return lisi_estimate
+
+#LISI core functions (which we want to implement in cython for speed 
+def Hbeta(D_row, beta):
+    """
+    Helper function for simpson index computation
+    """
+    P = np.exp(- D_row * beta)
+    sumP = P.sum()
+    if (sumP == 0):
+        H = 0    
+        P = np.zeros(len(D_row))
+    else:
+        H = np.log(sumP) + beta * np.dot(D_row, P) / sumP
+        P /= sumP
+    return H, P
+
+#LISI core functions (which we want to implement in cython for speed 
+def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batches = None,
+                          perplexity = 15, tol = 1e-5): 
+    """
+    Simpson index of batch labels subsetted for each group.
+    params:
+        D: distance matrix n_cells x n_nearest_neighbors
+        knn_idx: index of n_nearest_neighbors of each cell
+        batch_labels: a vector of length n_cells with batch info
+        n_batches: number of unique batch labels 
+        perplexity: effective neighborhood size
+        tol: a tolerance for testing effective neighborhood size
+    returns:
+        simpson: the simpson index for the neighborhood of each cell
+    """
+    n = D.shape[0]
+    P = np.zeros(D.shape[1])
+    simpson = np.zeros(n)
+    logU = np.log(perplexity)
+    
+    #loop over all cells
+    for i in np.arange(0, n, 1):
+        beta = 1
+        # negative infinity
+        betamin = -np.inf
+        # positive infinity
+        betamax = np.inf
+        #get active row of D
+        D_act = D[i,:]
+        H, P = Hbeta(D_act, beta)
+        Hdiff = H - logU
+        tries = 0
+        #first get neighbor probabilities
+        while (np.logical_and(np.abs(Hdiff) > tol, tries < 50)):
+            if (Hdiff > 0):
+                betamin = beta
+                if (betamax == np.inf): 
+                    beta *= 2
+                else:
+                    beta = (beta + betamax) / 2
+            else:
+                betamax = beta
+                if (betamin== -np.inf):
+                    beta /= 2
+                else:
+                    beta = (beta + betamin) / 2
+    
+      
+            H, P = Hbeta(D_act, beta)
+            Hdiff = H - logU
+            tries += 1 
+        
+        if (H == 0):
+            simpson[i] = -1
+            continue
+        
+    
+        #then compute Simpson's Index
+        for b in np.arange(0, n_batches,1):
+            q = np.flatnonzero(batch_labels[knn_idx[i]] == b) #indices of cells belonging to batch (b)
+            if (len(q) > 0):
+                sumP = np.sum(P[q])
+                simpson[i] += sumP ** 2         
+  
+    return simpson
+
 
 def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
