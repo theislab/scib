@@ -636,6 +636,7 @@ def select_hvg(adata, select=True):
 
 def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
+    Deprecated
     Compute LISI score on kNN graph provided in the adata object. By default, perplexity
     is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
@@ -679,8 +680,9 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     
     if out_cells > 0:
         #remove all indexes in nn_index and nn_dists, which are 0
-        nn_dists = np.delete(nn_dists, index_out, 0)
-        nn_index = np.delete(nn_index, index_out, 0)
+        #COMMENT: Terrible idea and commented out
+        #nn_dists = np.delete(nn_dists, index_out, 0)
+        #nn_index = np.delete(nn_index, index_out, 0)
         if verbose:
             print(f"{out_cells} had less than {n_nn} neighbors and were omitted in LISI score.")
     
@@ -697,19 +699,10 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     ro.globalenv['nn_indx'] = nn_index.astype('int').T
     ro.globalenv['nn_dst'] = nn_dists.T
     ro.globalenv['perplexity'] = perplexity
-    if out_cells > 0:  
-        batch_adapt = np.delete(adata.obs[batch_key].cat.codes.values, index_out)
-        label_adapt = np.delete(adata.obs[label_key].cat.codes.values, index_out)
-        ro.globalenv['batch'] = batch_adapt
-        ro.globalenv['n_batches'] = len(np.unique(batch_adapt))
-        ro.globalenv['label'] = label_adapt
-        ro.globalenv['n_labels'] = len(np.unique(label_adapt))
-    else:
-        ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
-        ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
-        ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
-        ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
-        
+    ro.globalenv['batch'] = adata.obs[batch_key].cat.codes.values
+    ro.globalenv['n_batches'] = len(np.unique(adata.obs[batch_key]))
+    ro.globalenv['label'] = adata.obs[label_key].cat.codes.values
+    ro.globalenv['n_labels'] = len(np.unique(adata.obs[label_key]))
     
     if verbose:
         print("LISI score estimation")
@@ -788,15 +781,13 @@ def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batch
                 else:
                     beta = (beta + betamin) / 2
     
-      
             H, P = Hbeta(D_act, beta)
             Hdiff = H - logU
             tries += 1 
         
         if (H == 0):
             simpson[i] = -1
-            continue
-        
+            continue        
     
         #then compute Simpson's Index
         for b in np.arange(0, n_batches,1):
@@ -846,7 +837,6 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
         get_idx = dist_mat[0] == cell_id
         num_idx = get_idx.sum()
         #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-        #potential enhancement: handle case where less than n_nn neighbours are reported
         fin_idx = np.min([num_idx, n_nn])
         nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
         nn_dists[cell_id,:fin_idx] = np.sort(dist_mat[2][get_idx])[:fin_idx]
@@ -1047,38 +1037,32 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
         nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
                                    n_nn))
+        nn_index[:] = np.NaN
         index_out = []
         for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
             get_idx = dist_mat[0] == cell_id
             num_idx = get_idx.sum()
-            if num_idx >= n_nn:
-                nn_index[cell_id,:] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:n_nn]
-            else:
+            #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
+            fin_idx = np.min([num_idx, n_nn])
+            nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
+            if num_idx < n_nn:
                 index_out.append(cell_id)
         
         out_cells = len(index_out)
         
         if out_cells > 0:
-        #remove all indexes in nn_index and nn_dists, which are 0 
-            nn_index = np.delete(nn_index, index_out, 0)
-            #adapt adata for the time being
-            adata_tmp = adata[np.invert(np.in1d(np.arange(0, adata.shape[0]), index_out))].copy()
             if verbose:
-                print(f"{out_cells} had less than {n_nn} neighbors and were omitted in kBET.")
-        else:
-            adata_tmp = adata.copy()
-    else:
-        adata_tmp = adata.copy()
+                print(f"{out_cells} had less than {n_nn} neighbors.")
     
-    matrix = adata_tmp.obsm[embed]
+    matrix = adata.obsm[embed]
     
     if verbose:
         print(f"batch: {batch_key}")
-    batch = adata_tmp.obs[batch_key]
+    batch = adata.obs[batch_key]
     
     kBET_scores = {'cluster': [], 'kBET': []}
-    for clus in adata_tmp.obs[label_key].unique():
-        idx = np.where((adata_tmp.obs[label_key] == clus))[0]
+    for clus in adata.obs[label_key].unique():
+        idx = np.where((adata.obs[label_key] == clus))[0]
         if type_ == 'knn':
             nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
             nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
