@@ -732,12 +732,12 @@ def Hbeta(D_row, beta):
     Helper function for simpson index computation
     """
     P = np.exp(- D_row * beta)
-    sumP = P.sum()
+    sumP = np.nansum(P)
     if (sumP == 0):
         H = 0    
         P = np.zeros(len(D_row))
     else:
-        H = np.log(sumP) + beta * np.dot(D_row, P) / sumP
+        H = np.log(sumP) + beta * np.nansum(D_row*P) / sumP
         P /= sumP
     return H, P
 
