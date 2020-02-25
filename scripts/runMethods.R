@@ -39,7 +39,6 @@ if(opt$method=='seurat'){
 
 if(opt$method=='conos'){
 	if(!is.na(opt$hvg)) {
-		require(Seurat)
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
 		sobj <- subset(sobj, features=hvg)
 	}
