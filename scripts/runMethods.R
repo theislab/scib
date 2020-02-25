@@ -38,10 +38,23 @@ if(opt$method=='seurat'){
 }
 
 if(opt$method=='conos'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+
+		# Create a new Seurat object with only HVGs
+		
+	}
+
 	out = runConos(sobj, opt$b)
 }
 
 if(opt$method=='harmony'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+
+		# Create a new Seurat object with only HVGs
+		
+	}
 	
 	out=runHarm(sobj, opt$b)
 }
