@@ -39,9 +39,10 @@ if(opt$method=='seurat'){
 
 if(opt$method=='conos'){
 	if(!is.na(opt$hvg)) {
+		require(Seurat)
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
 
-		# Create a new Seurat object with only HVGs
+		sobj <- subset(sobj, features=hvg)
 		
 	}
 
@@ -52,7 +53,7 @@ if(opt$method=='harmony'){
 	if(!is.na(opt$hvg)) {
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
 
-		# Create a new Seurat object with only HVGs
+		sobj <- subset(sobj, features=hvg)
 		
 	}
 	
