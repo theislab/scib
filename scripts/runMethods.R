@@ -11,6 +11,7 @@ getScriptPath <- function(){
 setwd(getScriptPath())
 
 library('optparse')
+require(Seurat)
 
 option_list <- list(make_option(c("-m", "--method"), type="character", default=NA, help="integration method to use"),
 		    make_option(c("-i", "--input"), type="character", default=NA, help="input data"),
@@ -38,11 +39,19 @@ if(opt$method=='seurat'){
 }
 
 if(opt$method=='conos'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+		sobj <- subset(sobj, features=hvg)
+	}
 	out = runConos(sobj, opt$b)
 }
 
 if(opt$method=='harmony'){
-	
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+		sobj <- subset(sobj, features=hvg)
+	}
+
 	out=runHarm(sobj, opt$b)
 }
 
