@@ -11,6 +11,7 @@ getScriptPath <- function(){
 setwd(getScriptPath())
 
 library('optparse')
+require(Seurat)
 
 option_list <- list(make_option(c("-m", "--method"), type="character", default=NA, help="integration method to use"),
 		    make_option(c("-i", "--input"), type="character", default=NA, help="input data"),
