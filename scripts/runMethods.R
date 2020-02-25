@@ -41,22 +41,17 @@ if(opt$method=='conos'){
 	if(!is.na(opt$hvg)) {
 		require(Seurat)
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
-
 		sobj <- subset(sobj, features=hvg)
-		
 	}
-
 	out = runConos(sobj, opt$b)
 }
 
 if(opt$method=='harmony'){
 	if(!is.na(opt$hvg)) {
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
-
 		sobj <- subset(sobj, features=hvg)
-		
 	}
-	
+
 	out=runHarm(sobj, opt$b)
 }
 
