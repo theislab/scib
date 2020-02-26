@@ -143,8 +143,13 @@ if __name__=='__main__':
         precompute_pca = False
         recompute_neighbors = False
     
+    # by assay
+    if args.assay == 'atac':
+        n_hvgs = None
+    
     if verbose:
         print('reduce integrated data:')
+        print(f'    Assay:\t{assay}')
         print(f'    HVG selection:\t{n_hvgs}')
         message = f'    compute neighbourhood graph:\t{recompute_neighbors}'
         if recompute_neighbors:
@@ -153,10 +158,12 @@ if __name__=='__main__':
         print(f'    precompute PCA:\t{precompute_pca}')
 
     if not empty_file:
+        # no data reduction for:
+        # n_top_genes=None, pca=precompute_pca, umap=False, neighbors=False
         scIB.preprocessing.reduce_data(adata_int,
                                        n_top_genes=n_hvgs,
-                                       neighbors=recompute_neighbors, use_rep=embed,
-                                       pca=precompute_pca, umap=False)
+                                       pca=precompute_pca, umap=False,
+                                       neighbors=recompute_neighbors, use_rep=embed)
     
     print("computing metrics")
     # DEFAULT
@@ -211,6 +218,7 @@ if __name__=='__main__':
         trajectory_=False
 
     if verbose:
+        print(f'assay:\t{assay}')
         print(f'type:\t{type_}')
         print(f'    ASW:\t{silhouette_}')
         print(f'    NMI:\t{nmi_}')

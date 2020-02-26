@@ -33,7 +33,9 @@ class ParsedConfig:
         self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 
                                   'by_method_scaling', 'directory_by_setting']
         self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
-
+        self.N_HVGS            = self.get_feature_selection("hvg")
+    
+    
     def get_all_scalings(self):
         return self.SCALING
 
@@ -68,7 +70,7 @@ class ParsedConfig:
     def get_feature_selection(self, key):
 
         if key not in self.FEATURE_SELECTION:
-            raise ValueError(f"{key} not a valid key for scaling")
+            raise ValueError(f"{key} not a valid key for feature selection")
 
         return self.FEATURE_SELECTION[key]
 

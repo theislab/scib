@@ -166,7 +166,7 @@ rule metrics_single:
         label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
         organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
         assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        hvgs      = cfg.N_HVGS,
         cmd       = f"conda run -n {cfg.py_env} python"	
     shell:
         """
