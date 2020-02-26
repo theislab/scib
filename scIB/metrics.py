@@ -634,6 +634,41 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
+### diffusion neighbourhood score
+def diffusion_nn(adata, k):
+    '''
+    This function generates a nearest neighbour list from a connectivities matrix
+    as supplied by BBKNN or Conos. This allows us to select a consistent number
+    of nearest neighbours across all methods.
+
+    Return:
+       `k_indices` a numpy.ndarray of the indices of the k-nearest neighbors.
+    '''
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '\
+                         'Please compute a neighbourhood graph!')
+    
+    if 'connectivities' not in adata.uns['neighbors']:
+        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+                         'Please pass an object with connectivities computed!')
+        
+    T = adata.uns['neighbors']['connectivities']
+    M = T+T**2+T**3
+    i = 4
+    
+    while (M>0).sum(1).min() < k+1:
+        print(f'Adding diffusion to step {i}')
+        M += T**i
+        i+=1
+    
+    M.setdiag(0)
+    k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
+    
+    return k_indices
+
+
+
+
 def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
     Deprecated
