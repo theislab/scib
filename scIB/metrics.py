@@ -1056,40 +1056,50 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
+    
+    matrix = adata.obsm[embed]
+    
     if type_ =='knn':
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
-        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+        #set k0
+        size_max = 2**31 - 1
+        if (matrix.shape[0]*matrix.shape[1]) >= size_max:
+            k0 = np.floor(size_max/matrix.shape[0])
+        else:    
+            k0 = 90
+        nn_index = diffusion_nn(adata, k = k0)
+        #dist_mat = sparse.find(adata.uns['neighbors']['distances'])
         #get number of nearest neighbours parameter
-        if 'params' not in adata.uns['neighbors']:
+        #if 'params' not in adata.uns['neighbors']:
             #estimate the number of nearest neighbors as the median 
             #of the distance matrix
-            _, e = np.unique(dist_mat[0], return_counts=True)
-            n_nn = np.nanmedian(e)
+        #    _, e = np.unique(dist_mat[0], return_counts=True)
+        #    n_nn = np.nanmedian(e)
             #set type of n_nn to int to avoid type errors downstream
-            n_nn = n_nn.astype('int')
-        else:
-            n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                                   n_nn))
-        nn_index[:] = np.NaN
-        index_out = []
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
-            get_idx = dist_mat[0] == cell_id
-            num_idx = get_idx.sum()
+        #    n_nn = n_nn.astype('int')
+        #else:
+        #    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        #nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+        #                           n_nn))
+        #nn_index[:] = np.NaN
+        #index_out = []
+        #for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
+        #    get_idx = dist_mat[0] == cell_id
+        #    num_idx = get_idx.sum()
             #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-            fin_idx = np.min([num_idx, n_nn])
-            nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
-            if num_idx < n_nn:
-                index_out.append(cell_id)
+        #    fin_idx = np.min([num_idx, n_nn])
+        #    nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
+        #    if num_idx < n_nn:
+        #        index_out.append(cell_id)
         
-        out_cells = len(index_out)
+        #out_cells = len(index_out)
         
-        if out_cells > 0:
-            if verbose:
-                print(f"{out_cells} had less than {n_nn} neighbors.")
+        #if out_cells > 0:
+        #    if verbose:
+        #        print(f"{out_cells} had less than {n_nn} neighbors.")
     
-    matrix = adata.obsm[embed]
+    
     
     if verbose:
         print(f"batch: {batch_key}")
