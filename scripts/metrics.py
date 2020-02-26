@@ -116,8 +116,17 @@ if __name__=='__main__':
         message += "than specified for HVG selection."
         raise ValueError(message)    
     
+    
     # DATA REDUCTION
-    # select options according to type
+    
+    # before integration
+    if not empty_file:
+        print(f"Reducing adata before integration...")
+        scIB.preprocessing.reduce_data(adata, n_top_genes=n_hvgs,
+                                       pca=True, neighbors=True, umap=False)
+    
+    
+    # after integration: select options according to type
     
     # case 1: full expression matrix, default settings
     precompute_pca = True
@@ -146,18 +155,18 @@ if __name__=='__main__':
     # by assay
     if args.assay == 'atac':
         n_hvgs = None
-    
-    if verbose:
-        print('reduce integrated data:')
-        print(f'    Assay:\t{assay}')
-        print(f'    HVG selection:\t{n_hvgs}')
-        message = f'    compute neighbourhood graph:\t{recompute_neighbors}'
-        if recompute_neighbors:
-            message += f' on {embed}'
-        print(message)
-        print(f'    precompute PCA:\t{precompute_pca}')
 
     if not empty_file:
+        print(f"Reducing adata after integration...")
+        if verbose:
+            print(f'    Assay:\t{assay}')
+            print(f'    HVG selection:\t{n_hvgs}')
+            message = f'    compute neighbourhood graph:\t{recompute_neighbors}'
+            if recompute_neighbors:
+                message += f' on {embed}'
+            print(message)
+            print(f'    precompute PCA:\t{precompute_pca}')
+        
         # no data reduction for:
         # n_top_genes=None, pca=precompute_pca, umap=False, neighbors=False
         scIB.preprocessing.reduce_data(adata_int,
