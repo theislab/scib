@@ -1079,7 +1079,9 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             else:
                 k0 = np.min(100, 30*len(adata.obs[batch_key].cat.categories))
         nn_index = diffusion_nn(adata, k = k0)
-          
+        #in this case, the original data matrix is not used except for size estimates in kBET
+        matrix = np.empty(shape=(adata.n_obs, k0+1))
+        matrix[:] = 0
         #else:
         #    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
             #get number of nearest neighbours parameter
