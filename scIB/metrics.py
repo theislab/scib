@@ -1078,7 +1078,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             if (k0*adata_sub.n_obs) >=size_max:
                 k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
             if verbose:
-                print('Use {k0} nearest neighbors.')
+                print(f"Use {k0} nearest neighbors.")
             nn_index_tmp = diffusion_nn(adata_sub, k=k0-1) #reduce nearest neighbor matrix to the desired indices
             matrix = np.zeros(shape=(adata_sub.n_obs, k0+1))
             
