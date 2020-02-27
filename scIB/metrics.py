@@ -1065,8 +1065,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         
     if verbose:
         print(f"batch: {batch_key}")
-    batch = adata.obs[batch_key]
-    
+        
     #set upper bound for k0
     size_max = 2**31 - 1
     
