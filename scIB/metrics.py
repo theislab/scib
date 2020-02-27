@@ -1074,12 +1074,12 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         
         adata_sub = adata[adata.obs[label_key] == clus,:].copy()
         if type_ == 'knn':
-            k0 = np.floor(np.mean(adata.obs[batch_key].value_counts())/4).astype('int')
+            k0 = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
             if (k0*adata_sub.n_obs) >=size_max:
                 k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
             if verbose:
                 print('Use {k0} nearest neighbors.')
-            nn_index_tmp = diffusion_nn(adata_sub, k=k0) #reduce nearest neighbor matrix to the desired indices
+            nn_index_tmp = diffusion_nn(adata_sub, k=k0-1) #reduce nearest neighbor matrix to the desired indices
             matrix = np.zeros(shape=(adata_sub.n_obs, k0+1))
             
             score = kBET_single(
