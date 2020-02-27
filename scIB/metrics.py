@@ -1062,26 +1062,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
-    
-    matrix = adata.obsm[embed]
-    
-    if type_ =='knn':
-        if verbose:
-            print("Convert nearest neighbor matrix for kBET.")
         
-        if (adata.n_obs**2) >= size_max:
-            k0 = np.floor(size_max/adata.n_obs)
-        else:
-            #choose large neighbourhood sizes to have enough power for kBET per cell type
-            if adata.n_obs<=10e5:
-                k0 = np.min(100, 15*len(adata.obs[batch_key].cat.categories))
-            else:
-                k0 = np.min(100, 30*len(adata.obs[batch_key].cat.categories))
-        nn_index = diffusion_nn(adata, k = k0)
-        #in this case, the original data matrix is not used except for size estimates in kBET
-        matrix = np.empty(shape=(adata.n_obs, k0+1))
-        matrix[:] = 0
-          
     if verbose:
         print(f"batch: {batch_key}")
     batch = adata.obs[batch_key]
