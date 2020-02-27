@@ -1062,21 +1062,20 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ =='knn':
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
-        #this if-loop is executed for conos only    
-        if 'params' not in adata.uns['neighbors']:    
-            #set k0
-            size_max = 2**31 - 1
-            if (matrix.shape[0]*matrix.shape[1]) >= size_max:
-                k0 = np.floor(size_max/matrix.shape[0])
-            else:
-                if matrix.shape[0]<=10e5:
-                    k0 = 15*len(adata.obs[batch_key].cat.categories)
-                else:
-                    k0 = 30*len(adata.obs[batch_key].cat.categories)
-            nn_index = diffusion_nn(adata, k = k0)
-        #the else case is designed for bbknn    
+        #set k0
+        size_max = 2**31 - 1
+        if (matrix.shape[0]*matrix.shape[1]) >= size_max:
+            k0 = np.floor(size_max/matrix.shape[0])
         else:
-            dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+            #choose large neighbourhood sizes to have enough power for kBET per cell type
+            if matrix.shape[0]<=10e5:
+                k0 = np.min(0.5*matrix.shape[0],30*len(adata.obs[batch_key].cat.categories))
+            else:
+                k0 = np.min(0.5*matrix.shape[0],60*len(adata.obs[batch_key].cat.categories))
+        nn_index = diffusion_nn(adata, k = k0)
+          
+        #else:
+        #    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
             #get number of nearest neighbours parameter
         #if 'params' not in adata.uns['neighbors']:
             #estimate the number of nearest neighbors as the median 
@@ -1086,25 +1085,25 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             #set type of n_nn to int to avoid type errors downstream
         #    n_nn = n_nn.astype('int')
         #else:
-            n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
-            nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                                   n_nn))
-            nn_index[:] = np.NaN
-            index_out = []
-            for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
-                get_idx = dist_mat[0] == cell_id
-                num_idx = get_idx.sum()
+        #    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
+        #    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+        #                           n_nn))
+        #    nn_index[:] = np.NaN
+        #    index_out = []
+        #    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
+        #        get_idx = dist_mat[0] == cell_id
+        #        num_idx = get_idx.sum()
             #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-                fin_idx = np.min([num_idx, n_nn])
-                nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
-                if num_idx < n_nn:
-                    index_out.append(cell_id)
+        #        fin_idx = np.min([num_idx, n_nn])
+        #        nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
+        #        if num_idx < n_nn:
+        #            index_out.append(cell_id)
+       
+        #    out_cells = len(index_out)
         
-            out_cells = len(index_out)
-        
-            if out_cells > 0:
-                if verbose:
-                    print(f"{out_cells} had less than {n_nn} neighbors.")
+        #    if out_cells > 0:
+        #        if verbose:
+        #            print(f"{out_cells} had less than {n_nn} neighbors.")
     
     
     
