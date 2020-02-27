@@ -1070,14 +1070,14 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             print("Convert nearest neighbor matrix for kBET.")
         #set k0
         size_max = 2**31 - 1
-        if (matrix.shape[0]*matrix.shape[1]) >= size_max:
-            k0 = np.floor(size_max/matrix.shape[0])
+        if (adata.n_obs*adata.n_vars) >= size_max:
+            k0 = np.floor(size_max/adata.n_obs)
         else:
             #choose large neighbourhood sizes to have enough power for kBET per cell type
-            if matrix.shape[0]<=10e5:
-                k0 = np.min(0.5*matrix.shape[0],30*len(adata.obs[batch_key].cat.categories))
+            if adata.n_obs<=10e5:
+                k0 = np.min(0.5*adata.n_obs,15*len(adata.obs[batch_key].cat.categories))
             else:
-                k0 = np.min(0.5*matrix.shape[0],60*len(adata.obs[batch_key].cat.categories))
+                k0 = np.min(0.5*adata.n_obs,30*len(adata.obs[batch_key].cat.categories))
         nn_index = diffusion_nn(adata, k = k0)
           
         #else:
