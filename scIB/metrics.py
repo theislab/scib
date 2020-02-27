@@ -973,11 +973,11 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
-    if type_ != 'knn':
-        if verbose: 
-            print("recompute kNN graph with {k0} nearest neighbors.")
-        #recompute neighbours
-        sc.pp.neighbors(adata, n_neighbors=k0)
+    #if type_ != 'knn':
+    #    if verbose: 
+    #        print("recompute kNN graph with {k0} nearest neighbors.")
+    #recompute neighbours
+    sc.pp.neighbors(adata, n_neighbors=k0)
     
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
