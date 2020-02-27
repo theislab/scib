@@ -1080,8 +1080,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             if verbose:
                 print('Use {k0} nearest neighbors.')
             nn_index_tmp = diffusion_nn(adata_sub, k=k0) #reduce nearest neighbor matrix to the desired indices
-            matrix = np.empty(shape=(adata_sub.n_obs, k0+1))
-            matrix[:] = 0
+            matrix = np.zeros(shape=(adata_sub.n_obs, k0+1))
+            
             score = kBET_single(
                 matrix=matrix,
                 batch=adata_sub.obs[batch_key],
