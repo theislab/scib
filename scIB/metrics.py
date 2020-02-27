@@ -977,10 +977,10 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     #    if verbose: 
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
-    sc.pp.neighbors(adata, n_neighbors=k0)
+    adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
     
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
-    lisi_score = lisi_knn_py(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
+    lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
     ilisi_score = np.nanmedian(lisi_score[batch_key])
