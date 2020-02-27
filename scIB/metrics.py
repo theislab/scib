@@ -1068,8 +1068,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ =='knn':
         if verbose:
             print("Convert nearest neighbor matrix for kBET.")
-        #set k0
-        size_max = 2**31 - 1
+        
         if (adata.n_obs**2) >= size_max:
             k0 = np.floor(size_max/adata.n_obs)
         else:
@@ -1082,52 +1081,30 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         #in this case, the original data matrix is not used except for size estimates in kBET
         matrix = np.empty(shape=(adata.n_obs, k0+1))
         matrix[:] = 0
-        #else:
-        #    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-            #get number of nearest neighbours parameter
-        #if 'params' not in adata.uns['neighbors']:
-            #estimate the number of nearest neighbors as the median 
-            #of the distance matrix
-        #    _, e = np.unique(dist_mat[0], return_counts=True)
-        #    n_nn = np.nanmedian(e)
-            #set type of n_nn to int to avoid type errors downstream
-        #    n_nn = n_nn.astype('int')
-        #else:
-        #    n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
-        #    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-        #                           n_nn))
-        #    nn_index[:] = np.NaN
-        #    index_out = []
-        #    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
-        #        get_idx = dist_mat[0] == cell_id
-        #        num_idx = get_idx.sum()
-            #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-        #        fin_idx = np.min([num_idx, n_nn])
-        #        nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
-        #        if num_idx < n_nn:
-        #            index_out.append(cell_id)
-       
-        #    out_cells = len(index_out)
-        
-        #    if out_cells > 0:
-        #        if verbose:
-        #            print(f"{out_cells} had less than {n_nn} neighbors.")
-    
-    
-    
+          
     if verbose:
         print(f"batch: {batch_key}")
     batch = adata.obs[batch_key]
     
+    #set upper bound for k0
+    size_max = 2**31 - 1
+    
     kBET_scores = {'cluster': [], 'kBET': []}
     for clus in adata.obs[label_key].unique():
-        idx = np.where((adata.obs[label_key] == clus))[0]
+        
+        adata_sub = adata[adata.obs[label_key] == clus,:].copy()
         if type_ == 'knn':
-            nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
-            nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
+            k0 = np.floor(np.mean(adata.obs[batch_key].value_counts())/4).astype('int')
+            if (k0*adata_sub.n_obs) >=size_max:
+                k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
+            if verbose:
+                print('Use {k0} nearest neighbors.')
+            nn_index_tmp = diffusion_nn(adata_sub, k=k0) #reduce nearest neighbor matrix to the desired indices
+            matrix = np.empty(shape=(adata_sub.n_obs, k0+1))
+            matrix[:] = 0
             score = kBET_single(
-                matrix[idx, :],
-                batch[idx],
+                matrix=matrix,
+                batch=adata_sub.obs[batch_key],
                 knn = nn_index_tmp+1, #nn_index in python is 0-based and 1-based in R
                 subsample=subsample,
                 verbose=verbose,
@@ -1136,8 +1113,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                 )
         else:
             score = kBET_single(
-                matrix[idx, :],
-                batch[idx],
+                matrix=adata_sub.obsm[X_embed],
+                batch=adata_sub.obs[batch_key],
                 subsample=subsample,
                 verbose=verbose,
                 heuristic=heuristic
