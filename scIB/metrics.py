@@ -1125,8 +1125,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             #check k0 for reasonability
             if (k0*adata_sub.n_obs) >=size_max:
                 k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
-            
-            nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype('float') 
+           
             matrix = np.zeros(shape=(adata_sub.n_obs, k0+1))
                 
             if verbose:
@@ -1137,10 +1136,16 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                 #check the number of components where kBET can be computed upon
                 comp_size = pd.value_counts(labs)
                 #check which components are small
-                idx_nan = np.flatnonzero(np.in1d(labs, comp_size[comp_size<3*k0].index))
+                comp_size_thresh = 3*k0
+                idx_nonan = np.flatnonzero(np.in1d(labs, 
+                                                   comp_size[comp_size>=comp_size_thresh].index))
                 #check if 75% of all cells can be used for kBET run
-                if len(idx_nan)/len(labs) < 0.25:
-                    nn_index_tmp[idx_nan] = np.nan
+                if len(idx_nonan)/len(labs) >= 0.75:
+                    #create another subset of components, assume they are not visited in a diffusion process
+                    adata_sub_sub = adata_sub[idx_nonan,:].copy()
+                    nn_index_tmp = np.empty(shape=(adata_sub.n_obs, k0))
+                    nn_index_tmp[:] = np.nan
+                    nn_index_tmp[idx_nonan] = diffusion_nn(adata_sub_sub, k=k0).astype('float') 
                     #need to check neighbors (k0 or k0-1) as input?   
                     score = kBET_single(
                             matrix=matrix,
@@ -1157,7 +1162,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                     score = 0
                 
             else: #a single component to compute kBET on 
-                #need to check neighbors (k0 or k0-1) as input?   
+                #need to check neighbors (k0 or k0-1) as input?  
+                nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype('float')
                 score = kBET_single(
                             matrix=matrix,
                             batch=adata_sub.obs[batch_key],
