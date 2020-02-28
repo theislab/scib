@@ -634,8 +634,52 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
+### diffusion for connectivites matrix extension
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
+    '''
+    This function performs graph diffusion on the connectivities matrix until a
+    minimum number `min_k` of entries per row are non-zero.
+
+    Note:
+    Due to self-loops min_k-1 non-zero connectivies entries is actually the stopping 
+    criterion. This is equivalent to `sc.pp.neighbors`.
+
+    Returns:
+       The diffusion-enhanced connectivities matrix of a copy of the AnnData object
+       with the diffusion-enhanced connectivities matrix is in 
+       `adata.uns["neighbors"]["conectivities"]`
+    '''
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '\
+                         'Please compute a neighbourhood graph!')
+    
+    if 'connectivities' not in adata.uns['neighbors']:
+        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+                         'Please pass an object with connectivities computed!')
+        
+
+    T = adata.uns['neighbors']['connectivities']
+    M = T
+
+    i = 2
+    while ((M>0).sum(1).min() < min_k) and (i < max_iterations):
+        print(f'Adding diffusion to step {i}')
+        M += T**i
+        i+=1
+
+    M.setdiag(0)
+
+    if copy:
+        adata_tmp = adata.copy()
+        adata_tmp.uns['neighbors']['connectivities'] = M
+        return adata_tmp
+
+    else:
+        return M
+
+    
 ### diffusion neighbourhood score
-def diffusion_nn(adata, k):
+def diffusion_nn(adata, k, max_iterations=20):
     '''
     This function generates a nearest neighbour list from a connectivities matrix
     as supplied by BBKNN or Conos. This allows us to select a consistent number
@@ -656,7 +700,8 @@ def diffusion_nn(adata, k):
     M = T+T**2+T**3
     i = 4
     
-    while (M>0).sum(1).min() < k+1:
+    while ((M>0).sum(1).min() < k+1) and (i < max_iterations): 
+        #note: k+1 is used as diag is non-zero (self-loops)
         print(f'Adding diffusion to step {i}')
         M += T**i
         i+=1
