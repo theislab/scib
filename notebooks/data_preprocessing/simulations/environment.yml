@@ -1,0 +1,41 @@
+name: null
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=0_gnu
+  - anndata=0.6.22.post1=py_1
+  - ca-certificates=2019.11.28=hecc5488_0
+  - certifi=2019.11.28=py36_0
+  - h5py=2.10.0=nompi_py36h513d04c_101
+  - hdf5=1.10.5=nompi_h3c11f04_1104
+  - libblas=3.8.0=14_openblas
+  - libcblas=3.8.0=14_openblas
+  - libffi=3.2.1=he1b5a44_1006
+  - libgcc-ng=9.2.0=h24d8f2e_2
+  - libgfortran-ng=7.3.0=hdf63c60_5
+  - libgomp=9.2.0=h24d8f2e_2
+  - liblapack=3.8.0=14_openblas
+  - libopenblas=0.3.7=h5ec1e0e_6
+  - libstdcxx-ng=9.2.0=hdf63c60_2
+  - natsort=7.0.1=py_0
+  - ncurses=6.1=hf484d3e_1002
+  - numpy=1.17.5=py36h95a1406_0
+  - openssl=1.1.1d=h516909a_0
+  - pandas=1.0.0=py36hb3f55d8_0
+  - pip=20.0.2=py36_1
+  - python=3.6.7=h357f687_1006
+  - python-dateutil=2.8.1=py_0
+  - pytz=2019.3=py_0
+  - readline=8.0=hf8c457e_0
+  - scipy=1.4.1=py36h921218d_0
+  - setuptools=45.1.0=py36_0
+  - six=1.14.0=py36_0
+  - sqlite=3.30.1=hcee41ef_0
+  - tk=8.6.10=hed695b0_0
+  - wheel=0.34.2=py36_0
+  - xz=5.2.4=h14c3975_1001
+  - zlib=1.2.11=h516909a_1006
+prefix: /storage/groups/ml01/code/luke.zappia/2020-scIB-simulations/renv/python/condaenvs/renv-python
