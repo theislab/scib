@@ -723,8 +723,6 @@ def diffusion_nn(adata, k, max_iterations=20):
     return k_indices
 
 
-
-
 def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
     Deprecated
