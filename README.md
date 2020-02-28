@@ -1,6 +1,10 @@
-# Benchmarking_data_integration
+# Benchmarking atlas-level data integration in single-cell genomics
 
 This repository contains code and analysis for the benchmarking study for data integration tools.
+The scib python module is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
+R helper functions for R integration methods can be found in the `R` directory.
+
+The `scripts` folder contains scripts for preparing the data, running the methods, postprocessing and calculation of the metrics.
 
 ## Tools
 Tools to be compared include:
