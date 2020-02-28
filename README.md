@@ -6,6 +6,16 @@ R helper functions for R integration methods can be found in the `R` directory.
 
 The `scripts` folder contains scripts for preparing the data, running the methods, postprocessing and calculation of the metrics.
 
+## Running the integration methods
+This package allows to run a multitude of single cell data integration methods in both `R` and `python`.
+Before running the methods, the data needs to be preprocessed using the `scripts/runPP.py` script. This script calculates highly variable
+genes per batch and converts the data to an R Seurat object if needed.
+``` python scripts/runPP.py -i INPUT_FILE -o OUTPUT_FILE -b BATCH_VARIABLE [-v #_OF_HVGs]```
+Use the `-r` flag to output an R object and `-s` to scale the data.
+
+To run the integration methods the `scripts/runIntegration.py` script is used for methods implemented in python.
+``` python scripts/runIntegration.py -i INPUT_FILE -o OUTPUT_FILE -b BATCH_VARIBABLE [-v #_OF_HVGs] ```
+
 ## Tools
 Tools to be compared include:
 - Seurat v2
