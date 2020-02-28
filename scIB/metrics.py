@@ -1158,8 +1158,9 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                             type_ = type_
                             )
                 else:
-                    #if there are too many too small connected components, set kBET score to 0
-                    score = 0
+                    #if there are too many too small connected components, set kBET score to 1 
+                    #(i.e. 100% rejection)
+                    score = 1
                 
             else: #a single component to compute kBET on 
                 #need to check neighbors (k0 or k0-1) as input?  
