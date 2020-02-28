@@ -1158,7 +1158,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                             type_ = type_
                             )
                 else:
-                    #if there are too many connected components, set kBET score to 0
+                    #if there are too many too small connected components, set kBET score to 0
                     score = 0
                 
             else: #a single component to compute kBET on 
