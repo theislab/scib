@@ -650,11 +650,11 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
        `adata.uns["neighbors"]["conectivities"]`
     '''
     if 'neighbors' not in adata.uns:
-        raise ValueError('`neighbors` not in adata object. '\
+        raise ValueError('`neighbors` not in adata object. '
                          'Please compute a neighbourhood graph!')
     
     if 'connectivities' not in adata.uns['neighbors']:
-        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
                          'Please pass an object with connectivities computed!')
         
 
@@ -668,9 +668,9 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
         i+=1
 
     if (M>0).sum(1).min() < min_k:
-        raise ValueError('could not create diffusion connectivities matrix' \
-                         f'with at least {min_k} non-zero entries in'\
-                         f'{max_iterations} iterations.\n Please increase the'\
+        raise ValueError('could not create diffusion connectivities matrix' 
+                         f'with at least {min_k} non-zero entries in'
+                         f'{max_iterations} iterations.\n Please increase the'
                          'value of max_iterations or reduce k_min.\n')
 
     M.setdiag(0)
@@ -695,11 +695,11 @@ def diffusion_nn(adata, k, max_iterations=20):
        `k_indices` a numpy.ndarray of the indices of the k-nearest neighbors.
     '''
     if 'neighbors' not in adata.uns:
-        raise ValueError('`neighbors` not in adata object. '\
+        raise ValueError('`neighbors` not in adata object. '
                          'Please compute a neighbourhood graph!')
     
     if 'connectivities' not in adata.uns['neighbors']:
-        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
                          'Please pass an object with connectivities computed!')
         
     T = adata.uns['neighbors']['connectivities']
@@ -713,8 +713,8 @@ def diffusion_nn(adata, k, max_iterations=20):
         i+=1
 
     if (M>0).sum(1).min() < (k+1):
-        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'\ 
-                         'diffusion steps.\n Please increase max_iterations or reduce'\
+        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'
+                         'diffusion steps.\n Please increase max_iterations or reduce'
                          ' k.\n')
     
     M.setdiag(0)
