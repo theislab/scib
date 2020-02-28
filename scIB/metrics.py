@@ -1105,7 +1105,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ != 'knn':
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
-        adata_tmp = diffusion_conn(adata, k_min = 50, copy = True)
+        adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
     
     if verbose:
         print(f"batch: {batch_key}")
