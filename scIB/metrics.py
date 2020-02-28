@@ -667,6 +667,12 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
         M += T**i
         i+=1
 
+    if (M>0).sum(1).min() < min_k:
+        raise ValueError('could not create diffusion connectivities matrix' \
+                         f'with at least {min_k} non-zero entries in'\
+                         f'{max_iterations} iterations.\n Please increase the'\
+                         'value of max_iterations or reduce k_min.\n')
+
     M.setdiag(0)
 
     if copy:
@@ -700,11 +706,16 @@ def diffusion_nn(adata, k, max_iterations=20):
     M = T+T**2+T**3
     i = 4
     
-    while ((M>0).sum(1).min() < k+1) and (i < max_iterations): 
+    while ((M>0).sum(1).min() < (k+1)) and (i < max_iterations): 
         #note: k+1 is used as diag is non-zero (self-loops)
         print(f'Adding diffusion to step {i}')
         M += T**i
         i+=1
+
+    if (M>0).sum(1).min() < (k+1):
+        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'\ 
+                         'diffusion steps.\n Please increase max_iterations or reduce'\
+                         ' k.\n')
     
     M.setdiag(0)
     k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
