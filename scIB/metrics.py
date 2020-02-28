@@ -1103,9 +1103,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     #compute connectivities for non-knn type data integrations
     #and increase neighborhoods for knn type data integrations
     if type_ != 'knn':
-        adata_tmp = adata.copy()
-        adata_tmp.obsm['X_pca'] = adata_tmp.obsm[embed]
-        sc.pp.neighbors(adata_tmp, n_neighbors = 50)
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
         adata_tmp = diffusion_conn(adata, k_min = 50, copy = True)
     
