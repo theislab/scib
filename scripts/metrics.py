@@ -179,6 +179,7 @@ if __name__=='__main__':
         pcr_ = False
         cell_cycle_ = False
         hvg_score_ = False
+        lisi_ = False
     
      # by assay
     if args.assay == 'atac':

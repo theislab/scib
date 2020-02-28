@@ -634,6 +634,95 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
+### diffusion for connectivites matrix extension
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
+    '''
+    This function performs graph diffusion on the connectivities matrix until a
+    minimum number `min_k` of entries per row are non-zero.
+
+    Note:
+    Due to self-loops min_k-1 non-zero connectivies entries is actually the stopping 
+    criterion. This is equivalent to `sc.pp.neighbors`.
+
+    Returns:
+       The diffusion-enhanced connectivities matrix of a copy of the AnnData object
+       with the diffusion-enhanced connectivities matrix is in 
+       `adata.uns["neighbors"]["conectivities"]`
+    '''
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '\
+                         'Please compute a neighbourhood graph!')
+    
+    if 'connectivities' not in adata.uns['neighbors']:
+        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+                         'Please pass an object with connectivities computed!')
+        
+
+    T = adata.uns['neighbors']['connectivities']
+    M = T
+
+    i = 2
+    while ((M>0).sum(1).min() < min_k) and (i < max_iterations):
+        print(f'Adding diffusion to step {i}')
+        M += T**i
+        i+=1
+
+    if (M>0).sum(1).min() < min_k:
+        raise ValueError('could not create diffusion connectivities matrix' \
+                         f'with at least {min_k} non-zero entries in'\
+                         f'{max_iterations} iterations.\n Please increase the'\
+                         'value of max_iterations or reduce k_min.\n')
+
+    M.setdiag(0)
+
+    if copy:
+        adata_tmp = adata.copy()
+        adata_tmp.uns['neighbors']['connectivities'] = M
+        return adata_tmp
+
+    else:
+        return M
+
+    
+### diffusion neighbourhood score
+def diffusion_nn(adata, k, max_iterations=20):
+    '''
+    This function generates a nearest neighbour list from a connectivities matrix
+    as supplied by BBKNN or Conos. This allows us to select a consistent number
+    of nearest neighbours across all methods.
+
+    Return:
+       `k_indices` a numpy.ndarray of the indices of the k-nearest neighbors.
+    '''
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '\
+                         'Please compute a neighbourhood graph!')
+    
+    if 'connectivities' not in adata.uns['neighbors']:
+        raise ValueError('`connectivities` not in adata.uns["neighbors"]. '\
+                         'Please pass an object with connectivities computed!')
+        
+    T = adata.uns['neighbors']['connectivities']
+    M = T+T**2+T**3
+    i = 4
+    
+    while ((M>0).sum(1).min() < (k+1)) and (i < max_iterations): 
+        #note: k+1 is used as diag is non-zero (self-loops)
+        print(f'Adding diffusion to step {i}')
+        M += T**i
+        i+=1
+
+    if (M>0).sum(1).min() < (k+1):
+        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'\ 
+                         'diffusion steps.\n Please increase max_iterations or reduce'\
+                         ' k.\n')
+    
+    M.setdiag(0)
+    k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
+    
+    return k_indices
+
+
 def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
     Deprecated
@@ -923,7 +1012,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, scale=True, verbose=False):
+def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -938,8 +1027,14 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
+    #if type_ != 'knn':
+    #    if verbose: 
+    #        print("recompute kNN graph with {k0} nearest neighbors.")
+    #recompute neighbours
+    adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
-    lisi_score = lisi_knn_py(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
+    lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
     ilisi_score = np.nanmedian(lisi_score[batch_key])
@@ -956,7 +1051,7 @@ def lisi(adata, batch_key, label_key, scale=True, verbose=False):
 
     
 ### kBET
-def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=True, verbose=False):
+def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, heuristic=True, verbose=False):
     """
     params:
         matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
@@ -965,13 +1060,7 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
     returns:
         kBET p-value
     """
-    if type_ != 'knn':
-        if isinstance(subsample, float):
-            #perform subsampling for large clusters, but not for small clusters (boundary is currently set to 50)
-            if np.floor(matrix.shape[0]*subsample) >= 50:
-                matrix, indices = sc.pp.subsample(matrix, fraction=subsample, copy=True)
-                batch = batch[indices]
-    
+        
     anndata2ri.activate()
     ro.r("library(kBET)")
     
@@ -985,20 +1074,10 @@ def kBET_single(matrix, batch, type_ = None, knn=None, subsample=0.5, heuristic=
     if verbose:
         print("kBET estimation")
     #k0 = len(batch) if len(batch) < 50 else 'NULL'
-    if type_ == 'knn':
-        ro.globalenv['knn_graph'] = knn
-        ro.globalenv['k0'] = np.min([knn.shape[1], matrix.shape[0]])
-        batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
-    else:
-        #in this case, we do a knn search in R with FNN package
-        #FNN has an upper limit for the data size it can handle
-        size_max = 2**31 - 1 #limit before R uses long vector format
-        #if the input matrix is potentially too large, we set an upper limit for k0
-        if (matrix.shape[0]*matrix.shape[1]) >= size_max:
-            ro.globalenv['k0'] = np.floor(size_max/matrix.shape[0])
-            batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, k0=k0, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
-        else:
-            batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, plot=FALSE, do.pca=FALSE, heuristic={str(heuristic).upper()}, verbose={str(verbose).upper()})")
+    
+    ro.globalenv['knn_graph'] = knn
+    ro.globalenv['k0'] = k0
+    batch_estimate = ro.r(f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
             
     anndata2ri.deactivate()
     try:
@@ -1021,68 +1100,82 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
-    if type_ =='knn':
-        if verbose:
-            print("Convert nearest neighbor matrix for kBET.")
-        dist_mat = sparse.find(adata.uns['neighbors']['distances'])
-        #get number of nearest neighbours parameter
-        if 'params' not in adata.uns['neighbors']:
-            #estimate the number of nearest neighbors as the median 
-            #of the distance matrix
-            _, e = np.unique(dist_mat[0], return_counts=True)
-            n_nn = np.nanmedian(e)
-            #set type of n_nn to int to avoid type errors downstream
-            n_nn = n_nn.astype('int')
-        else:
-            n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
-        nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
-                                   n_nn))
-        nn_index[:] = np.NaN
-        index_out = []
-        for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
-            get_idx = dist_mat[0] == cell_id
-            num_idx = get_idx.sum()
-            #in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-            fin_idx = np.min([num_idx, n_nn])
-            nn_index[cell_id,:fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
-            if num_idx < n_nn:
-                index_out.append(cell_id)
-        
-        out_cells = len(index_out)
-        
-        if out_cells > 0:
-            if verbose:
-                print(f"{out_cells} had less than {n_nn} neighbors.")
-    
-    matrix = adata.obsm[embed]
+    #compute connectivities for non-knn type data integrations
+    #and increase neighborhoods for knn type data integrations
+    if type_ != 'knn':
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
+    else:
+        adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
     
     if verbose:
         print(f"batch: {batch_key}")
-    batch = adata.obs[batch_key]
+        
+    #set upper bound for k0
+    size_max = 2**31 - 1
     
     kBET_scores = {'cluster': [], 'kBET': []}
-    for clus in adata.obs[label_key].unique():
-        idx = np.where((adata.obs[label_key] == clus))[0]
-        if type_ == 'knn':
-            nn_index_tmp = nn_index[idx,:] #reduce nearest neighbor matrix to the desired indices
-            nn_index_tmp[np.invert(np.isin(nn_index_tmp, idx))] = np.nan #set the rest nan
-            score = kBET_single(
-                matrix[idx, :],
-                batch[idx],
-                knn = nn_index_tmp+1, #nn_index in python is 0-based and 1-based in R
-                subsample=subsample,
-                verbose=verbose,
-                heuristic=False,
-                type_ = type_
-                )
+    for clus in adata_tmp.obs[label_key].unique():
+        
+        adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus,:].copy()
+        if (adata_sub.n_obs < 10): #neighborhood size too small
+            score = np.nan
         else:
-            score = kBET_single(
-                matrix[idx, :],
-                batch[idx],
-                subsample=subsample,
-                verbose=verbose,
-                heuristic=heuristic
-                )
+            quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
+            k0 = np.min([100, np.max([10, quarter_mean])])
+            #check k0 for reasonability
+            if (k0*adata_sub.n_obs) >=size_max:
+                k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
+           
+            matrix = np.zeros(shape=(adata_sub.n_obs, k0+1))
+                
+            if verbose:
+                print(f"Use {k0} nearest neighbors.")
+            n_comp, labs = sparse.csgraph.connected_components(adata_sub.uns['neighbors']['connectivities'], 
+                                                              connection='strong')
+            if n_comp > 1:
+                #check the number of components where kBET can be computed upon
+                comp_size = pd.value_counts(labs)
+                #check which components are small
+                comp_size_thresh = 3*k0
+                idx_nonan = np.flatnonzero(np.in1d(labs, 
+                                                   comp_size[comp_size>=comp_size_thresh].index))
+                #check if 75% of all cells can be used for kBET run
+                if len(idx_nonan)/len(labs) >= 0.75:
+                    #create another subset of components, assume they are not visited in a diffusion process
+                    adata_sub_sub = adata_sub[idx_nonan,:].copy()
+                    nn_index_tmp = np.empty(shape=(adata_sub.n_obs, k0))
+                    nn_index_tmp[:] = np.nan
+                    nn_index_tmp[idx_nonan] = diffusion_nn(adata_sub_sub, k=k0).astype('float') 
+                    #need to check neighbors (k0 or k0-1) as input?   
+                    score = kBET_single(
+                            matrix=matrix,
+                            batch=adata_sub.obs[batch_key],
+                            knn = nn_index_tmp+1, #nn_index in python is 0-based and 1-based in R
+                            subsample=subsample,
+                            verbose=verbose,
+                            heuristic=False,
+                            k0 = k0,
+                            type_ = type_
+                            )
+                else:
+                    #if there are too many too small connected components, set kBET score to 1 
+                    #(i.e. 100% rejection)
+                    score = 1
+                
+            else: #a single component to compute kBET on 
+                #need to check neighbors (k0 or k0-1) as input?  
+                nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype('float')
+                score = kBET_single(
+                            matrix=matrix,
+                            batch=adata_sub.obs[batch_key],
+                            knn = nn_index_tmp+1, #nn_index in python is 0-based and 1-based in R
+                            subsample=subsample,
+                            verbose=verbose,
+                            heuristic=False,
+                            k0 = k0,
+                            type_ = type_
+                            )
+        
         kBET_scores['cluster'].append(clus)
         kBET_scores['kBET'].append(score)
     
