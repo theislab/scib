@@ -75,12 +75,18 @@ DATA_SCENARIOS:
     organism: human
     assay: expression
     file: /storage/groups/ml01/workspace/group.daniela/immune_cells/Immune_ALL_hum_mou.h5ad
-  simulations_1:
+  simulations_1_1:
     batch_key: Batch
     label_key: Group
     organism: human
     assay: simulation
-    file: /storage/groups/ml01/workspace/scIB/simulations_1/sim1_norm.h5ad
+    file: /storage/groups/ml01/workspace/scIB/simulations_1_1/sim1_1_norm.h5ad
+  simulations_2:
+    batch_key: SubBatch
+    label_key: Group
+    organism: human
+    assay: simulation
+    file: /storage/groups/ml01/workspace/scIB/simulations_2/sim2_norm.h5ad
 
     #mouse_atlas:
     #batch_key: study # TODO: we need batch over all samples as well
