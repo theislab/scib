@@ -1185,11 +1185,15 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     return kBET_scores
 
 # determine root cell for trajectory conservation metric
-def get_root(adata_pre, adata_post, dpt_dim=3):
+def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
     
     # minimum DPT candidate cell indices
-    min_dpt = np.flatnonzero(adata_pre.obs["dpt_pseudotime"] == 0)
-    #min_dpt = adata_pre.obs.index[adata_pre.obs.dpt_pseudotime == 0]
+    n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_scanorama_sub.uns['neighbors']['connectivities'], directed=False, return_labels=True)
+    
+    start_clust = adata_pre.obs.groupby([ct_key]).mean()['dpt_pseudotime'].idxmin()
+    min_dpt = np.flatnonzero(adata_pre.obs[ct_key] == start_clust)
+    max_neigh = np.flatnonzero(adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().argmax())
+    min_dpt = [value for value in min_dpt if value in max_neigh] 
     
     # compute Diffmap for adata_post
     sc.tl.diffmap(adata_post)
@@ -1212,12 +1216,12 @@ def get_root(adata_pre, adata_post, dpt_dim=3):
     # root cell is cell with max vote
     return min_dpt[np.argmax(min_dpt_cell)]
 
-def trajectory_conservation(adata_pre, adata_post):
+def trajectory_conservation(adata_pre, adata_post, label_key):
     cell_subset = adata_pre.obs.index[adata_pre.obs["dpt_pseudotime"].notnull()]
     adata_pre_sub = adata_pre[cell_subset]
     adata_post_sub = adata_post[cell_subset]
     
-    adata_post_sub.uns['iroot'] = get_root(adata_pre_sub, adata_post_sub)
+    adata_post_sub.uns['iroot'] = get_root(adata_pre_sub, adata_post_sub, label_key)
     
     sc.tl.dpt(adata_post_sub)
     adata_post_sub.obs['dpt_pseudotime'][adata_post_sub.obs['dpt_pseudotime']>1]=0
