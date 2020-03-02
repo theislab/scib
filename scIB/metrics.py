@@ -1367,7 +1367,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if trajectory_:
         print('Trajectory conservation score...')
-        trajectory_score = trajectory_conservation(adata, adata_int)
+        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
     else:
         trajectory_score = np.nan
     results['trajectory'] = trajectory_score
