@@ -43,6 +43,13 @@ if __name__=='__main__':
     folder_path = '/'.join([folder,task,'integration',s_folder,h_folder])+'/'+r_folder
     full_path = folder_path+filename
 
+    if 'R' in params['METHODS'][method]:
+        filename_r = method+'.RDS'
+        full_path_r = folder_path+filename_r
+        Path(full_path_r).touch()
+        Path(full_path_r+".benchmark").touch()
+
     #print(full_path)
     Path(full_path).touch()
     Path(full_path+".benchmark").touch()
+    

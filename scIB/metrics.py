@@ -1187,9 +1187,9 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, dpt_dim=3):
     
-    # minimum DPT candidate cell indices
-    min_dpt = np.flatnonzero(adata_pre.obs["dpt_pseudotime"] == 0)
-    #min_dpt = adata_pre.obs.index[adata_pre.obs.dpt_pseudotime == 0]
+    # Find starting cluster from minimum pre-integration dpt scores
+    start_clust = adata_pre.obs.groupby([ct_key]).mean()['dpt_pseudotime'].idxmin()
+    min_dpt = np.flatnonzero(adata_pre.obs[ct_key] == start_clust)
     
     # compute Diffmap for adata_post
     sc.tl.diffmap(adata_post)
