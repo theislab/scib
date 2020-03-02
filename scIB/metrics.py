@@ -8,6 +8,7 @@ import anndata
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
+from scipy.sparse.csgraph import connected_components
 
 import rpy2.rinterface_lib.callbacks
 import logging
