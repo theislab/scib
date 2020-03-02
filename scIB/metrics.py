@@ -1187,7 +1187,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
 
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
-    n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_scanorama_sub.uns['neighbors']['connectivities'], directed=False, return_labels=True)
+    n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_post.uns['neighbors']['connectivities'], directed=False, return_labels=True)
     
     start_clust = adata_pre.obs.groupby([ct_key]).mean()['dpt_pseudotime'].idxmin()
     min_dpt = np.flatnonzero(adata_pre.obs[ct_key] == start_clust)
