@@ -68,7 +68,7 @@ plotSingleAtlasATAC <- function(csv_file_path){
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
     method_groups <- plyr::mapvalues(method_groups, 
                                      from = c("knn", "embed", "full"), 
-                                     to = c("graph", "embed", "windows"))
+                                     to = c("graph", "embed", "window"))
     
     
     
