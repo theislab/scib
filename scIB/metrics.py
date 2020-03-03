@@ -410,6 +410,12 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
+from scIB.metrics import pc_regression
+from scIB.preprocessing import score_cell_cycle
+from scIB.utils import *
+
+import gc
+
 ### Cell cycle effect
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
@@ -439,44 +445,94 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     scores_final = []
     scores_before = []
     scores_after = []
-    for batch in batches:
-        raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
-        int_sub = adata_post[adata_post.obs[batch_key] == batch]
-        int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+    #if both (s-score, g2m-score) and pc-regression are pre-computed 
+    if (np.in1d(['S_score', 'G2M_score'], 
+                adata_pre.obs_keys()).sum() == 2) and ('scores_before' in adata_pre.uns_keys()): 
+        #extract needed infos from adata_pre and delete it from memory
+        df_pre = adata_pre.obs[['S_score', 'G2M_score', batch_key]]
         
-        if raw_sub.shape[0] != int_sub.shape[0]:
-            message = f'batch "{batch}" of batch_key "{batch_key}" '
-            message += 'has unequal number of entries before and after integration.'
-            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
-            raise ValueError(message)
+        scores_before = adata_pre.uns['scores_before']
+        del adata_pre
+        n_item = gc.collect()
         
-        if verbose:
-            print("score cell cycle")
-        score_cell_cycle(raw_sub, organism=organism)
-        covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        for batch in batches:
+            raw_sub = df_pre.loc[df_pre[batch_key] == batch]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-        scores_before.append(before)
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch}" of batch_key "{batch_key}" '
+                message += 'has unequal number of entries before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
         
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-        scores_after.append(after)
-        
-        score = 1 - abs(after - before)/before # scaled result
-        if score < 0:
-            # Here variance contribution becomes more than twice as large as before
             if verbose:
-                print("Variance contrib more than twice as large after integration.")
-                print("Setting score to 0.")
-            score = 0
+                print("score cell cycle")
+            
+            covariate = raw_sub[['S_score', 'G2M_score']]
         
-        scores_final.append(score)
+            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+            
+            #get score before from list of pre-computed scores
+            before = scores_before[batch]
+            
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
         
-        if verbose:
-            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+            scores_final.append(score)
+        
+            if verbose:
+                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+                 
+    else: #not everything is pre-computed
+       
+        for batch in batches:
+            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+        
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch}" of batch_key "{batch_key}" '
+                message += 'has unequal number of entries before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
+        
+            if verbose:
+                print("score cell cycle")
+            #compute cell cycle score if not done already    
+            if (np.in1d(['S_score', 'G2M_score'], raw_sub.obs_keys()).sum() < 2):
+                score_cell_cycle(raw_sub, organism=organism)
+                
+            covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
+            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_before.append(before)
+        
+            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+        
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
+        
+            scores_final.append(score)
+        
+            if verbose:
+                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
         
     if agg_func is None:
         return pd.DataFrame([batches, scores_before, scores_after, scores_final],
-                            columns=['batch', 'before', 'after', 'score'])
+                                columns=['batch', 'before', 'after', 'score'])
     else:
         return agg_func(scores_final)
 
