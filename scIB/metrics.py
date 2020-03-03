@@ -455,13 +455,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         del adata_pre
         n_item = gc.collect()
         
-        for batch in batches:
-            raw_sub = df_pre.loc[df_pre[batch_key] == batch]
-            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+        for batch in enumerate(batches):
+            raw_sub = df_pre.loc[df_pre[batch_key] == batch[1]]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]]
             int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
             if raw_sub.shape[0] != int_sub.shape[0]:
-                message = f'batch "{batch}" of batch_key "{batch_key}" '
+                message = f'batch "{batch[1]}" of batch_key "{batch_key}" '
                 message += 'has unequal number of entries before and after integration.'
                 message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
                 raise ValueError(message)
@@ -475,7 +475,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             scores_after.append(after)
             
             #get score before from list of pre-computed scores
-            before = scores_before[batch]
+            before = scores_before[batch[0]]
             
             score = 1 - abs(after - before)/before # scaled result
             if score < 0:
@@ -488,7 +488,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
             scores_final.append(score)
         
             if verbose:
-                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+                print(f"batch: {batch[1]}\t before: {before}\t after: {after}\t score: {score}")
                  
     else: #not everything is pre-computed
        
