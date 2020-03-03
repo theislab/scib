@@ -21,10 +21,9 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
                                          csv_usability_path = "./scIB Usability  - Sheet4.csv", 
-                                         csv_scalability_path = "./scalability_tab.csv", 
-                                         n_atlas_RNA = 3, n_simulation = 1){
-  
-  #csv_atlases_path <- "./test_best.csv"
+                                         csv_scalability_time_path = "./scalability_score_time.csv", 
+                                         csv_scalability_memory_path = "./scalability_score_memory.csv", 
+                                         n_atlas_RNA = 4, n_simulation = 2){
   
   metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
   
@@ -32,13 +31,13 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
   metrics <- gsub("_", " ", metrics)
-  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation"), 
-                             to = c("Cell type ASW", "Batch ASW", "CC conservation"))
+  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
+                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
   
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
   group_bio <- c("NMI cluster/label", "ARI cluster/label", "Cell type ASW", 
-                 "isolated label F1", "isolated label silhouette", "CC conservation","cLISI")
+                 "isolated label F1", "isolated label silhouette", "CC conservation", "HVG conservation", "trajectory conservation","cLISI")
   # set original values of number of metrics
   n_metrics_batch_original <- sum(group_batch %in% metrics)
   n_metrics_bio_original <- sum(group_bio %in% metrics)
@@ -144,7 +143,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     metrics_tab <- metrics_tab[order(metrics_tab$`Overall Score`,  decreasing = T), ]
     
     metrics_tab <- metrics_tab[, c("Method", "Output", "Features", "Scaling", "Overall Score")]
-    colnames(metrics_tab)[5] <- paste("Score", dt.sc)
+    colnames(metrics_tab)[5] <- dt.sc
     methods.table.list[[dt.sc]] <- metrics_tab
     
   }
@@ -155,9 +154,17 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     methods.table.merged <- merge(methods.table.merged, methods.table.list[[i]], by = c("Method", "Output", "Features", "Scaling"),
                                   all = T)
   }
+  
+  # Rename columns
+  colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
+                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "simulations_1_1", "simulations_2"),
+                                                    to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Sim 1", "Sim 2"))
   atlas.ranks <- methods.table.merged
-  atlas.ranks[, 5:ncol(atlas.ranks)] <- apply(atlas.ranks[, 5:ncol(atlas.ranks)], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
-  avg.ranks <- apply(atlas.ranks[, 5:ncol(atlas.ranks)], 1, mean)
+  
+  # columns to be ranked on
+  rank.cols <- c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)")
+  atlas.ranks[, rank.cols] <- apply(atlas.ranks[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
+  avg.ranks <- apply(atlas.ranks[, rank.cols], 1, mean)
   
   
   # order atlas.rank by average rank
@@ -173,13 +180,14 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
                             all = F, sort = F)
   # re-rank the best methods
-  best_methods_tab[, 5:ncol(best_methods_tab)] <- apply(best_methods_tab[, 5:ncol(best_methods_tab)], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
-  avg.ranks <- apply(best_methods_tab[, 5:ncol(best_methods_tab)], 1, mean)
+  best_methods_tab[, rank.cols] <- apply(best_methods_tab[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
+  avg.ranks <- apply(best_methods_tab[, rank.cols], 1, mean)
   
   
   # order atlas.rank by average rank
   best_methods_tab <- best_methods_tab[order(avg.ranks, decreasing = F), ]
-  
+  best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
+                            all = F, sort = F)
   
   
   
@@ -191,10 +199,18 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   best_methods_tab$Usability <- avg.usability[match(best_methods_tab$Method, usability_mat$Method)]
   
-  ######### ADD SCALABILITY
+  ######### ADD SCALABILITY time and memory
+  scalability_time <- read.csv(csv_scalability_time_path)
+  scalability_memory <- read.csv(csv_scalability_memory_path)
   
-  scalability_mat <- read.csv(csv_scalability_path)
-  best_methods_tab$Scalability <- scalability_mat[match(best_methods_tab$Method, scalability_mat$Method), "Scalability"]
+  # create comparable strings out of best_methods
+  hvg_full <- mapvalues(best_methods_tab$Features, from = c("HVG", "FULL"), to = c("hvg", "full_feature"))
+  methods_string <- tolower(mapvalues(best_methods_tab$Method, from = "Seurat v3", to = "seurat"))
+  best_method_string <- paste0(best_methods_tab$Scaling, "/", hvg_full, "/", methods_string)
+  
+  # match best methods with scalability data
+  best_methods_tab$`Scalability time` <- scalability_time[match(best_method_string, scalability_time$metrics), "AUC_scaled"]
+  best_methods_tab$`Scalability memory` <- scalability_memory[match(best_method_string, scalability_memory$metrics), "AUC_scaled"]
   
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
@@ -203,10 +219,10 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             group = c("Text", "Text", "Text", "Text",  
                                       rep("RNA", n_atlas_RNA),
                                       rep("Simulation", n_simulation), 
-                                      "Usability", "Scalability"), 
+                                      "Usability", "Scalability", "Scalability"), 
                             geom = c("text", "text", "text", "text", 
-                                     rep("bar", n_atlas_RNA + n_simulation + 2)),
-                            width = c(3.5,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 2)),
+                                     rep("bar", n_atlas_RNA + n_simulation + 3)),
+                            width = c(3.5,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 3)),
                             overlay = F)
   
   # defining colors palette
@@ -216,7 +232,10 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                    "Scalability" = colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(best_methods_tab)))
   
   
-  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)  
-  ggsave("BestMethods_summary_metrics.pdf", g, device = cairo_pdf, width = g$width/4, height = g$height/4)
-
+  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)
+  now <- Sys.time()
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = g$width/4, height = g$height/4)
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = g$width/4, height = g$height/4)
+  
 }

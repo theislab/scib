@@ -165,8 +165,10 @@ plotSingleAtlas <- function(csv_file_path){
     
     
     g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F)  
-    ggsave(paste0(dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
-    
+    now <- Sys.time()
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = g$width/4, height = g$height/4)
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = g$width/4, height = g$height/4)
     
     
   }

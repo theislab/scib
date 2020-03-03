@@ -24,6 +24,7 @@
 #' 
 
 library(dplyr)
+library(scales)
 
 scIB_knit_table <- function(
 data,
@@ -118,7 +119,8 @@ usability = FALSE
                               y0 = rep(row_pos$y, ncol(dat_mat)),
                               r = row_height/2*as.vector(sqrt(dat_mat))
                               #r = row_height/2*as.vector(dat_mat)
-    )
+                              )
+    circle_data$r <- rescale(circle_data$r, to = c(0.05, 0.55), from = range(circle_data$r, na.rm = T))
     colors <- NULL
     for(i in 1:ncol(dat_mat)){
       palette <- col_palette$palette[[i]]
@@ -340,7 +342,7 @@ usability = FALSE
         value = seq(0, 1, by = .2),
         r = row_height/2*seq(0, 1, by = .2)
       )
-  
+    cir_legend_dat$r <- rescale(cir_legend_dat$r, to = c(0.05, 0.55), from = range(cir_legend_dat$r, na.rm = T))
   
     x0 <- vector("integer", nrow(cir_legend_dat))
     for(i in 1:length(x0)){
