@@ -173,7 +173,13 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    keep.best <- c(keep.best, which(atlas.rank.ord$Method == met)[1])
+    if(met == "Scanorama" || met == "TrVAE"){
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
+    } else{
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met)[1])
+    }
+    
   }
   
   best_methods_tab <- atlas.rank.ord[sort(keep.best),]
