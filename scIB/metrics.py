@@ -448,13 +448,13 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         #extract needed infos from adata_pre and delete it from memory
         df_pre = adata_pre.obs[['S_score', 'G2M_score', batch_key]]
         
-        scores_before = adata_pre.uns['scores_before']
+        scores_precomp = pd.Series(adata_pre.uns['scores_before'])
         del adata_pre
         n_item = gc.collect()
         
         for batch in enumerate(batches):
             raw_sub = df_pre.loc[df_pre[batch_key] == batch[1]]
-            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]].copy()
             int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
             if raw_sub.shape[0] != int_sub.shape[0]:
@@ -467,13 +467,12 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                 print("score cell cycle")
             
             covariate = raw_sub[['S_score', 'G2M_score']]
-        
             after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
             scores_after.append(after)
-            
             #get score before from list of pre-computed scores
-            before = scores_before[batch[0]]
-            
+            before = scores_precomp[batch[1]]
+            scores_before.append(before)
+
             score = 1 - abs(after - before)/before # scaled result
             if score < 0:
                 # Here variance contribution becomes more than twice as large as before
