@@ -16,6 +16,7 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 
+import gc
 
 ### Silhouette score
 def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
@@ -410,11 +411,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
         overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
-from scIB.metrics import pc_regression
-from scIB.preprocessing import score_cell_cycle
-from scIB.utils import *
 
-import gc
 
 ### Cell cycle effect
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
