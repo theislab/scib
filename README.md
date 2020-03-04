@@ -4,18 +4,31 @@ This repository contains code and analysis for the benchmarking study for data i
 The scib python module is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
 R helper functions for R integration methods can be found in the `R` directory.
 
+## Installation
+To reproduce the results from this study, three different conda environments are needed.
+This is due to package incompatibilities from different integration methods and other necessary packages.
+There are different environments for the python integration methods, the R integration methods and
+the conversion of R data types to anndata objects.
+
+For the installation of conda, follow [these](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) instructions
+or use your system's package manager. The environments have only been tested on linux operating systems
+although it might be possible to run the pipeline using Mac OS.
+
+To create the conda environments use the `.yml` files in the `envs` directory.
+To install the envs, use `conda env create -f FILENAME.yml`.
+
 The `scripts` folder contains scripts for preparing the data, running the methods, postprocessing and calculation of the metrics.
 
 ## Running the integration methods
 This package allows to run a multitude of single cell data integration methods in both `R` and `python`.
-Before running the methods, the data needs to be preprocessed using the `scripts/runPP.py` script. This script calculates highly variable
-genes per batch and converts the data to an R Seurat object if needed.
-``` python scripts/runPP.py -i INPUT_FILE -o OUTPUT_FILE -b BATCH_VARIABLE [-v #_OF_HVGs]```
-Use the `-r` flag to output an R object and `-s` to scale the data.
+We use [Snakemake](https://snakemake.readthedocs.io/en/stable/) to run the pipeline.
+The parameters of the run are configured using the `config.yaml` file.
+See the `DATA_SCENARIOS` section to change the data used for integration.
+The script expects one `.h5ad` file containing all batches per data scenario.
 
-To run the integration methods the `scripts/runIntegration.py` script is used for methods implemented in python.
-``` python scripts/runIntegration.py -i INPUT_FILE -o OUTPUT_FILE -b BATCH_VARIBABLE [-v #_OF_HVGs] ```
-
+To load the config file run `snakemake --configfile config.yaml`.
+Define the number of CPU threads you want to use with `snakemake --cores N_CORES`. To produce an overview of tasks that will be run, use `snakemake -n`.
+To run the pipeline, simply run `snakemake`.
 ## Tools
 Tools to be compared include:
 - Seurat v2
