@@ -232,11 +232,11 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             overlay = F)
   
   # defining colors palette
-  palettes <- list("RNA" = colorRampPalette(rev(brewer.pal(9, "Blues")))(nrow(best_methods_tab)),
-                   "Simulation" = colorRampPalette(rev(brewer.pal(9, "Greens")))(nrow(best_methods_tab)),
-                   "Usability" = colorRampPalette(rev(brewer.pal(9, "Oranges")))(nrow(best_methods_tab)),
-                   "Scalability" = colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(best_methods_tab)))
-  
+  palettes <- list("RNA" = "Blues",
+                   "Simulation" = "Greens",
+                   "Usability" = "Oranges",
+                   "Scalability" = "Greys")
+ 
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)
   now <- Sys.time()

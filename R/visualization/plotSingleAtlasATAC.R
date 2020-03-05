@@ -137,14 +137,9 @@ plotSingleAtlasATAC <- function(csv_file_path){
                               overlay = F)
     
     # defining colors palette
-    palette.score.all <- colorRampPalette(rev(brewer.pal(9, "YlGnBu")))(nrow(metrics_tab))
-    palette.score.batch <- colorRampPalette(rev(brewer.pal(9, "BuPu")))(nrow(metrics_tab))
-    palette.score.celltype <- colorRampPalette(rev(brewer.pal(9, "RdPu")))(nrow(metrics_tab))
-    
-    
-    palettes <- list("Score overall" = palette.score.all,
-                     "Removal of batch effects" = palette.score.batch,
-                     "Cell type label variance" = palette.score.celltype)
+    palettes <- list("Score overall" = "YlGnBu",
+                     "Removal of batch effects" = "BuPu",
+                     "Cell type label variance" = "RdPu")
     
     
     g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F) 

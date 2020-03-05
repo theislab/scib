@@ -110,7 +110,7 @@ usability = FALSE
     col_palette <- data.frame(metric = colnames(dat_mat), 
                               group = column_info[match(colnames(dat_mat), column_info$id), "group"])
     
-    col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
+    col_palette$name_palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
     
     circle_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
                                                     function(x) rep(x, nrow(dat_mat)))), 
@@ -122,10 +122,17 @@ usability = FALSE
                               )
     circle_data$r <- rescale(circle_data$r, to = c(0.05, 0.55), from = range(circle_data$r, na.rm = T))
     colors <- NULL
+    
+    
     for(i in 1:ncol(dat_mat)){
-      palette <- col_palette$palette[[i]]
-      colors <- c(colors, palette[rank(dat_mat[,i], ties.method = "max")])
+      palette <- colorRampPalette(rev(brewer.pal(9, col_palette$name_palette[[i]])))(nrow(data)-sum(is.na(dat_mat[,i])))
+      colors <- c(colors, palette[rank(dat_mat[,i], ties.method = "average", na.last = "keep")])
     }
+    
+    # for(i in 1:ncol(dat_mat)){
+    #   palette <- col_palette$palette[[i]]
+    #   colors <- c(colors, palette[rank(dat_mat[,i], ties.method = "max", na.last = "keep")])
+    # }
     
     circle_data$colors <- colors
   }
@@ -138,7 +145,7 @@ usability = FALSE
   col_palette <- data.frame(metric = colnames(dat_mat), 
                             group = column_info[match(colnames(dat_mat), column_info$id), "group"])
   
-  col_palette$palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
+  col_palette$name_palette <- lapply(col_palette$group, function(x) palettes[[as.character(x)]])
   
   
   rect_data <- data.frame(label = unlist(lapply(colnames(dat_mat), 
@@ -163,9 +170,15 @@ usability = FALSE
   
   colors <- NULL
   for(i in 1:ncol(dat_mat)){
-    palette <- col_palette$palette[[i]]
-    colors <- c(colors, palette[rank(dat_mat[,i])])
+    palette <- colorRampPalette(rev(brewer.pal(9, col_palette$name_palette[[i]])))(nrow(data)-sum(is.na(dat_mat[,i])))
+    colors <- c(colors, palette[rank(dat_mat[,i], ties.method = "average", na.last = "keep")])
   }
+  
+  
+  # for(i in 1:ncol(dat_mat)){
+  #   palette <- col_palette$palette[[i]]
+  #   colors <- c(colors, palette[rank(dat_mat[,i])])
+  # }
   
   rect_data$colors <- colors
   
@@ -297,13 +310,16 @@ usability = FALSE
                                 fontface = "bold")
   
   for(rg in rank_groups){
-    rank_palette <- palettes[[rg]][seq(1,length(palettes[[rg]]), length.out = 5)]
+    #rank_palette <- palettes[[rg]][seq(1,length(palettes[[rg]]), length.out = 5)]
+    
+    rank_palette <- colorRampPalette(rev(brewer.pal(9, palettes[[rg]])))(5)
+    
     
     rank_data <- data.frame(xmin = rank_minimum_x[[rg]],
                             xmax = rank_minimum_x[[rg]] + .8,
                             ymin = seq(leg_max_y-4, leg_max_y - 2, by = .5),
                             ymax = seq(leg_max_y-3.5, leg_max_y -1.5, by = .5),
-                            border = FALSE,
+                            border = TRUE,
                             colors = rank_palette
     )
     rect_data <- bind_rows(rect_data, rank_data)
