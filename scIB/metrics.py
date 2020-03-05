@@ -383,7 +383,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     return score
 
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
-    adata_list = splitBatches(adata, batch)
+    adata_list = splitBatches(adata, batch, hvg=features)
     hvg_dir = {}
     for i in adata_list:
         sc.pp.filter_genes(i, min_cells=1)
