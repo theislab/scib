@@ -382,15 +382,23 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     return score
 
-def precompute_hvg_batch(adata, batch, n_hvg=500):
+def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
     adata_list = splitBatches(adata, batch)
     hvg_dir = {}
     for i in adata_list:
         sc.pp.filter_genes(i, min_cells=1)
         n_hvg_tmp = np.minimum(n_hvg, int(0.5*i.n_vars))
+        if n_hvg_tmp<n_hvg:
+            print(i.obs[batch][0]+' has less than the specified number of genes')
+            print('Number of genes: '+str(i.n_vars))
         hvg = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         hvg_dir[i.obs[batch][0]] = i.var.index[hvg['highly_variable']]
-    adata.uns['hvg_before']=hvg_dir
+    adata_list=None
+    if save_hvg:    
+        adata.uns['hvg_before']=hvg_dir
+    else:
+        return hvg_dir
+        
     
     
 ### Highly Variable Genes conservation
