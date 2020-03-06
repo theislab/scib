@@ -37,12 +37,12 @@ if __name__=='__main__':
         
     # set prefix for output and results column name
     base = os.path.basename(args.input)
-    out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
+    
     
     if verbose:
         print('Options')
         print(f'    type:\t{type_}')
-        print(f'    out_prefix:\t{out_prefix}')
+    
       
     
     ###
@@ -53,7 +53,7 @@ if __name__=='__main__':
         print(adata)
         if (type_ == 'knn'):
             adata = diffusion_conn(adata, min_k=50, copy=True, max_iterations=20)
-            sc.write(adata=adata, filename = os.path.join(args.output, f'{base}.h5ad'))
+            sc.write(adata=adata, filename = os.path.join(args.output, f'{base}'))
             print("done")
         else:
             print('Wrong type chosen, doing nothing.')
