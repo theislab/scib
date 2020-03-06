@@ -1107,15 +1107,13 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
         #check if pre-computed neighbours are stored in input file
-        if 'diffusion_connectivities' in adata.uns['neighbors']:
-            adata_tmp = adata.copy()
-            adata_tmp.uns['neighbors']['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
-        else:
+        adata_tmp = adata.copy()
+        if 'diffusion_connectivities' not in adata.uns['neighbors']:
             if verbose:
                 print(f"Compute: Diffusion neighbours.")
             adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
+        adata_tmp.uns['neighbors']['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
             
-    
     if verbose:
         print(f"batch: {batch_key}")
         
