@@ -29,7 +29,7 @@ To create the conda environments use the `.yml` files in the `envs` directory.
 To install the envs, use
 ```bash
 conda env create -f FILENAME.yml
-``` .
+``` 
 To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
 and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
 In the `conosTest` environment, R packages need to be installed manually.
