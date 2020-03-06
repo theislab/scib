@@ -678,7 +678,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
 
     if copy:
         adata_tmp = adata.copy()
-        adata_tmp.uns['neighbors']['diffusion_connectivities'] = M
+        adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
         return adata_tmp
 
     else:
