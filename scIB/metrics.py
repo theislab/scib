@@ -1118,7 +1118,9 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     for clus in adata_tmp.obs[label_key].unique():
         
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus,:].copy()
-        if (adata_sub.n_obs < 10): #neighborhood size too small
+        #check if neighborhood size too small or only one batch in subset
+        if np.logical_or(adata_sub.n_obs < 10, 
+                         len(adata_sub.obs[batch_key].cat.categories)==1):
             score = np.nan
         else:
             quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
