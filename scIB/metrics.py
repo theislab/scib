@@ -437,9 +437,28 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
             overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real) 
     return np.mean(overlap)
 
-
-
 ### Cell cycle effect
+def precompute_cc_score(adata, batch_key, organism='mouse', 
+                        n_comps=50, verbose=False)
+
+    batches = adata.obs[batch_key].cat.categories
+    scores_before = {}
+
+    for batch in batches:
+        raw_sub = adata[adata.obs[batch_key] == batch].copy()
+        #score cell cycle if not already done
+        if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
+            score_cell_cycle(raw_sub, organism=organism)
+            
+        covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_before.update({batch : before})
+       
+    adata.uns['scores_before'] = scores_before
+    return adata
+
+
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
