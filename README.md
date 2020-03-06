@@ -1,7 +1,7 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
 This repository contains code and analysis for the benchmarking study for data integration tools.
-In this study, we benchmark 10 methods ([see here](## Tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
+In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
 60 batches of gene expression and chromatin accessibility data.
 
 We created the python module `scIB` to streamline the integration process and to integrate it into
