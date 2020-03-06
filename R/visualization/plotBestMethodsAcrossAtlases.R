@@ -1,23 +1,16 @@
-# library(ggplot2)
-# library(cowplot)
-# library(fmsb)
-# 
-# library(tidyr)
-# library(ggforce)
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
 library(stringr)
 library(Hmisc)
 library(plyr)
-# library(R.utils)
 
 source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 # parameters: 
 # - 'csv_atlases_path' would be the full path of the csv file with metrics over simulation + real atlases 
 # - 'csv_usability_path' would be the path of the usability sheet (which does not change)
-# - 'csv_scalability_path' would be the path of the scalability file
+# - 'csv_scalability_*_path' would be the path of the scalability files
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
                                          csv_usability_path = "./scIB Usability  - Sheet4.csv", 
@@ -173,7 +166,13 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    keep.best <- c(keep.best, which(atlas.rank.ord$Method == met)[1])
+    if(met == "Scanorama" || met == "TrVAE"){
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
+    } else{
+      keep.best <- c(keep.best, which(atlas.rank.ord$Method == met)[1])
+    }
+    
   }
   
   best_methods_tab <- atlas.rank.ord[sort(keep.best),]
@@ -226,11 +225,11 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             overlay = F)
   
   # defining colors palette
-  palettes <- list("RNA" = colorRampPalette(rev(brewer.pal(9, "Blues")))(nrow(best_methods_tab)),
-                   "Simulation" = colorRampPalette(rev(brewer.pal(9, "Greens")))(nrow(best_methods_tab)),
-                   "Usability" = colorRampPalette(rev(brewer.pal(9, "Oranges")))(nrow(best_methods_tab)),
-                   "Scalability" = colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(best_methods_tab)))
-  
+  palettes <- list("RNA" = "Blues",
+                   "Simulation" = "Greens",
+                   "Usability" = "Oranges",
+                   "Scalability" = "Greys")
+ 
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)
   now <- Sys.time()
