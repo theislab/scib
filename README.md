@@ -61,6 +61,6 @@ Tools to be compared include:
 - [LIGER](https://github.com/MacoskoLab/liger)
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [Harmony](https://github.com/immunogenomics/harmony)
-- <!--- [scMerge](https://github.com/SydneyBioX/scMerge)
+<!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign) -->
-- BBKNN <!--- + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
+<!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
