@@ -678,7 +678,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
 
     if copy:
         adata_tmp = adata.copy()
-        adata_tmp.uns['neighbors']['connectivities'] = M
+        adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
         return adata_tmp
 
     else:
@@ -1106,8 +1106,14 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ != 'knn':
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
-        adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
-    
+        #check if pre-computed neighbours are stored in input file
+        adata_tmp = adata.copy()
+        if 'diffusion_connectivities' not in adata.uns['neighbors']:
+            if verbose:
+                print(f"Compute: Diffusion neighbours.")
+            adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
+        adata_tmp.uns['neighbors']['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
+            
     if verbose:
         print(f"batch: {batch_key}")
         
@@ -1118,7 +1124,10 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     for clus in adata_tmp.obs[label_key].unique():
         
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus,:].copy()
-        if (adata_sub.n_obs < 10): #neighborhood size too small
+        #check if neighborhood size too small or only one batch in subset
+        if np.logical_or(adata_sub.n_obs < 10, 
+                         len(adata_sub.obs[batch_key].cat.categories)==1):
+            print(f"{clus} consists of a single batch or is too small. Skip.")
             score = np.nan
         else:
             quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
