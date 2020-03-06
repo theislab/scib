@@ -53,7 +53,7 @@ if __name__=='__main__':
         print(adata)
         if (type_ == 'knn'):
             adata = diffusion_conn(adata, min_k=50, copy=True, max_iterations=20)
-            sc.write(adata=adata, filename = out_prefix + base + 'h5ad')
+            sc.write(adata=adata, filename = os.path.join(args.output, f'{base}, '.h5ad'))
             print("done")
         else:
             print('Wrong type chosen, doing nothing.')
