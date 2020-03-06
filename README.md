@@ -1,11 +1,13 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
 This repository contains code and analysis for the benchmarking study for data integration tools.
-In this study, we benchmark 10 methods ([see here](## Tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
+In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
 60 batches of gene expression and chromatin accessibility data.
 
+![Workflow](./figure.png)
+
 We created the python module `scIB` to streamline the integration process and to integrate it into
-a scanpy workflow. Furthermore, we created an environment to allow an easy integration of R integration methods
+a scanpy workflow. Furthermore, we created an environment to allow easy integration of R integration methods
 into the scanpy workflow.
 
 The scib python module is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
@@ -29,7 +31,7 @@ To create the conda environments use the `.yml` files in the `envs` directory.
 To install the envs, use
 ```bash
 conda env create -f FILENAME.yml
-``` .
+``` 
 To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
 and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
 In the `conosTest` environment, R packages need to be installed manually.
@@ -50,11 +52,10 @@ To run the pipeline, simply run `snakemake`.
 
 ## Tools
 Tools to be compared include:
-- Seurat v2
 - [Seurat v3](https://github.com/satijalab/seurat)
 - [TrVae](https://github.com/theislab/trvae)
 - [scVI](https://github.com/YosefLab/scVI)
-- [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
+<!--- - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) -->
 - [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [Scanorama](https://github.com/brianhie/scanorama)
@@ -62,27 +63,6 @@ Tools to be compared include:
 - [LIGER](https://github.com/MacoskoLab/liger)
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [Harmony](https://github.com/immunogenomics/harmony)
-- [scMerge](https://github.com/SydneyBioX/scMerge)
-- [scAlign](https://github.com/quon-titative-biology/scAlign)
-- BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)?
-
-
-## Data
-Data scenarios to be compared are:
-
-1. Pancreas data
-
-2. Mouse brain data
-
-3. Immune cell data across species and perturbations
-
-4. Mouse atlases:
-- Tabula Muris
-- Mouse atlas
-
-5. Mouse brain scATAC-seq data
-
-Possible extensions:
-- potentially 1 more scATAC-seq data scenario
-- If possible, we will attempt to merge scATAC and scRNA-seq datasets in mouse brain as well.
-- lung atlas mapping using our published datasets (inter-individual variation)
+<!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
+- [scAlign](https://github.com/quon-titative-biology/scAlign) -->
+<!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
