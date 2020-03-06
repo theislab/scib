@@ -678,7 +678,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
 
     if copy:
         adata_tmp = adata.copy()
-        adata_tmp.uns['diffusion_neighbors']['connectivities'] = M
+        adata_tmp.uns['neighbors']['diffusion_connectivities'] = M
         return adata_tmp
 
     else:
@@ -1107,9 +1107,9 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
         #check if pre-computed neighbours are stored in input file
-        if 'diffusion_neighbors' in adata.uns_keys():
+        if 'diffusion_connectivities' in adata.uns['neighbors']:
             adata_tmp = adata.copy()
-            adata_tmp.uns['neighbors'] = adata_tmp.uns['diffusion_neighbors']
+            adata_tmp.uns['neighbors']['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
         else:
             if verbose:
                 print(f"Compute: Diffusion neighbours.")
