@@ -439,7 +439,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
 
 ### Cell cycle effect
 def precompute_cc_score(adata, batch_key, organism='mouse', 
-                        n_comps=50, verbose=False)
+                        n_comps=50, verbose=False):
 
     batches = adata.obs[batch_key].cat.categories
     scores_before = {}
@@ -456,7 +456,7 @@ def precompute_cc_score(adata, batch_key, organism='mouse',
         scores_before.update({batch : before})
        
     adata.uns['scores_before'] = scores_before
-    return adata
+    return 
 
 
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
