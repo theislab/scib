@@ -5,7 +5,7 @@ In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations
 60 batches of gene expression and chromatin accessibility data.
 
 We created the python module `scIB` to streamline the integration process and to integrate it into
-a scanpy workflow. Furthermore, we created an environment to allow an easy integration of R integration methods
+a scanpy workflow. Furthermore, we created an environment to allow easy integration of R integration methods
 into the scanpy workflow.
 
 The scib python module is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
