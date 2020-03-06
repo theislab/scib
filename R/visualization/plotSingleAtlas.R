@@ -1,24 +1,15 @@
-# library(ggplot2)
-# library(cowplot)
-# library(fmsb)
-# 
-# library(tidyr)
-# library(ggforce)
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
 library(stringr)
 library(Hmisc)
 library(plyr)
-# library(R.utils)
+
 
 source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 # parameters: 
-# - 'csv_file_path' would be the full path of the csv file (or not if you have it in the same folder 
-# 'n_metrics_batch' is by default 4 (PCR batch, Batch ASW, iLISI, kBET)
-# 'n_metrics_bio' is by default 7 (NMI cluster/label, ARI cluster/label, Cell type ASW, isolated label F1, isolated label sihlouette, CC conservation, cLISI)
-# in case the csv file does not contain one or more metrics, just modify the number corresponding to the right group
+# - 'csv_file_path' would be the path of the csv file 
 
 
 plotSingleAtlas <- function(csv_file_path){
@@ -154,14 +145,9 @@ plotSingleAtlas <- function(csv_file_path){
                               overlay = F)
     
     # defining colors palette
-    palette.score.all <- colorRampPalette(rev(brewer.pal(9, "YlGnBu")))(nrow(metrics_tab))
-    palette.score.batch <- colorRampPalette(rev(brewer.pal(9, "BuPu")))(nrow(metrics_tab))
-    palette.score.celltype <- colorRampPalette(rev(brewer.pal(9, "RdPu")))(nrow(metrics_tab))
-
-    
-    palettes <- list("Score overall" = palette.score.all,
-                     "Removal of batch effects" = palette.score.batch,
-                     "Cell type label variance" = palette.score.celltype)
+    palettes <- list("Score overall" = "YlGnBu",
+                     "Removal of batch effects" = "BuPu",
+                     "Cell type label variance" = "RdPu")
     
     
     g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F)  
