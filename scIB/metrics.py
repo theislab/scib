@@ -740,7 +740,7 @@ def select_hvg(adata, select=True):
         return adata
 
 ### diffusion for connectivites matrix extension
-def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
+def diffusion_conn(data, min_k=50, copy=True, max_iterations=20):
     '''
     This function performs graph diffusion on the connectivities matrix until a
     minimum number `min_k` of entries per row are non-zero.
@@ -754,16 +754,21 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
        with the diffusion-enhanced connectivities matrix is in 
        `adata.uns["neighbors"]["conectivities"]`
     '''
-    if 'neighbors' not in adata.uns:
-        raise ValueError('`neighbors` not in adata object. '
-                         'Please compute a neighbourhood graph!')
-    
-    if 'connectivities' not in adata.uns['neighbors']:
-        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
-                         'Please pass an object with connectivities computed!')
+    if isinstance(data, anndata.AnnData):
         
+        if 'neighbors' not in data.uns:
+            raise ValueError('`neighbors` not in adata object. '
+                             'Please compute a neighbourhood graph!')
+    
+        if 'connectivities' not in data.uns['neighbors']:
+            raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
+                             'Please pass an object with connectivities computed!')
+        
+        T = adata.uns['neighbors']['connectivities']
 
-    T = adata.uns['neighbors']['connectivities']
+    else:
+        T = data
+
     M = T
 
     i = 2
@@ -780,14 +785,18 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
 
     M.setdiag(0)
 
-    if copy:
-        adata_tmp = adata.copy()
-        adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
-        return adata_tmp
+    if isinstance(data, anndata.AnnData):
+        if copy:
+            adata_tmp = adata.copy()
+            adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
+            return adata_tmp
+
+        else:
+            return M
 
     else:
+        print('Input object is not an AnnData object and thus will not be copied.')
         return M
-
     
 ### diffusion neighbourhood score
 def diffusion_nn(adata, k, max_iterations=20):
