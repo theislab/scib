@@ -52,7 +52,7 @@ if __name__=='__main__':
         adata = sc.read(args.input, cache=True)
         print(adata)
         if (type_ == 'knn'):
-            adata = diffusion_conn(adata, min_k=50, copy=True, max_iterations=20)
+            diffusion_conn(adata, min_k=20, copy=False, max_iterations=20)
             sc.write(adata=adata, filename = os.path.join(args.output, f'{base}'))
             print("done")
         else:
