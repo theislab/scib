@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+import scipy.io as scio
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -1201,7 +1202,7 @@ def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, h
     else:
         return ro.r("batch.estimate$average.pval")[0]
 
-def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
+def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = 'diffconn.mtx',
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
@@ -1219,8 +1220,12 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     if type_ != 'knn':
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
-        #check if pre-computed neighbours are stored in input file
         adata_tmp = adata.copy()
+        #check if pre-computed neighbours exist
+        if os.path.isfile(diff_conn):
+            tmp_diff = scio.mmread(diff_conn)
+            adata_tmp.uns['neighbors'].update({'diffusion_connectivities': sparse.csr_matrix(tmp_diff)})
+        
         if 'diffusion_connectivities' not in adata.uns['neighbors']:
             if verbose:
                 print(f"Compute: Diffusion neighbours.")
