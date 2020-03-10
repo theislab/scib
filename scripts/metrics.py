@@ -36,7 +36,7 @@ if __name__=='__main__':
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
     parser.add_argument('--hvgs', default=0, help='Number of highly variable genes. Use 0 to specify that no feature selection had been used.', type=int)
-    parser.add_argument('--diffconn', default='somefile.mtx', help='A precomputed connectivity matrix for kBET. Only used for knn type.')
+    #parser.add_argument('--diffconn', default='somefile.mtx', help='A precomputed connectivity matrix for kBET. Only used for knn type.')
     parser.add_argument('-v', '--verbose', action='store_true')
     
     args = parser.parse_args()
@@ -48,7 +48,7 @@ if __name__=='__main__':
     assay = args.assay
     organism = args.organism
     n_hvgs = args.hvgs if args.hvgs > 0 else None
-    diff_conn = args.diffconn
+    #diff_conn = args.diffconn
     
     # set prefix for output and results column name
     base = os.path.basename(args.integrated)
@@ -144,6 +144,8 @@ if __name__=='__main__':
         n_hvgs = None
         precompute_pca = False
         recompute_neighbors = False
+        #set path to precomputed connectivities file
+        diff_conn = (args.integrated).split('.h5ad')[0] + '_diffconn.mtx'
     
     if verbose:
         print('reduce integrated data:')
