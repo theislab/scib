@@ -48,7 +48,7 @@ if __name__=='__main__':
     assay = args.assay
     organism = args.organism
     n_hvgs = args.hvgs if args.hvgs > 0 else None
-    #diff_conn = args.diffconn
+    diff_conn = 'somefile.mtx'
     
     # set prefix for output and results column name
     base = os.path.basename(args.integrated)
