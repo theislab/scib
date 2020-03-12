@@ -464,9 +464,9 @@ usability = FALSE
   # ADD SIZE
   # reserve a bit more room for text that wants to go outside the frame
   minimum_x <- minimum_x - 2
-  maximum_x <- maximum_x + 3
+  maximum_x <- maximum_x + 4
   minimum_y <- minimum_y - 2
-  maximum_y <- maximum_y + 3
+  maximum_y <- maximum_y + 4
   
   g$width <- maximum_x - minimum_x
   g$height <- maximum_y - minimum_y

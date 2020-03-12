@@ -23,6 +23,11 @@ plotSingleAtlas <- function(csv_file_path){
   metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
                              to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
   
+  # Remove cLISI from visualization
+  metrics <- metrics[-grep("cLISI", metrics)]
+  metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
+  
+  
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
   group_bio <- c("NMI cluster/label", "ARI cluster/label", "Cell type ASW", 
