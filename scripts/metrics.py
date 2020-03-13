@@ -234,7 +234,7 @@ if __name__=='__main__':
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
                               isolated_labels_=isolated_labels_, n_isolated=None,
-                              kBET_=kBET_, diffconn = diff_conn,
+                              kBET_=kBET_, diff_conn = diff_conn,
                               lisi_=lisi_,
                               trajectory_=trajectory_
                              )
