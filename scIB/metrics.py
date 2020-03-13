@@ -1212,6 +1212,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = '
         pd.DataFrame with kBET p-values per cluster for batch
     """
     
+    import os
+    
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
