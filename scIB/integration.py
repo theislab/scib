@@ -278,7 +278,7 @@ def runBBKNN(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     #if adata.n_obs <1e5:
-    corrected = bbknn.bbknn(adata, batch_key=batch,trim=10, neighbors_within_batch=5, copy=True)
+    corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
     #if adata.n_obs >=1e5:
     #    corrected = bbknn.bbknn(adata, batch_key=batch,trim=30, neighbors_within_batch=30, copy=True)
     return corrected
