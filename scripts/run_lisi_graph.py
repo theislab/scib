@@ -255,7 +255,7 @@ if __name__=='__main__':
     print("reading adata input file")
     if os.stat(args.input).st_size>0:
         adata = sc.read(args.input, cache = True)
-        sc.pp.subsample(adata, n_obs=2000)
+        #sc.pp.subsample(adata, n_obs=2000)
         if (type_ == 'embed'):
             sc.pp.neighbors(adata, use_rep = 'X_emb')
         if (type_ == 'full'):
