@@ -13,20 +13,35 @@ import itertools
 from multiprocessing import Pool
 import multiprocessing
 
-def consume(iterator, n=None):
-    "Advance the iterator n-steps ahead. If n is None, consume entirely."
-    # Use functions that consume iterators at C speed.
-    if n is None:
-        # feed the entire iterator into a zero-length deque
-        collections.deque(iterator, maxlen=0)
-    else:
-        # advance to the empty slice starting at position n
-        next(itertools.islice(iterator, n, n), None)
+def convertToOneHot(vector, num_classes=None):
+    """
+    Converts an input 1-D vector of integers into an output
+    2-D array of one-hot vectors, where an i'th input value
+    of j will set a '1' in the i'th row, j'th column of the
+    output array.
 
-def take(n, iterable):
-    "Return first n items of the iterable as a list"
-    result = list(itertools.islice(iterable, n))
-    return result
+    Example:
+        v = np.array((1, 0, 4))
+        one_hot_v = convertToOneHot(v)
+        print one_hot_v
+
+        [[0 1 0 0 0]
+         [1 0 0 0 0]
+         [0 0 0 0 1]]
+    """
+
+    #assert isinstance(vector, np.ndarray)
+    #assert len(vector) > 0
+
+    if num_classes is None:
+        num_classes = np.max(vector)+1
+    #else:
+    #    assert num_classes > 0
+    #    assert num_classes >= np.max(vector)
+
+    result = np.zeros(shape=(len(vector), num_classes))
+    result[np.arange(len(vector)), vector] = 1
+    return result.astype(int)
 
 def Hbeta(D_row, beta):
     """
@@ -58,16 +73,15 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
         simpson: the simpson index for the neighborhood of each cell
     """
     #compute shortest paths of everyone to everyone
-    dist = nx.all_pairs_dijkstra_path_length(D)
+    #Update: We don't actually need that, because we can compute 
+    #the distance from one to all others when we actually need it
+    #dist = nx.all_pairs_dijkstra_path_length(D)
+    
     n = len(batch_labels)
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
     
-    if subsample is None:
-        subset = np.arange(0, n)
-    else:
-        subset = subsample
-
+    
     #prepare chunk
     n_ch = n_chunks #number of chunks
     #get start and endpoint of chunk
@@ -80,28 +94,30 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
         chunk_ids = np.arange(bounds[chunk_no], n)
         if verbose:
             print("Entering last chunk.")
-                                            
+    
+    #remove chunk_ids, which are not in subsample
+    if subsample is not None:
+        chunk_ids = chunk_ids[np.in1d(chunk_ids, subsample)]
+        
     simpson = np.zeros(len(chunk_ids))
     #chunk has a start and an end
-    if chunk_ids[0] != 0:
-        consume(dist, chunk_ids[0]) #fast forward to first element of chunk
+    #if chunk_ids[0] != 0:
+    #    consume(dist, chunk_ids[0]) #fast forward to first element of chunk
     
     #loop over all cells in chunk number
     for i in enumerate(chunk_ids): 
-        if np.in1d(i[1], subset):
-            #get neighbors and distances
-            res = take(1,dist)
-        else: #skip element
-            consume(dist,1)
-            continue
-        #get sorted list of neighbours (keys) and distances (values)
-        keys = np.array(list(res[0][1].keys()))
-        values = np.array(list(res[0][1].values()))
-        if len(keys)<n_neighbors:
+        
+        #get neighbors and distances
+        res = nx.single_source_dijkstra_path_length(D, i[1])
+        if len(res)<n_neighbors:
             #not enough neighbors
             simpson[i[0]] = np.nan
             continue
-                                                                                                                    
+        #get sorted list of neighbours (keys) and distances (values)
+        keys = np.array(list(res.keys()))
+        values = np.array(list(res.values()))
+        
+        #start lisi estimation
         beta = 1
         # negative infinity
         betamin = -np.inf
@@ -136,16 +152,11 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
             continue        
         
         #then compute Simpson's Index
-        for b in np.arange(0, n_batches,1):
-            knn_idx = keys[1:][:n_neighbors]
-            non_nan_knn = knn_idx[np.invert(np.isnan(knn_idx))].astype('int')
-            q = np.flatnonzero(batch_labels[non_nan_knn] == b) #indices of cells belonging to batch (b)
-            if (len(q) > 0):
-                sumP = np.sum(P[q])
-                simpson[i[0]] += sumP ** 2         
-    
-    #return only entries in the subset
-    simpson = simpson[np.in1d(chunk_ids,subset)] 
+        knn_idx = keys[1:][:n_neighbors]
+        batch = batch_labels[knn_idx] 
+        B = convertToOneHot(batch, n_batches)
+        sumP = np.matmul(P,B) #sum P per batch
+        simpson[i[0]] = np.dot(sumP, sumP) #sum squares
 
     return simpson
 
@@ -180,6 +191,14 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     #turn connectivities matrix into graph
     G = nx.from_scipy_sparse_matrix(adata.uns['neighbors']['connectivities'])  
     
+    if subsample is not None:
+        subset = np.random.choice(np.arange(0,adata.n_obs), 
+                                  np.floor(subsample*adata.n_obs).astype('int'),
+                                  replace=False
+                                 )
+    else:
+        subset = None
+    
     if verbose:
         print("LISI score estimation")
     
@@ -190,12 +209,13 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                                   batch_labels = batch,                           
                                                   n_batches = n_batches,
                                                   perplexity = perplexity, 
-                                                  subsample = subsample,
+                                                  subsample = subset,
                                                   n_neighbors = n_neighbors,
                                                   n_chunks = n_chunks,
                                                   chunk_no = idx,
-                                                  verbose = True
+                                                  verbose = verbose
                                                  )
+            simpson_estimate_dict.update({idx: tmp_res}) 
         #create array from dictionary
         simpson_estimate_batch = np.concatenate([simpson_estimate_dict[ids] for ids in simpson_estimate_dict.keys()])
     else:
@@ -204,9 +224,10 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                                              n_batches = n_batches,
                                                              perplexity = perplexity,
                                                              n_neighbors = n_neighbors,
-                                                             subsample = subsample,
+                                                             subsample = subset,
                                                              n_chunks = n_chunks,
-                                                             chunk_no = chunk_id
+                                                             chunk_no = chunk_id,
+                                                             verbose = verbose
                                                             )
     simpson_est_batch = 1/simpson_estimate_batch
     # extract results
@@ -301,20 +322,7 @@ if __name__=='__main__':
                                                                 count))
         pool.close()
         pool.join()
-        #q = multiprocessing.Queue()
-        #processes = []
-        #results = []
-        #for i in count:
-        #    p = multiprocessing.Process(target=lisi_graph_py, args=(adata, batch_key, 90, None, i, n_processes))
-        #    processes.append(p)
-        #    p.start()
-        #for p in processes:
-        #    result = q.get()
-        #    results.append(results)
-        #for p in processes:
-        #    p.join()
-        #lisi_result = lisi_graph_py(adata=adata, batch_key = batch_key, n_neighbors = 90)
-        #print(results)
+        
         simpson_est_batch = 1/np.concatenate(results)
         #print(np.nanmedian(simpson_est_batch))
         # extract results
