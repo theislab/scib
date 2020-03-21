@@ -1235,6 +1235,26 @@ def trajectory_conservation(adata_pre, adata_post, label_key):
     adata_post_sub.obs['dpt_pseudotime'][adata_post_sub.obs['dpt_pseudotime']>1]=0
     return (adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')+1)/2
 
+
+def graph_connectivity(adata_post, label_key):
+    """"
+    Metric that quantifies how connected the subgraph corresponding to each batch cluster is.
+    """
+    if 'neighbors' not in adata_post.uns:
+        raise KeyError('Please compute the neighborhood graph before running this '
+                       'function!')
+
+    clust_res = [] 
+
+    for ct in adata_post.obs[label_key].cat.categories:
+        adata_post_sub = adata_post[adata_post.obs[label_key].isin([ct]),]
+        _,labs = sp.sparse.csgraph.connected_components(adata_post_sub.uns['neighbors']['connectivities'], connection='strong')
+        tab = pd.value_counts(labs)
+        clust_res.append(tab[0]/sum(tab))
+
+    return np.mean(clust_res)
+
+
 ### Time and Memory
 def measureTM(*args, **kwargs):
     """
@@ -1261,7 +1281,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
-            isolated_labels_=False, n_isolated=None,
+            isolated_labels_=False, n_isolated=None, graph_conn_=False,
             kBET_=False, kBET_sub=0.5, lisi_=False, trajectory_= False, type_ = None
            ):
     """
@@ -1348,6 +1368,13 @@ def metrics(adata, adata_int, batch_key, label_key,
         il_score_sil  = np.nan
     results['isolated_label_F1'] = il_score_clus
     results['isolated_label_silhouette'] = il_score_sil
+
+    if graph_conn_:
+        print('Graph connectivity...')
+        graph_conn_score = graph_connectivity(adata_int, label_key=label_key)
+    else:
+        graph_conn_scores = np.nan
+    results['graph_conn'] = graph_conn_score
     
     if kBET_:
         print('kBET...')

@@ -167,6 +167,7 @@ if __name__=='__main__':
     cell_cycle_ = True
     isolated_labels_ = True
     hvg_score_ = True
+    graph_conn_ = True
     kBET_ = True
     lisi_ = True
     
@@ -202,6 +203,7 @@ if __name__=='__main__':
         cell_cycle_=False
         isolated_labels_=False
         hvg_score_=False
+        graph_conn=False
         kBET_=False
         lisi_=False
         trajectory_=False
@@ -230,6 +232,7 @@ if __name__=='__main__':
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
                               isolated_labels_=isolated_labels_, n_isolated=None,
+                              graph_conn_=graph_conn_,
                               kBET_=kBET_,
                               lisi_=lisi_,
                               trajectory_=trajectory_
