@@ -1036,7 +1036,7 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     if (type_ == 'embed'):
         adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True))
     if (type_ == 'full'):
-        sc.pp.pca(adata,n_neighbors=k0, svd_solver = 'arpack')
+        sc.pp.pca(adata, svd_solver = 'arpack')
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
     else:
         adata_tmp = adata.copy()
