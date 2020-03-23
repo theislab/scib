@@ -1034,7 +1034,7 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True))
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
     if (type_ == 'full'):
         sc.pp.pca(adata, svd_solver = 'arpack')
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
