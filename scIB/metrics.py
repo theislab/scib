@@ -1304,7 +1304,9 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
         adata: adata object to calculate on
         batch_key: variable to compute iLISI on
         label_key: variable to compute cLISI on
-        k0: number of nearest neighbors to compute
+        k0: number of nearest neighbors to compute lisi score
+            Please note that the initial neighborhood size that is
+            used to compute shortest paths is 15.
         type_: type of data integration, either knn, full or embed
         subsample: Fraction of observations (between 0 and 1) 
                    to which lisi scoring should be subsampled
@@ -1324,11 +1326,11 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
         
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep = 'X_emb', copy=True)
     if (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
-        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, copy=True)
     else:
         adata_tmp = adata.copy()
     #if knn - do not compute a new neighbourhood graph (it exists already)
