@@ -1028,11 +1028,18 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
+    
     #if type_ != 'knn':
     #    if verbose: 
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
-    adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    if (type_ == 'embed'):
+        sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True))
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    if (type_ == 'full'):
+        sc.pp.pca(adata,n_neighbors=k0, svd_solver = 'arpack')
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    #if knn - do not compute a new neighbourhood graph (it exists already)
     
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
