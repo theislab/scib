@@ -1013,7 +1013,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
+def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -1028,11 +1028,19 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
+    
     #if type_ != 'knn':
     #    if verbose: 
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
-    adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    if (type_ == 'embed'):
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
+    if (type_ == 'full'):
+        sc.pp.pca(adata, svd_solver = 'arpack')
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    else:
+        adata_tmp = adata.copy()
+    #if knn - do not compute a new neighbourhood graph (it exists already)
     
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
@@ -1352,7 +1360,8 @@ def metrics(adata, adata_int, batch_key, label_key,
     if kBET_:
         print('kBET...')
         kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
-                           subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
+                                       embed = embed, subsample=kBET_sub, 
+                                       heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
     results['kBET'] = kbet_score
@@ -1360,7 +1369,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if lisi_:
         print('LISI score...')
         ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
-                                        verbose=verbose)
+                                        type_ = type_, verbose=verbose)
     else:
         ilisi_score = np.nan
         clisi_score = np.nan
