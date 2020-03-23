@@ -169,6 +169,7 @@ if __name__=='__main__':
     hvg_score_ = True
     kBET_ = True
     lisi_ = True
+    lisi_graph_ = True
     
     
     # by output type
@@ -204,6 +205,7 @@ if __name__=='__main__':
         hvg_score_=False
         kBET_=False
         lisi_=False
+        lisi_graph_=False
         trajectory_=False
 
     if verbose:
@@ -218,6 +220,7 @@ if __name__=='__main__':
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         print(f'    LISI:\t{lisi_}')
+        print(f'    LISI:\t{lisi_graph}')
         print(f'    Trajectory:\t{trajectory_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
@@ -232,6 +235,7 @@ if __name__=='__main__':
                               isolated_labels_=isolated_labels_, n_isolated=None,
                               kBET_=kBET_,
                               lisi_=lisi_,
+                              lisi_graph_= lisi_graph_,
                               trajectory_=trajectory_
                              )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
