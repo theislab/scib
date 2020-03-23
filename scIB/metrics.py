@@ -1577,7 +1577,8 @@ def metrics(adata, adata_int, batch_key, label_key,
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
             isolated_labels_=False, n_isolated=None,
-            kBET_=False, kBET_sub=0.5, lisi_=False, trajectory_= False, type_ = None
+            kBET_=False, kBET_sub=0.5, lisi_=False, lisi_graph_=False,
+            trajectory_= False, type_ = None
            ):
     """
     summary of all metrics for one Anndata object
@@ -1683,6 +1684,17 @@ def metrics(adata, adata_int, batch_key, label_key,
     results['iLISI'] = ilisi_score
     results['cLISI'] = clisi_score
     
+    if lisi_graph_:
+        print('LISI graph score...')
+        ilisi_g_score, clisi_g_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
+                                        type_ = type_, subsample = kBET_sub, 
+                                        multiprocessing = True, verbose=verbose)
+    else:
+        ilisi_g_score = np.nan
+        clisi_g_score = np.nan
+    results['iLISI_graph'] = ilisi_g_score
+    results['cLISI_graph'] = clisi_g_score
+        
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
