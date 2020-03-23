@@ -911,12 +911,11 @@ def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batch
             continue        
     
         #then compute Simpson's Index
-        for b in np.arange(0, n_batches,1):
-            non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
-            q = np.flatnonzero(batch_labels[non_nan_knn] == b) #indices of cells belonging to batch (b)
-            if (len(q) > 0):
-                sumP = np.sum(P[q])
-                simpson[i] += sumP ** 2         
+        non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
+        batch = batch_labels[non_nan_knn] 
+        B = convertToOneHot(batch, n_batches)
+        sumP = np.matmul(P,B) #sum P per batch
+        simpson[i] = np.dot(sumP, sumP) #sum squares        
   
     return simpson
 
