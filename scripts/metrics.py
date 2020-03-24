@@ -168,7 +168,7 @@ if __name__=='__main__':
     isolated_labels_ = True
     hvg_score_ = True
     kBET_ = True
-    lisi_ = True
+    #lisi_ = True
     lisi_graph_ = True
     
     
@@ -180,7 +180,7 @@ if __name__=='__main__':
         pcr_ = False
         cell_cycle_ = False
         hvg_score_ = False
-        lisi_ = False
+        #lisi_ = False
     
      # by assay
     if args.assay == 'atac':
@@ -204,7 +204,7 @@ if __name__=='__main__':
         isolated_labels_=False
         hvg_score_=False
         kBET_=False
-        lisi_=False
+        #lisi_=False
         lisi_graph_=False
         trajectory_=False
 
@@ -219,7 +219,7 @@ if __name__=='__main__':
         print(f'    iso lab ASW:\t{isolated_labels_ & silhouette_}')
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
-        print(f'    LISI:\t{lisi_}')
+        #print(f'    LISI:\t{lisi_}')
         print(f'    LISI:\t{lisi_graph}')
         print(f'    Trajectory:\t{trajectory_}')
         
@@ -234,7 +234,7 @@ if __name__=='__main__':
                               cell_cycle_=cell_cycle_, organism=organism,
                               isolated_labels_=isolated_labels_, n_isolated=None,
                               kBET_=kBET_,
-                              lisi_=lisi_,
+                              #lisi_=lisi_,
                               lisi_graph_= lisi_graph_,
                               trajectory_=trajectory_
                              )
