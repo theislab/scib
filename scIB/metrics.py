@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
 import anndata
+import networkx as nx
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
