@@ -1091,8 +1091,8 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     return ilisi_score, clisi_score
 
 #LISI core function for shortest paths 
-def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None, n_neighbors = 45,
-                                  perplexity = 15, subsample = None, n_chunks = 10, chunk_no = 1,tol = 1e-5, 
+def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None, n_neighbors = 90,
+                                  perplexity = 30, subsample = None, n_chunks = 10, chunk_no = 1,tol = 1e-5, 
                                 verbose = False):
     """
     Simpson index of batch labels subsetted for each group.
