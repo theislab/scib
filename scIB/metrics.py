@@ -1115,7 +1115,6 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
     
-    
     #prepare chunk
     if n_chunks is not None:
         n_ch = n_chunks #number of chunks
@@ -1143,12 +1142,11 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
     
     #loop over all cells in chunk number
     for i in enumerate(chunk_ids): 
-        
         #get neighbors and distances
         res = nx.single_source_dijkstra_path_length(D, i[1])
         if len(res)<n_neighbors:
             #not enough neighbors
-            simpson[i[0]] = np.nan
+            simpson[i[0]] = 1 # np.nan #set nan for testing
             continue
         #get sorted list of neighbours (keys) and distances (values)
         keys = np.array(list(res.keys()))
@@ -1187,7 +1185,6 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
         if (H == 0):
             simpson[i[0]] = -1
             continue        
-        
         #then compute Simpson's Index
         knn_idx = keys[1:][:n_neighbors]
         batch = batch_labels[knn_idx] 
@@ -1195,14 +1192,6 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
         sumP = np.matmul(P,B) #sum P per batch
         simpson[i[0]] = np.dot(sumP, sumP) #sum squares
         
-        #for b in np.arange(0, n_batches,1):
-        #    knn_idx = keys[1:][:n_neighbors]
-        #    non_nan_knn = knn_idx[np.invert(np.isnan(knn_idx))].astype('int')
-        #    q = np.flatnonzero(batch_labels[non_nan_knn] == b) #indices of cells belonging to batch (b)
-        #    if (len(q) > 0):
-        #        sumP = np.sum(P[q])
-        #        simpson[i[0]] += sumP ** 2         
-    
     return simpson
 
 #function to prepare call of compute_simpson_index
