@@ -938,9 +938,14 @@ def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batch
         #then compute Simpson's Index
         non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
         batch = batch_labels[non_nan_knn] 
-        B = convertToOneHot(batch, n_batches)
-        sumP = np.matmul(P,B) #sum P per batch
-        simpson[i] = np.dot(sumP, sumP) #sum squares        
+        #convertToOneHot omits all nan entries. 
+        #Therefore, we run into errors in np.matmul.
+        if len(batch) == len(P):
+            B = convertToOneHot(batch, n_batches)
+            sumP = np.matmul(P,B) #sum P per batch
+            simpson[i] = np.dot(sumP, sumP) #sum squares
+        else: #assign worst possible score 
+            simpson[i] = 1      
   
     return simpson
 
