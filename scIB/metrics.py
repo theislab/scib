@@ -1090,7 +1090,7 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     #recompute neighbours
     if (type_ == 'embed'):
         adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
-    if (type_ == 'full'):
+    elif (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
