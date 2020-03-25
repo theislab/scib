@@ -222,7 +222,7 @@ if __name__=='__main__':
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         #print(f'    LISI:\t{lisi_}')
-        print(f'    LISI:\t{lisi_graph}')
+        print(f'    LISI:\t{lisi_graph_}')
         print(f'    Trajectory:\t{trajectory_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
