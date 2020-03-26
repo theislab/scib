@@ -1357,7 +1357,7 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     
     if subsample is not None:
         #check if subsample is indeed 1 float number between 0 and 1
-        if len(subsample)>1 or np.logical_or(subsample<0, subsample>1):
+        if (not isinstance(subsample,float)) or np.logical_or(subsample<0, subsample>1):
             raise ValueError('`subsample` not a fraction between 0 and 1 or has wrong size.')
         subset = np.random.choice(np.arange(0,adata_tmp.n_obs), 
                      np.floor(subsample*adata_tmp.n_obs).astype('int'),
