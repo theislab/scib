@@ -669,7 +669,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=14):
     M = T
 
     # Check for disconnected component
-    n_comp, labs = sparse.csgraph.connected_components(adata.uns['neighbors']['connectivities'],
+    n_comp, labs = connected_components(adata.uns['neighbors']['connectivities'],
                                                        connection='strong')
     
     if n_comp > 1:
@@ -1478,7 +1478,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                 
             if verbose:
                 print(f"Use {k0} nearest neighbors.")
-            n_comp, labs = sparse.csgraph.connected_components(adata_sub.uns['neighbors']['connectivities'], 
+            n_comp, labs = connected_components(adata_sub.uns['neighbors']['connectivities'], 
                                                               connection='strong')
             if n_comp > 1:
                 #check the number of components where kBET can be computed upon
@@ -1586,7 +1586,7 @@ def graph_connectivity(adata_post, label_key):
 
     for ct in adata_post.obs[label_key].cat.categories:
         adata_post_sub = adata_post[adata_post.obs[label_key].isin([ct]),]
-        _,labs = sp.sparse.csgraph.connected_components(adata_post_sub.uns['neighbors']['connectivities'], connection='strong')
+        _,labs = connected_components(adata_post_sub.uns['neighbors']['connectivities'], connection='strong')
         tab = pd.value_counts(labs)
         clust_res.append(tab[0]/sum(tab))
 
