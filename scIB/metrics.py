@@ -1269,7 +1269,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
             n_cpu = multiprocessing.cpu_count()
-            n_processes = np.max([ n_cpu - 1, 
+            n_processes = np.max([ n_cpu, 
                                np.ceil(n_cpu/2)]).astype('int')
         else:
             n_processes = nodes
