@@ -637,7 +637,7 @@ def select_hvg(adata, select=True):
         return adata
 
 ### diffusion for connectivites matrix extension
-def diffusion_conn(adata, min_k=50, copy=True, max_iterations=14):
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=16):
     '''
     This function performs graph diffusion on the connectivities matrix until a
     minimum number `min_k` of entries per row are non-zero.
@@ -705,7 +705,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=14):
 
     
 ### diffusion neighbourhood score
-def diffusion_nn(adata, k, max_iterations=14):
+def diffusion_nn(adata, k, max_iterations=16):
     '''
     This function generates a nearest neighbour list from a connectivities matrix
     as supplied by BBKNN or Conos. This allows us to select a consistent number
@@ -1469,7 +1469,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             score = np.nan
         else:
             quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
-            k0 = np.min([100, np.max([10, quarter_mean])])
+            k0 = np.min([70, np.max([10, quarter_mean])])
             #check k0 for reasonability
             if (k0*adata_sub.n_obs) >=size_max:
                 k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
