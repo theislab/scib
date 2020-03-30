@@ -19,11 +19,15 @@ plotSingleAtlasATAC <- function(csv_file_path){
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
   metrics <- gsub("_", " ", metrics)
-  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
-                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
+  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory", "graph conn"), 
+                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation", "graph connectivity"))
+  
+  # Remove cLISI 
+  #metrics <- metrics[-grep("cLISI", metrics)]
+  #metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
   
   # metrics names as they are supposed to be ordered
-  group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
+  group_batch <- c("PCR batch", "Batch ASW", "iLISI", "graph connectivity", "kBET")
   group_bio <- c("NMI cluster/label", "ARI cluster/label", "Cell type ASW", 
                  "isolated label F1", "isolated label silhouette", "CC conservation", "HVG conservation", "trajectory conservation", "cLISI")
   # set original values of number of metrics
@@ -41,6 +45,14 @@ plotSingleAtlasATAC <- function(csv_file_path){
   if(substring(methods_info_full[1], 1, 1) == "/"){
     methods_info_full <- sub("/", "", methods_info_full)
   }
+  
+  # Remove trvae full
+  ind.trvae_full <- grep("trvae_full", methods_info_full)
+  if(length(ind.trvae_full) > 0){
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+  }
+  
   
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
@@ -66,7 +78,7 @@ plotSingleAtlasATAC <- function(csv_file_path){
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
     method_groups <- plyr::mapvalues(method_groups, 
                                      from = c("knn", "embed", "full"), 
-                                     to = c("graph", "embed", "window"))
+                                     to = c("graph", "embed", "gene"))
     
     
     
@@ -126,12 +138,12 @@ plotSingleAtlasATAC <- function(csv_file_path){
     row_info <- data.frame(id = metrics_tab$Method)
     
     column_info <- data.frame(id = colnames(metrics_tab),
-                              group = c("Text", "Text", "Score overall", 
+                              group = c("Text", "Image", "Score overall", 
                                         rep("Removal of batch effects", (1 + n_metrics_batch)),
                                         rep("Cell type label variance", (1 + n_metrics_bio))), 
-                              geom = c("text", "text",  "bar", "bar", 
+                              geom = c("text", "image",  "bar", "bar", 
                                        rep("circle", n_metrics_batch), "bar", rep("circle", n_metrics_bio)),
-                              width = c(3.5,2.5,2,2, rep(1,n_metrics_batch), 2, rep(1,n_metrics_bio)),
+                              width = c(3.5,2,2,2, rep(1,n_metrics_batch), 2, rep(1,n_metrics_bio)),
                               overlay = F)
     
     # defining colors palette
@@ -140,11 +152,11 @@ plotSingleAtlasATAC <- function(csv_file_path){
                      "Cell type label variance" = "RdPu")
     
     
-    g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F) 
+    g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac = T) 
     now <- Sys.time()
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = g$width/4, height = g$height/4)
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = g$width/4, height = g$height/4)
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
     
     
   
