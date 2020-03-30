@@ -204,7 +204,7 @@ if __name__=='__main__':
         cell_cycle_=False
         isolated_labels_=False
         hvg_score_=False
-        graph_conn=False
+        graph_conn_=False
         kBET_=False
         #lisi_=False
         lisi_graph_=False
