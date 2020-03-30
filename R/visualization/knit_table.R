@@ -25,13 +25,16 @@
 
 library(dplyr)
 library(scales)
+library(ggimage)
+
 
 scIB_knit_table <- function(
 data,
 column_info,
 row_info,
 palettes,
-usability = FALSE
+usability = FALSE,
+atac = FALSE
 ) {
   # no point in making these into parameters
   row_height <- 1.1
@@ -176,28 +179,52 @@ usability = FALSE
   ind_text <- which(column_info$geom == "text")
   dat_mat <- as.matrix(data[, ind_text])
   
+  if(atac){
+    colnames(dat_mat) <- "Method"
+  }
+  
   text_data <- data.frame(label_value = as.vector(dat_mat), 
+                          group = rep(colnames(dat_mat), each = nrow(dat_mat)),
                           xmin = unlist(lapply(column_pos[ind_text, "xmin"], 
                                                function(x) rep(x, nrow(dat_mat)))),
                           xmax = unlist(lapply(column_pos[ind_text, "xmax"], 
-                                               function(x) rep(x, nrow(dat_mat)))),
+                                              function(x) rep(x, nrow(dat_mat)))),
                           ymin = rep(row_pos$ymin, ncol(dat_mat)),
                           ymax = rep(row_pos$ymax, ncol(dat_mat)),
-                          size = 4)
+                          size = 4, fontface = "plain", stringsAsFactors = F)
   
   text_data$colors <- "black"
   text_data[text_data$label_value == "HVG", "colors"] <- "darkgreen"
   text_data[text_data$label_value == "FULL", "colors"] <- "grey30"
   
-  text_data[text_data$label_value == "scaled", "colors"] <- "darkred"
-  text_data[text_data$label_value == "unscaled", "colors"] <- "grey30"
+  # replace scaled/unscaled with +/-
+  text_data$label_value <- mapvalues(text_data$label_value, from = c("scaled", "unscaled"), 
+                                     to = c("+", "-"))
   
-  text_data[(text_data$label_value == "graph" || text_data$label_value == "genes" || 
-               text_data$label_value == "embeddings"), "size"] <- 2
+  text_data[text_data$label_value == "+" | text_data$label_value == "-", "size"] <- 5
+  text_data[text_data$label_value == "+" | text_data$label_value == "-", "fontface"] <- "bold"
+  
+  # ADD top3 ranking for each bar column
+  if(usability){
+    cols_bar <- unique(rect_data$label)
+    cols_bar <- as.character(cols_bar[!is.na(cols_bar)])
+    for(c in cols_bar){
+      rect_tmp <- rect_data[rect_data$label == c,]
+      rect_tmp <- rect_tmp[order(rect_tmp$value, decreasing = T),]
+      rect_tmp <- rect_tmp[1:3, c("xmin", "xmax", "ymin", "ymax")]
+      rect_tmp <- add_column(rect_tmp, "label_value" = c("1", "2", "3"), .before = "xmin")
+      rect_tmp <- add_column(rect_tmp, "size" = 2.5, .after = "ymax")
+      rect_tmp <- add_column(rect_tmp, "colors" = "black", .after = "size")
+      rect_tmp <- add_column(rect_tmp, "fontface" = "plain", .after = "colors")
+      rect_tmp <- add_column(rect_tmp, "group" = "top3", .after = "fontface")
+      text_data <- bind_rows(text_data, rect_tmp)
+    }
+  }
+  
   
   
   # ADD COLUMN NAMES
-  df <- column_pos %>% filter(id != "Method")
+  df <- column_pos %>% filter(id != "Method") %>% filter(id != "Ranking")
  
   if (nrow(df) > 0) {
     segment_data <- segment_data %>% bind_rows(
@@ -239,7 +266,19 @@ usability = FALSE
     )
   }
   
-
+  # gather image data
+  ind_img <- which(column_info$geom == "image")
+  if(length(ind_img) > 0){
+    dat_mat <- as.matrix(data[, ind_img])
+    
+    image_data <- data.frame(x = unlist(lapply(column_pos$x[ind_img], 
+                                                function(x) rep(x, nrow(dat_mat)))), 
+                             y = rep(row_pos$y, ncol(dat_mat)),
+                             image = mapvalues(dat_mat, from = c("graph", "embed", "gene"), 
+                                               to = c("./img/luke/graph.png", "./img/luke/embedding.png", "./img/luke/matrix.png"))
+                             )
+    
+  }
   
   suppressWarnings({
     minimum_x <- min(column_pos$xmin, segment_data$x, segment_data$xend, 
@@ -256,20 +295,87 @@ usability = FALSE
   ###   CREATE HARDCODED LEGENDS   ###
   ####################################
   
-  middle_pos_x <- (maximum_x + minimum_x) /2
+  x_min_output <- minimum_x+0.5
+  x_min_scaling <- minimum_x + 5.5
+  x_min_ranking <- ifelse(atac, minimum_x + 5.5, minimum_x + 10.5)
+  x_min_score <-  ifelse(atac, minimum_x + 11, minimum_x + 17)
+  
+  #middle_pos_x <- (maximum_x + minimum_x) /2
   leg_max_y <- minimum_y - .5
   
+  # Create legend for Output
+  leg_min_x <- x_min_output
+  output_title_data <- data.frame(xmin = leg_min_x, 
+                                xmax = leg_min_x+ 2, 
+                                ymin = leg_max_y - 1, 
+                                ymax = leg_max_y, 
+                                label_value = "Output", 
+                                hjust = 0, vjust = 0, 
+                                fontface = "bold",
+                                size = 3)
+  
+  output_img <- data.frame(x = leg_min_x+0.5,
+                           y = c(leg_max_y-2, leg_max_y-3.2,leg_max_y-4.4),
+                           image = c("./img/luke/matrix.png", "./img/luke/embedding.png", "./img/luke/graph.png")
+                           )
+  if(atac){
+    output_text <- data.frame(xmin = leg_min_x+1.5, 
+                              xmax = leg_min_x+3, 
+                              ymin = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
+                              ymax = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
+                              label_value = c("window", "embed", "graph"), 
+                              hjust = 0, vjust = 0, 
+                              fontface = "plain",
+                              size = 3)
+  } else{
+    output_text <- data.frame(xmin = leg_min_x+1.5, 
+                            xmax = leg_min_x+3, 
+                            ymin = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
+                            ymax = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
+                            label_value = c("gene", "embed", "graph"), 
+                            hjust = 0, vjust = 0, 
+                            fontface = "plain",
+                            size = 3)
+  }
+  
+  text_data <- bind_rows(text_data, output_text, output_title_data)
+  image_data <- bind_rows(image_data, output_img)
+
+  # Create legend for scaling
+  if(!atac){
+  leg_min_x <- x_min_scaling
+  scaling_title_data <- data.frame(xmin = leg_min_x, 
+                                  xmax = leg_min_x+ 2, 
+                                  ymin = leg_max_y - 1, 
+                                  ymax = leg_max_y, 
+                                  label_value = "Scaling", 
+                                  hjust = 0, vjust = 0, 
+                                  fontface = "bold",
+                                  size = 3)
+  
+  scaling_text <- data.frame(xmin = c(leg_min_x, leg_min_x+1), 
+                            xmax = c(leg_min_x+0.5, leg_min_x+3), 
+                            ymin = c(rep(leg_max_y-2,2), rep(leg_max_y-3,2)), 
+                            ymax = c(rep(leg_max_y-1,2), rep(leg_max_y-2,2)), 
+                            label_value = c("+", ": scaled", "-", ": unscaled"), 
+                            hjust = 0, vjust = 0, 
+                            fontface = c("bold","plain", "bold", "plain"),
+                            size = c(5,3,5,3))
+  
+  text_data <- bind_rows(text_data, scaling_title_data, scaling_text)
+  }
   
   # CREATE LEGEND for ranking colors
-  leg_min_x <- middle_pos_x - 5
+  leg_min_x <- x_min_ranking
   rank_groups <- as.character(column_info[column_info$geom == "bar", "group"])
   
   if(usability){
     rank_minimum_x <- list("RNA" = leg_min_x, 
                            "Simulation" = leg_min_x+1, 
-                           "Usability" = leg_min_x+2,
-                           "Scalability" = leg_min_x+3)
-    leg_max_x <- leg_min_x+3
+                           "ATAC" = leg_min_x+2,
+                           "Usability" = leg_min_x+3,
+                           "Scalability" = leg_min_x+4)
+    leg_max_x <- leg_min_x+4
   } else{
     rank_minimum_x <- list("Score overall" = leg_min_x, 
                            "Removal of batch effects" = leg_min_x+1, 
@@ -301,7 +407,6 @@ usability = FALSE
   }
   
   # create arrow for ranking
-  
   arrow_data <- data.frame(x = leg_max_x + 1.5, 
                            xend = leg_max_x +1.5, 
                            y = leg_max_y-4, 
@@ -313,7 +418,7 @@ usability = FALSE
                            xmax = leg_max_x +2.5, 
                            ymin = c(leg_max_y-2, leg_max_y-4), 
                            ymax = c(leg_max_y-1.5, leg_max_y-3.5 ), 
-                           label_value = c("#1", paste0("#", nrow(data))), 
+                           label_value = c("1", as.character(nrow(data))), 
                            hjust = 0, vjust = 0, size = 2.5)
   
   
@@ -322,7 +427,7 @@ usability = FALSE
   # CREATE LEGEND for circle scores
   # circle legend
   if(!usability){
-    cir_minimum_x <- middle_pos_x +1
+    cir_minimum_x <- x_min_score
     
     cir_legend_size <- 1
     cir_legend_space <- .1
@@ -348,8 +453,7 @@ usability = FALSE
     cir_legend_min_y <- leg_max_y-4
     cir_legend_dat$y0 <- cir_legend_min_y + 1 + cir_legend_dat$r
   
-    cir_legend_dat$colors <- colorRampPalette(rev(brewer.pal(9, "Greys")))(nrow(cir_legend_dat))
-  
+    cir_legend_dat$colors <- NULL
     cir_maximum_x <- max(cir_legend_dat$x0)
   
     cir_title_data <- data_frame(xmin = cir_minimum_x, 
@@ -397,6 +501,7 @@ usability = FALSE
   } 
   
   
+  
   # PLOT CIRCLES
   if (length(ind_circle) > 0) {
     g <- g + ggforce::geom_circle(aes(x0 = x0, y0 = y0, fill= colors, r = r), circle_data, size=.25)
@@ -439,8 +544,21 @@ usability = FALSE
       filter(label_value != "")
     # Set fontface for legend bold
     text_data[text_data$label_value == "Ranking", "fontface"] <- "bold"
-    
+    # Set fontface for ranking numbers bold
+    if(usability){
+    text_data[1:nrow(data), "fontface"] <- "bold"
+    }
+    # subset text_data to left-aligned rows
+    text_data_left <- text_data[which(text_data$group == "Method" | text_data$group == "top3"), ]
+    text_data <- text_data[-which(text_data$group == "Method" | text_data$group == "top3"), ]
+
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = hjust, vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data)
+    
+    text_data_left[text_data_left$group == "Method", "x"] <- text_data_left[text_data_left$group == "Method", "x"] - 1.75
+    if(usability){
+    text_data_left[text_data_left$group == "top3", "x"] <- text_data_left[text_data_left$group == "top3", "xmin"] + .3
+    }
+    g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = "left", vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data_left)
   }
   
   
@@ -472,6 +590,20 @@ usability = FALSE
   g$height <- maximum_y - minimum_y
   
   g <- g + expand_limits(x = c(minimum_x, maximum_x), y = c(minimum_y, maximum_y))
+  
+  
+  
+  # PLOT IMAGES
+  if(length(ind_img) > 0){
+    if(usability){
+      g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width") 
+    } else{
+      g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width")
+    }
+    
+  }
+  
+  
   return(g)
   
 }
