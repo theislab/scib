@@ -58,13 +58,30 @@ Functions for the integration methods are in `scIB.integrate`. The methods are c
 `scIB.preprocessing` contains methods for preprocessing of the data such as normalisation, scaling or highly variable gene selection per batch.
 The metrics are located at `scIB.metrics`. To run multiple metrics in one run, use the `scIB.metrics.metrics()` function.
 
+### Metrics
+For a detailed description of the metrics implemented in this package, please see the [manuscript](link).
+
+Batch correction metrics include:
+- `pcr_comparison()`
+- `silhouette()`
+- `lisi()`
+- `kBET()`
+
+Biological conservation metrics include:
+- `nmi()`
+- `ari()`
+- `silhouette_batch()`
+- `isolated_labels()`
+- `cell_cycle()`
+- `hvg_overlap()`
+- `trajectory_conservation()`
+- `lisi()`
 
 ## Tools
 Tools to be compared include:
 - [Seurat v3](https://github.com/satijalab/seurat)
 - [TrVae](https://github.com/theislab/trvae)
 - [scVI](https://github.com/YosefLab/scVI)
-<!--- - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) -->
 - [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [Scanorama](https://github.com/brianhie/scanorama)
@@ -75,3 +92,4 @@ Tools to be compared include:
 <!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign) -->
 <!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
+<!--- - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) -->
