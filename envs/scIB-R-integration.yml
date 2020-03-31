@@ -1,4 +1,4 @@
-name: conosTest
+name: scIB-R-integration
 channels:
   - defaults
   - bioconda

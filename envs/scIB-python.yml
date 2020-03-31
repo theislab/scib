@@ -1,4 +1,4 @@
-name: sc-tutorial
+name: scIB-python
 channels:
   - anaconda
   - defaults
