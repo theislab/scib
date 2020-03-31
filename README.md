@@ -6,11 +6,13 @@ In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations
 
 ![Workflow](./figure.png)
 
-We created the python module `scIB` to streamline the integration process and to integrate it into
-a scanpy workflow. Furthermore, we created an environment to allow easy integration of R integration methods
+We created the python package `scIB` to streamline the integration process and to integrate it into
+a scanpy workflow. Additionally, we created an environment to allow easy integration of R integration methods
 into the scanpy workflow.
 
-The scib python module is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
+Furthermore, the package allows for evaluation of integration quality of different datasets if cell type annotations are present using our novel metrics.
+
+The `scIB` python package is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
 R helper functions for R integration methods can be found in the `R` directory.
 The `scripts` folder contains scripts for preparing the data, running the methods, postprocessing and calculation of the metrics.
 The `notebooks` folder contains jupyter notebooks for testing and demonstrating functions of the `scIB` package as well as notebooks
@@ -34,7 +36,7 @@ conda env create -f FILENAME.yml
 ``` 
 To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
 and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
-In the `conosTest` environment, R packages need to be installed manually.
+In the `scIB-R-integration` environment, R packages need to be installed manually.
 Activate the environment and install the packages `scran`, `Seurat` and `Conos` in R. `Conos` needs to be installed using R devtools.
 See [here](https://github.com/hms-dbmi/conos).
 
@@ -50,6 +52,13 @@ To load the config file run `snakemake --configfile config.yaml`.
 Define the number of CPU threads you want to use with `snakemake --cores N_CORES`. To produce an overview of tasks that will be run, use `snakemake -n`.
 To run the pipeline, simply run `snakemake`.
 
+## Structure of the scIB package
+The package contains several modules for the different steps of the integration and benchmarking pipeline.
+Functions for the integration methods are in `scIB.integrate`. The methods are called using `scIB.integration.runMETHOD(adata, BATCH)`.
+`scIB.preprocessing` contains methods for preprocessing of the data such as normalisation, scaling or highly variable gene selection per batch.
+The metrics are located at `scIB.metrics`. To run multiple metrics in one run, use the `scIB.metrics.metrics()` function.
+
+
 ## Tools
 Tools to be compared include:
 - [Seurat v3](https://github.com/satijalab/seurat)
@@ -59,10 +68,10 @@ Tools to be compared include:
 - [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [Scanorama](https://github.com/brianhie/scanorama)
-- RISC
 - [LIGER](https://github.com/MacoskoLab/liger)
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [Harmony](https://github.com/immunogenomics/harmony)
+- [Combat](https://academic.oup.com/biostatistics/article/8/1/118/252073)
 <!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign) -->
 <!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
