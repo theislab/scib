@@ -277,10 +277,10 @@ def runBBKNN(adata, batch, hvg=None):
     import bbknn
     checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
-    #if adata.n_obs <1e5:
-    corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
-    #if adata.n_obs >=1e5:
-    #    corrected = bbknn.bbknn(adata, batch_key=batch,trim=30, neighbors_within_batch=30, copy=True)
+    if adata.n_obs <1e5:
+        corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
+    if adata.n_obs >=250000:
+        corrected = bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
     return corrected
 
 def runConos(adata, batch, hvg=None):
