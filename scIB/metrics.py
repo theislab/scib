@@ -7,7 +7,7 @@ import scanpy as sc
 import anndata
 import networkx as nx
 from scIB.utils import *
-from scIB.lisi_py.compute_simpson_index_graph_cy import compute_simpson_index_graph_cy #cythonized lisi
+from scIB.compute_simpson_index_graph_cy import compute_simpson_index_graph_cy #cythonized lisi
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
