@@ -7,6 +7,7 @@ import scanpy as sc
 import anndata
 import networkx as nx
 from scIB.utils import *
+from compute_simpson_index_graph_cy import compute_simpson_index_graph_cy #cythonized lisi
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
@@ -1314,6 +1315,108 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     
     return lisi_estimate
 
+#function to prepare call of compute_simpson_index_graph_cy (cythonized version of lisi_graph_py)
+def lisi_graph_cy(adata, batch_key, n_neighbors = 90, perplexity=None, subsample = None, 
+                  multiprocessing = None, nodes = None, verbose=False):
+    """
+    Compute LISI score on shortes path based on kNN graph provided in the adata object. 
+    By default, perplexity is chosen as 1/3 * number of nearest neighbours in the knn-graph.
+    """
+    
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
+                              "kNN graph has been computed")    
+    elif verbose:                                                    
+        print("using precomputed kNN graph")
+                                                                        
+    #get knn index matrix
+    if verbose:
+        print("Convert nearest neighbor matrix and distances for LISI.")
+               
+    batch = adata.obs[batch_key].cat.codes.values.astype('int')         
+    n_batches = len(np.unique(adata.obs[batch_key])) 
+                                        
+    if perplexity is None or perplexity >=n_neighbors:
+        # use LISI default
+        perplexity = np.floor(n_neighbors/3)
+    
+    if subsample is None:
+        subsample = np.ndarray(shape=0, dtype=np.long)
+
+    # run LISI in python
+    #if verbose:
+    #    print("Compute shortest paths") 
+                                                                                                
+    #turn connectivities matrix into graph
+    #G = nx.from_scipy_sparse_matrix(adata.uns['neighbors']['connectivities'])  
+    G_data = adata.uns['neighbors']['connectivities'].data
+    G_indices = adata.uns['neighbors']['connectivities'].indices
+    G_indptr = adata.uns['neighbors']['connectivities'].indptr
+          
+    if verbose:
+        print("LISI score estimation")
+    
+    #do the simpson call 
+    if multiprocessing is not None:
+        #import tools needed for multiprocessing
+        import itertools
+        from multiprocessing import Pool
+        import multiprocessing
+        
+        #set up multiprocessing
+        if nodes is None:
+            #take all but one CPU and 1 CPU, if there's only 1 CPU.
+            n_cpu = multiprocessing.cpu_count()
+            n_processes = np.max([ n_cpu, 
+                               np.ceil(n_cpu/2)]).astype('int')
+        else:
+            n_processes = nodes
+
+        if verbose:
+            print(f"{n_processes} processes started.")
+        pool = Pool(processes=n_processes)
+        count = np.arange(0, n_processes)
+        
+        #create argument list for each worker
+        results = pool.starmap(compute_simpson_index_graph_cy, zip(itertools.repeat(G_data),
+                                                                   itertools.repeat(G_indices),
+                                                                   itertools.repeat(G_indptr),
+                                                                itertools.repeat(batch),
+                                                                itertools.repeat(n_batches),
+                                                                itertools.repeat(n_neighbors),
+                                                                itertools.repeat(perplexity),
+                                                                itertools.repeat(subsample),
+                                                                itertools.repeat(n_processes),
+                                                                count, 
+                                                                   itertools.repeat(1e-5)))
+        pool.close()
+        pool.join()
+        
+        simpson_est_batch = 1/np.concatenate(results)    
+     
+    else: 
+        simpson_estimate_batch = compute_simpson_index_graph_cy(data= G_data, 
+                                                                indices = G_indices,
+                                                                indptr = G_indptr,
+                                                  batch_labels = batch,                           
+                                                  n_batches = n_batches,
+                                                  perplexity = perplexity, 
+                                                  subsample = subsample,
+                                                  n_neighbors = n_neighbors,
+                                                  n_chunks = 1,
+                                                  chunk_no = 0,
+                                                  tol= 1e-5
+                                                 )
+        simpson_est_batch = 1/simpson_estimate_batch
+    # extract results
+    d = {batch_key : simpson_est_batch}
+    if len(subsample)==0:
+        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
+    else:
+        lisi_estimate = pd.DataFrame(data=d, index=np.sort(subsample))
+    
+    return lisi_estimate
+
 #LISI graph function (analoguous to lisi function) 
 def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None, 
                subsample = None, scale=True, 
@@ -1367,11 +1470,11 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
         subset = None
     
     #compute LISI score
-    ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
+    ilisi_score = lisi_graph_cy(adata = adata, batch_key = batch_key, 
                   n_neighbors = k0, perplexity=None, subsample = subset, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
-    clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
+    clisi_score = lisi_graph_cy(adata = adata, batch_key = label_key, 
                   n_neighbors = k0, perplexity=None, subsample = subset, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
