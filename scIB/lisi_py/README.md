@@ -15,7 +15,7 @@ the numpy c header files are located).
 ```
 $ gcc -shared -pthread -fPIC -fwrapv -O2 -Wall -fno-strict-aliasing -I/usr/include/python3.7m -o compute_simpson_index_graph_cy.so compute_simpson_index_graph_cy.c
 ```
-The `.so` file can be imported in `Python 3`:
+The `.so` file can be imported as module in `Python 3`:
 ```
 from compute_simpson_index_graph_lisi_cy import compute_simpson_index_graph_lisi_cy
 ```
