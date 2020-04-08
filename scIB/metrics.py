@@ -1713,7 +1713,7 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('Graph connectivity...')
         graph_conn_score = graph_connectivity(adata_int, label_key=label_key)
     else:
-        graph_conn_scores = np.nan
+        graph_conn_score = np.nan
     results['graph_conn'] = graph_conn_score
     
     if kBET_:
