@@ -27,7 +27,8 @@ if __name__=='__main__':
     
     parser.add_argument('-u', '--uncorrected', required=True)
     parser.add_argument('-i', '--integrated', required=True)
-    parser.add_argument('-o', '--output', required=True, help='output directory')
+    parser.add_argument('-o', '--output', required=True, help='Output file')
+    parser.add_argument('-m', '--method', required=True, help='Name of method')
     
     parser.add_argument('-b', '--batch_key', required=True, help='Key of batch')
     parser.add_argument('-l', '--label_key', required=True, help='Key of annotated labels e.g. "cell_type"')
@@ -48,10 +49,12 @@ if __name__=='__main__':
     organism = args.organism
     n_hvgs = args.hvgs if args.hvgs > 0 else None
     
-    # set prefix for output and results column name
-    base = os.path.basename(args.integrated)
-    out_prefix = f'{os.path.splitext(base)[0]}_{args.type}'
-    cluster_nmi = os.path.join(args.output, f'{out_prefix}_int_nmi.txt')
+    # encode setup for column name
+    setup = f'{args.method}_{args.type}'
+    
+    # create cluster NMI output file
+    file_stump = os.path.splitext(args.output)[0]
+    cluster_nmi = f'{file_stump}_nmi.txt'
 
     if verbose:
         print('Options')
@@ -61,7 +64,7 @@ if __name__=='__main__':
         print(f'    assay:\t{assay}')
         print(f'    organism:\t{organism}')
         print(f'    n_hvgs:\t{n_hvgs}')
-        print(f'    out_prefix:\t{out_prefix}')
+        print(f'    setup:\t{setup}')
         print(f'    optimised clustering results:\t{cluster_nmi}')
     
     ###
@@ -114,7 +117,7 @@ if __name__=='__main__':
         # check number of HVGs to be computed
         message = "There are fewer genes in the uncorrected adata "
         message += "than specified for HVG selection."
-        raise ValueError(message)    
+        raise ValueError(message)
     
     # DATA REDUCTION
     # select options according to type
@@ -241,11 +244,11 @@ if __name__=='__main__':
                               lisi_graph_= lisi_graph_,
                               trajectory_=trajectory_
                              )
-    results.rename(columns={results.columns[0]:out_prefix}, inplace=True)
+    results.rename(columns={results.columns[0]:setup}, inplace=True)
     if verbose:
         print(results)
     # save metrics' results
-    results.to_csv(os.path.join(args.output, f'{out_prefix}.csv'))
+    results.to_csv(args.output)
 
     print("done")
 
