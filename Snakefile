@@ -161,15 +161,25 @@ rule metrics:
         cmd = f"conda run -n {cfg.py_env} python"
     shell: "{params.cmd} {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
 
+def get_prepared_adata():
+    pattern = str(rules.integration_prepare.output)
+    file = os.path.splitext(pattern)[0]
+    file = f"{file}.h5ad"
+    return file
+
 rule metrics_single:
     input:
-        u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        u      = lambda wildcards: get_prepared_adata(),
         i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
                                    if cfg.get_from_method(wildcards.method, "R")
                                    else cfg.get_filename_pattern("integration", "single", "h5ad"),
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
-    message: "Metrics {wildcards}"
+    message: 
+        """
+        Metrics {wildcards}
+        output: {output}
+        """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
         label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
@@ -186,14 +196,15 @@ rule metrics_single:
 
 rule metrics_single_unintegrated:
     input:
-        u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
-        i      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        u      = lambda wildcards: get_prepared_adata(),
+        i      = lambda wildcards: get_prepared_adata(),
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics_unintegrated", "single")
     message: 
         """
         Metrics on unintegrated data
         {wildcards}
+        output: {output}
         """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
