@@ -15,6 +15,11 @@ def join_path(*args):
 
 class ParsedConfig:
 
+    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance', 'metrics_unintegrated']
+    OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 
+                                  'by_method_scaling', 'directory_by_setting']
+    OUTPUT_TYPES      = ['full', 'embed', 'knn']
+        
     def __init__(self, config):
 
         # TODO: define and check schema of config
@@ -29,10 +34,6 @@ class ParsedConfig:
         self.py_env            = config["py_env"]
         self.conv_env          = config["conv_env"]
 
-        self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 
-                                  'by_method_scaling', 'directory_by_setting']
-        self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
     def get_all_scalings(self):
         return self.SCALING
@@ -112,14 +113,14 @@ class ParsedConfig:
 
     def get_filename_pattern(self, file_type, level, file_suffix=None):
         """
-        file_type: one of ['integration', 'metrics', 'cc_variance']
-        level: one of ['single', 'final', 'by_method']
+        file_type: ParsedConfig.OUTPUT_FILE_TYPES
+        level: one of ParsedConfig.LEVELS
         """
 
-        if file_type not in self.OUTPUT_FILE_TYPES:
+        if file_type not in ParsedConfig.OUTPUT_FILE_TYPES:
             raise ValueError(f"{file_type} not a valid output file type")
 
-        if level not in self.OUTPUT_LEVEL:
+        if level not in ParsedConfig.OUTPUT_LEVELS:
             raise ValueError(f"{level} not a valid output level")
 
         if file_suffix not in ["rds", "rds_to_h5ad", "h5ad", None]:
@@ -129,7 +130,8 @@ class ParsedConfig:
             "prepare"     : "{method}.h5ad",
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
-            "cc_variance" : "{method}_{o_type}.csv"
+            "cc_variance" : "{method}_{o_type}.csv",
+            "metrics_unintegrated" : "{o_type}.csv"
         }
 
         # in case of R, we need a different suffix for the integration part
@@ -166,14 +168,14 @@ class ParsedConfig:
             Output types are ['full', 'embed', 'knn']
         """
 
-        if file_type not in self.OUTPUT_FILE_TYPES:
+        if file_type not in ParsedConfig.OUTPUT_FILE_TYPES:
             raise ValueError(f"{file_type} not a valid output file type")
 
         if output_types is None:
-            output_types = self.OUTPUT_TYPES
+            output_types = ParsedConfig.OUTPUT_TYPES
         else:
             for ot in output_types:
-                if ot not in self.OUTPUT_TYPES:
+                if ot not in ParsedConfig.OUTPUT_TYPES:
                     raise ValueError(f"{output_types} not a valid output type")
 
         all_files = []
@@ -205,6 +207,10 @@ class ParsedConfig:
             elif file_type in ['metrics', 'cc_variance']:
                 file_pattern = self.get_filename_pattern(file_type, file_level)
                 expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
+            elif file_type == 'metrics_unintegrated':
+                # add unintegrated
+                file_pattern = self.get_filename_pattern(file_type, file_level)
+                expanded = expand(file_pattern, o_type=ot, scaling=scaling)
             else:
                 raise ValueError(f"{file_type} is not a valid file type")
 
