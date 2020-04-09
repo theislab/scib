@@ -179,44 +179,50 @@ class ParsedConfig:
                     raise ValueError(f"{output_types} not a valid output type")
 
         all_files = []
-        for method in self.METHODS:
-
-            ot = self.get_from_method(method, "output_type")
-            # keep only types to be considered
-            ot = [x for x in as_list(ot) if x in as_list(output_types)]
-            if not ot:
-                continue # skip if method does not have any
-            
-            # skip scaling for certain methods
-            scaling = self.SCALING.copy()
-            skip_scaling = self.get_from_method(method, "no_scale")
-            if skip_scaling and "scaled" in scaling:
-                scaling.remove("scaled")
-
-            file_level = "by_method_scaling"
-
-            if file_type == 'integration':
-                is_r = self.get_from_method(method, "R")
-                if is_r:
-                    file_pattern = self.get_filename_pattern(file_type, file_level, "rds_to_h5ad")
-                else:
-                    file_pattern = self.get_filename_pattern(file_type, file_level, "h5ad")
-
-                expanded = expand(file_pattern, method=method, scaling=scaling)
-
-            elif file_type in ['metrics', 'cc_variance']:
-                file_pattern = self.get_filename_pattern(file_type, file_level)
-                expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
-            elif file_type == 'metrics_unintegrated':
+        
+        if file_type == 'metrics_unintegrated':
                 # add unintegrated
-                file_pattern = self.get_filename_pattern(file_type, file_level)
-                expanded = expand(file_pattern, o_type=ot, scaling=scaling)
-            else:
-                raise ValueError(f"{file_type} is not a valid file type")
+                file_pattern = self.get_filename_pattern(file_type, "single")
+                all_files = expand(file_pattern,
+                                   scenario=self.get_all_scenarios(),
+                                   hvg=self.get_all_feature_selections(),
+                                   scaling=self.SCALING,
+                                   o_type=output_types)
+        else:
+            for method in self.METHODS:
 
-            for p in expanded:
-                f = expand(p, scenario=self.get_all_scenarios(),
-                           hvg=self.get_all_feature_selections())
-                all_files.extend(f)
+                ot = self.get_from_method(method, "output_type")
+                # keep only types to be considered
+                ot = [x for x in as_list(ot) if x in as_list(output_types)]
+                if not ot:
+                    continue # skip if method does not have any
+
+                # skip scaling for certain methods
+                scaling = self.SCALING.copy()
+                skip_scaling = self.get_from_method(method, "no_scale")
+                if skip_scaling and "scaled" in scaling:
+                    scaling.remove("scaled")
+
+                file_level = "by_method_scaling"
+
+                if file_type == 'integration':
+                    is_r = self.get_from_method(method, "R")
+                    if is_r:
+                        file_pattern = self.get_filename_pattern(file_type, file_level, "rds_to_h5ad")
+                    else:
+                        file_pattern = self.get_filename_pattern(file_type, file_level, "h5ad")
+
+                    expanded = expand(file_pattern, method=method, scaling=scaling)
+
+                elif file_type in ['metrics', 'cc_variance']:
+                    file_pattern = self.get_filename_pattern(file_type, file_level)
+                    expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
+                else:
+                    raise ValueError(f"{file_type} is not a valid file type")
+
+                for p in expanded:
+                    f = expand(p, scenario=self.get_all_scenarios(),
+                               hvg=self.get_all_feature_selections())
+                    all_files.extend(f)
 
         return all_files
