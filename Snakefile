@@ -143,11 +143,19 @@ rule convert_RDS_h5ad:
         fi
         """
 
+# ------------------------------------------------------------------------------
+# Compute metrics
+# ------------------------------------------------------------------------------
+
+all_metrics = cfg.get_all_file_patterns("metrics")
+all_metrics.extend(cfg.get_all_file_patterns("metrics_unintegrated"))
+
 rule metrics:
     input:
-        tables = cfg.get_all_file_patterns("metrics"),
+        tables = all_metrics,
         script = "scripts/merge_metrics.py"
-    output: cfg.get_filename_pattern("metrics", "final")
+    output: 
+        cfg.get_filename_pattern("metrics", "final")
     message: "Merge all metrics"
     params:
         cmd = f"conda run -n {cfg.py_env} python"
@@ -156,7 +164,8 @@ rule metrics:
 rule metrics_single:
     input:
         u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
-        i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad") if cfg.get_from_method(wildcards.method, "R")
+        i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
+                                   if cfg.get_from_method(wildcards.method, "R")
                                    else cfg.get_filename_pattern("integration", "single", "h5ad"),
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
@@ -170,12 +179,52 @@ rule metrics_single:
         cmd       = f"conda run -n {cfg.py_env} python"	
     shell:
         """
-        OUT_DIR=$(dirname {output})
-        {params.cmd} {input.script} -u {input.u} -i {input.i} -o $OUT_DIR \
+        {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} -m {wildcards.method} \
         -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
         """
 
+rule metrics_single_unintegrated:
+    input:
+        u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        i      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        script = "scripts/metrics.py"
+    output: cfg.get_filename_pattern("metrics_unintegrated", "single")
+    message: 
+        """
+        Metrics on unintegrated data
+        {wildcards}
+        """
+    params:
+        batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
+        label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
+        organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
+        assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        cmd       = f"conda run -n {cfg.py_env} python"	
+    shell:
+        """
+        {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} -m unintegrated \
+        -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
+        --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
+        """
+        
+rule scale_lisi:
+    input:
+        i = cfg.get_filename_pattern("metrics", "final"),
+        script = "scripts/scale_halfopen.py"
+    output: cfg.get_filename_pattern("metrics", "scaled_final")
+    message: "Rescale LISI in merged metrics"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell:
+        """
+        {params.cmd} {input.script} -i {input.i} -o {output}
+        """
+
+# ------------------------------------------------------------------------------
+# Cell cycle score sanity check
+# ------------------------------------------------------------------------------
 
 rule cc_variation:
     input:
@@ -203,18 +252,4 @@ rule cc_single:
         {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} \
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
-        """
-
-rule scale_lisi:
-    input:
-        i = cfg.get_filename_pattern("metrics", "final"),
-        script = "scripts/scale_halfopen.py"
-    output: cfg.get_filename_pattern("metrics", "scaled_final")
-    message: "Rescale LISI in merged metrics"
-    params:
-        cmd = f"conda run -n {cfg.py_env} python"
-    shell:
-        """
-        {params.cmd} {input.script} -i {input.i} -o {output}
-        """
-    
+        """    
