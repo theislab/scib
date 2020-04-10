@@ -1,21 +1,15 @@
 import numpy as np
 from scipy import sparse
-import scipy.io as scio
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
 import anndata
-#import networkx as nx
+import networkx as nx
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
-from scipy.io import mmwrite
-from os import mkdir, path, remove, stat
-from time import time
-import subprocess
-import pathlib
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -23,7 +17,6 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 
-import gc
 
 ### Silhouette score
 def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
@@ -203,8 +196,8 @@ def onmi(group1, group2, nmi_dir=None, verbose=True):
     nmi_max = float(nmi_split[0][1])
     
     # remove temporary files
-    remove(group1_file)
-    remove(group2_file)
+    os.remove(group1_file)
+    os.remove(group2_file)
     
     return nmi_max
 
@@ -388,91 +381,37 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
         print(f"{label}: {score}")
     
     return score
-
-def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
-    adata_list = splitBatches(adata, batch, hvg=features)
-    hvg_dir = {}
-    for i in adata_list:
-        sc.pp.filter_genes(i, min_cells=1)
-        n_hvg_tmp = np.minimum(n_hvg, int(0.5*i.n_vars))
-        if n_hvg_tmp<n_hvg:
-            print(i.obs[batch][0]+' has less than the specified number of genes')
-            print('Number of genes: '+str(i.n_vars))
-        hvg = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-        hvg_dir[i.obs[batch][0]] = i.var.index[hvg['highly_variable']]
-    adata_list=None
-    if save_hvg:    
-        adata.uns['hvg_before']=hvg_dir
-    else:
-        return hvg_dir
-        
     
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
-    hvg_post = adata_post.var_names
+    hvg_post = adata_post.var.index
     
+    adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
     adata_post_list = splitBatches(adata_post, batch)
     overlap = []
     
-    if ('hvg_before' in adata_pre.uns_keys()) and (set(hvg_post) == set(adata_pre.var_names)):
-        print('Using precomputed hvgs per batch')
-        hvg_pre_list = adata_pre.uns['hvg_before']
-    
-    else:
-        hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post)
-   
-    
-        for i in range(len(adata_post_list)):#range(len(adata_pre_list)):
-            sc.pp.filter_genes(adata_post_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
+    for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
+        sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(adata_post_list[i], min_cells=1)
         
-            #ov = list(set(adata_pre_list[i].var_names).intersection(set(hvg_pre_list[i])))
-            #adata_pre_list[i] = adata_pre_list[i][:,ov]
-            #adata_post_list[i] = adata_post_list[i][:,ov]
-            batch_var = adata_post_list[i].obs[batch][0]
+        ov = list(set(adata_pre_list[i].var_names).intersection(adata_post_list[i].var_names))
+        adata_pre_list[i] = adata_pre_list[i][:,ov]
+        adata_post_list[i] = adata_post_list[i][:,ov]
         
-            n_hvg_tmp = len(hvg_pre_list[batch_var])#adata_pre.uns['n_hvg'][hvg_post]#np.minimum(n_hvg, int(0.5*adata_post_list[i].n_vars))
-            print(n_hvg_tmp)
-            #if n_hvg_tmp<n_hvg:
-            #    print(adata_post_list[i].obs[batch][0]+' has less than the specified number of genes')
-            #    print('Number of genes: '+str(adata_post_list[i].n_vars))
-            #hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-            tmp_pre = hvg_pre_list[batch_var] #adata_pre_list[i].var.index[hvg_pre['highly_variable']]
-            hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-            tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
-            n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
-            overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real) 
+        n_hvg_tmp = np.minimum(n_hvg, int(0.5*adata_pre_list[i].n_vars))
+        if n_hvg_tmp<n_hvg:
+            print(adata_pre_list[i].obs[batch][0]+' has less than the specified number of genes')
+            print('Number of genes: '+str(adata_pre_list[i].n_vars))
+        hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
+        tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
+        hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
+        tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
+        n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
+        overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
     return np.mean(overlap)
 
 ### Cell cycle effect
-def precompute_cc_score(adata, batch_key, organism='mouse', 
-                        n_comps=50, verbose=False):
-
-    batches = adata.obs[batch_key].cat.categories
-    scores_before = {}
-    s_score = []
-    g2m_score = []
-    
-    for batch in batches:
-        raw_sub = adata[adata.obs[batch_key] == batch].copy()
-        #score cell cycle if not already done
-        if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
-            score_cell_cycle(raw_sub, organism=organism)
-            s_score.append(raw_sub.obs['S_score'])
-            g2m_score.append(raw_sub.obs['G2M_score'])
-            
-        covariate = raw_sub.obs[['S_score', 'G2M_score']]
-        
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-        scores_before.update({batch : before})
-    
-    if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
-        adata.obs['S_score'] = pd.concat(s_score)
-        adata.obs['G2M_score'] = pd.concat(g2m_score)
-    adata.uns['scores_before'] = scores_before
-    return 
-
-
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
@@ -501,93 +440,44 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     scores_final = []
     scores_before = []
     scores_after = []
-    #if both (s-score, g2m-score) and pc-regression are pre-computed 
-    if (np.in1d(['S_score', 'G2M_score'], 
-                adata_pre.obs_keys()).sum() == 2) and ('scores_before' in adata_pre.uns_keys()): 
-        #extract needed infos from adata_pre and delete it from memory
-        df_pre = adata_pre.obs[['S_score', 'G2M_score', batch_key]]
+    for batch in batches:
+        raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+        int_sub = adata_post[adata_post.obs[batch_key] == batch]
+        int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
-        scores_precomp = pd.Series(adata_pre.uns['scores_before'])
-        del adata_pre
-        n_item = gc.collect()
+        if raw_sub.shape[0] != int_sub.shape[0]:
+            message = f'batch "{batch}" of batch_key "{batch_key}" '
+            message += 'has unequal number of entries before and after integration.'
+            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+            raise ValueError(message)
         
-        for batch in enumerate(batches):
-            raw_sub = df_pre.loc[df_pre[batch_key] == batch[1]]
-            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]].copy()
-            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+        if verbose:
+            print("score cell cycle")
+        score_cell_cycle(raw_sub, organism=organism)
+        covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-            if raw_sub.shape[0] != int_sub.shape[0]:
-                message = f'batch "{batch[1]}" of batch_key "{batch_key}" '
-                message += 'has unequal number of entries before and after integration.'
-                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
-                raise ValueError(message)
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_before.append(before)
         
+        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_after.append(after)
+        
+        score = 1 - abs(after - before)/before # scaled result
+        if score < 0:
+            # Here variance contribution becomes more than twice as large as before
             if verbose:
-                print("score cell cycle")
-            
-            covariate = raw_sub[['S_score', 'G2M_score']]
-            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-            scores_after.append(after)
-            #get score before from list of pre-computed scores
-            before = scores_precomp[batch[1]]
-            scores_before.append(before)
-
-            score = 1 - abs(after - before)/before # scaled result
-            if score < 0:
-                # Here variance contribution becomes more than twice as large as before
-                if verbose:
-                    print("Variance contrib more than twice as large after integration.")
-                    print("Setting score to 0.")
-                score = 0
+                print("Variance contrib more than twice as large after integration.")
+                print("Setting score to 0.")
+            score = 0
         
-            scores_final.append(score)
+        scores_final.append(score)
         
-            if verbose:
-                print(f"batch: {batch[1]}\t before: {before}\t after: {after}\t score: {score}")
-                 
-    else: #not everything is pre-computed
-       
-        for batch in batches:
-            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
-            int_sub = adata_post[adata_post.obs[batch_key] == batch]
-            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
-        
-            if raw_sub.shape[0] != int_sub.shape[0]:
-                message = f'batch "{batch}" of batch_key "{batch_key}" '
-                message += 'has unequal number of entries before and after integration.'
-                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
-                raise ValueError(message)
-        
-            if verbose:
-                print("score cell cycle")
-            #compute cell cycle score if not done already    
-            if (np.in1d(['S_score', 'G2M_score'], raw_sub.obs_keys()).sum() < 2):
-                score_cell_cycle(raw_sub, organism=organism)
-                
-            covariate = raw_sub.obs[['S_score', 'G2M_score']]
-        
-            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-            scores_before.append(before)
-        
-            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-            scores_after.append(after)
-        
-            score = 1 - abs(after - before)/before # scaled result
-            if score < 0:
-                # Here variance contribution becomes more than twice as large as before
-                if verbose:
-                    print("Variance contrib more than twice as large after integration.")
-                    print("Setting score to 0.")
-                score = 0
-        
-            scores_final.append(score)
-        
-            if verbose:
-                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+        if verbose:
+            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
         
     if agg_func is None:
         return pd.DataFrame([batches, scores_before, scores_after, scores_final],
-                                columns=['batch', 'before', 'after', 'score'])
+                            columns=['batch', 'before', 'after', 'score'])
     else:
         return agg_func(scores_final)
 
@@ -1183,7 +1073,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=False):
+def lisi(adata, batch_key, label_key, k0=90, type_=None, scale=True, embed=None, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -1204,7 +1094,7 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep=embed, copy=True)
     elif (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
@@ -1230,69 +1120,66 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     return ilisi_score, clisi_score
 
 #LISI core function for shortest paths 
-def compute_simpson_index_graph(input_path = None, 
-                                batch_labels = None, n_batches = None, n_neighbors = 90,
-                                perplexity = 30, chunk_no = 0,tol = 1e-5):
+def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None, n_neighbors = 90,
+                                  perplexity = 30, subsample = None, n_chunks = 10, chunk_no = 1,tol = 1e-5, 
+                                verbose = False):
     """
     Simpson index of batch labels subsetted for each group.
     params:
-        input_path: file_path to pre-computed index and distance files
+        D: graph object
         batch_labels: a vector of length n_cells with batch info
         n_batches: number of unique batch labels
         n_neighbors: number of nearest neighbors
         perplexity: effective neighborhood size
-        chunk_no: for parallelisation, chunk id to evaluate
         tol: a tolerance for testing effective neighborhood size
     returns:
         simpson: the simpson index for the neighborhood of each cell
     """
+    #compute shortest paths of everyone to everyone
+    #Update: We don't actually need that, because we can compute 
+    #the distance from one to all others when we actually need it
+    #dist = nx.all_pairs_dijkstra_path_length(D)
     
-    #initialize
+    n = len(batch_labels)
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
     
-    if chunk_no is None:
-        chunk_no = 0
-    #check if the target file is not empty
-    if stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
-        print("File has no entries. Doing nothing.")
-        lists = np.zeros(0)
-        return lists
-    
-    #read distances and indices with nan value handling
-    indices = pd.read_csv(input_path + '_indices_'+ str(chunk_no) + '.txt', 
-                          header= None,sep='\n')
-    indices = indices[0].str.split(',', expand=True)
-    indices.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
-    indices = indices.T
-    distances = pd.read_csv(input_path + '_distances_'+ str(chunk_no) + '.txt', 
-                            header= None, sep='\n')
-    distances = distances[0].str.split(',', expand=True)
-    distances.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
-    distances = distances.T
-    
-    #get cell ids
-    chunk_ids = indices.columns.values.astype('int')
-    
-    #define result vector
+    #prepare chunk
+    if n_chunks is not None:
+        n_ch = n_chunks #number of chunks
+        #get start and endpoint of chunk
+        bounds = np.arange(0,n, np.ceil(n/n_ch).astype('int'))
+        if chunk_no < n_ch - 1:
+            chunk_ids = np.arange(bounds[chunk_no], bounds[chunk_no+1])
+            if verbose:
+                print(f"Entering chunk {chunk_no}.")
+        else: #last chunk
+            chunk_ids = np.arange(bounds[chunk_no], n)
+            if verbose:
+                print("Entering last chunk.")
+    else:
+        chunk_ids = np.arange(0, n)
+        
+    #remove chunk_ids, which are not in subsample
+    if subsample is not None:
+        chunk_ids = chunk_ids[np.in1d(chunk_ids, subsample)]
+        
     simpson = np.zeros(len(chunk_ids))
+    #chunk has a start and an end
+    #if chunk_ids[0] != 0:
+    #    consume(dist, chunk_ids[0]) #fast forward to first element of chunk
     
-    #loop over all cells in chunk 
+    #loop over all cells in chunk number
     for i in enumerate(chunk_ids): 
         #get neighbors and distances
-        #read line i from indices matrix
-        get_col = indices[str(i[1])]
-        
-        if get_col.isnull().sum()>0:
+        res = nx.single_source_dijkstra_path_length(D, i[1])
+        if len(res)<n_neighbors:
             #not enough neighbors
-            print(str(i[1]) + " has not enough neighbors.")
             simpson[i[0]] = 1 # np.nan #set nan for testing
             continue
-        else:
-            knn_idx = get_col.astype('int') -1 #get 0-based indexing
-        
-        #read line i from distances matrix
-        D_act = distances[str(i[1])].values.astype('float')
+        #get sorted list of neighbours (keys) and distances (values)
+        keys = np.array(list(res.keys()))
+        values = np.array(list(res.values()))
         
         #start lisi estimation
         beta = 1
@@ -1300,7 +1187,8 @@ def compute_simpson_index_graph(input_path = None,
         betamin = -np.inf
         # positive infinity
         betamax = np.inf
-        
+        #set distances
+        D_act = values[1:][:n_neighbors]
         H, P = Hbeta(D_act, beta)
         Hdiff = H - logU
         tries = 0
@@ -1327,6 +1215,7 @@ def compute_simpson_index_graph(input_path = None,
             simpson[i[0]] = -1
             continue        
         #then compute Simpson's Index
+        knn_idx = keys[1:][:n_neighbors]
         batch = batch_labels[knn_idx] 
         B = convertToOneHot(batch, n_batches)
         sumP = np.matmul(P,B) #sum P per batch
@@ -1358,27 +1247,24 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if perplexity is None or perplexity >=n_neighbors:
         # use LISI default
         perplexity = np.floor(n_neighbors/3)
-    
-    #setup subsampling
-    subset = 100 #default, no subsampling 
-    if subsample is not None:
-        subset = subsample #do not use subsampling
-        if isinstance(subsample, int) == False: #need to set as integer
-            subset = int(subsample)
                                                                                                                                 
     # run LISI in python
     if verbose:
-        print("Compute knn on shortest paths") 
+        print("Compute shortest paths") 
+                                                                                                
+    #turn connectivities matrix into graph
+    G = nx.from_scipy_sparse_matrix(adata.uns['neighbors']['connectivities'])  
+          
+    if verbose:
+        print("LISI score estimation")
     
-    #define number of chunks
-    n_chunks = 1
-    
+    #do the simpson call 
     if multiprocessing is not None:
         #import tools needed for multiprocessing
         import itertools
         from multiprocessing import Pool
         import multiprocessing
-    
+        
         #set up multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
@@ -1387,36 +1273,6 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                np.ceil(n_cpu/2)]).astype('int')
         else:
             n_processes = nodes
-        #update numbr of chunks
-        n_chunks = n_processes
-    
-    #create temporary directory
-    dir_path = "/tmp/lisi_tmp"+str(int(time()))
-    while path.isdir(dir_path):
-        dir_path += '2'
-    dir_path += '/'
-    mkdir(dir_path)
-    #write to temporary directory
-    mtx_file_path = dir_path + 'input.mtx'
-    mmwrite(mtx_file_path,
-            adata.uns['neighbors']['connectivities'],
-            symmetry='general')
-    # call knn-graph computation in Cpp
-    
-    root = pathlib.Path(__file__).parent #get current root directory
-    cpp_file_path = root / 'knn_graph/knn_graph.o' #create POSIX path to file to execute compiled cpp-code 
-    #comment: POSIX path needs to be converted to string - done below with 'as_posix()'
-    #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
-    n_splits = n_chunks -1
-    args_int = [cpp_file_path.as_posix(), mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
-    subprocess.run(args_int)
-          
-    if verbose:
-        print("LISI score estimation")
-    
-    #do the simpson call 
-    if multiprocessing is not None:
-        
 
         if verbose:
             print(f"{n_processes} processes started.")
@@ -1424,11 +1280,13 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         count = np.arange(0, n_processes)
         
         #create argument list for each worker
-        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(dir_path),
+        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(G),
                                                                 itertools.repeat(batch),
                                                                 itertools.repeat(n_batches),
                                                                 itertools.repeat(n_neighbors),
                                                                 itertools.repeat(perplexity),
+                                                                itertools.repeat(subsample),
+                                                                itertools.repeat(n_processes),
                                                                 count))
         pool.close()
         pool.join()
@@ -1436,25 +1294,29 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         simpson_est_batch = 1/np.concatenate(results)    
      
     else: 
-        simpson_estimate_batch = compute_simpson_index_graph(input_path = dir_path, 
+        simpson_estimate_batch = compute_simpson_index_graph(D = G, 
                                                   batch_labels = batch,                           
                                                   n_batches = n_batches,
                                                   perplexity = perplexity, 
-                                                  n_neighbors = n_neighbors, 
-                                                  chunk_no = None
+                                                  subsample = subsample,
+                                                  n_neighbors = n_neighbors,
+                                                  n_chunks = None,
+                                                  chunk_no = None,
+                                                  verbose = verbose
                                                  )
         simpson_est_batch = 1/simpson_estimate_batch
     # extract results
     d = {batch_key : simpson_est_batch}
-    
-    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
-    
+    if subsample is None:
+        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
+    else:
+        lisi_estimate = pd.DataFrame(data=d, index=np.sort(subsample))
     
     return lisi_estimate
 
 #LISI graph function (analoguous to lisi function) 
 def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None, 
-               subsample = None, scale=True, 
+               subsample = None, scale=True, embed=None, 
                multiprocessing = None, nodes = None, verbose=False):
     """
     Compute lisi score (after integration)
@@ -1466,7 +1328,7 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
             Please note that the initial neighborhood size that is
             used to compute shortest paths is 15.
         type_: type of data integration, either knn, full or embed
-        subsample: Percentage of observations (integer between 0 and 100) 
+        subsample: Fraction of observations (between 0 and 1) 
                    to which lisi scoring should be subsampled
         scale: scale output values (True/False)
         multiprocessing: parallel computation of LISI scores, if None, no parallisation 
@@ -1484,7 +1346,7 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
         
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep = 'X_emb', copy=True)
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep=embed, copy=True)
     if (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
@@ -1492,14 +1354,25 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     else:
         adata_tmp = adata.copy()
     #if knn - do not compute a new neighbourhood graph (it exists already)
-       
+    
+    if subsample is not None:
+        #check if subsample is indeed 1 float number between 0 and 1
+        if (not isinstance(subsample,float)) or np.logical_or(subsample<0, subsample>1):
+            raise ValueError('`subsample` not a fraction between 0 and 1 or has wrong size.')
+        subset = np.random.choice(np.arange(0,adata_tmp.n_obs), 
+                     np.floor(subsample*adata_tmp.n_obs).astype('int'),
+                     replace=False
+                     )
+    else:
+        subset = None
+    
     #compute LISI score
     ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subsample, 
+                  n_neighbors = k0, perplexity=None, subsample = subset,
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subsample, 
+                  n_neighbors = k0, perplexity=None, subsample = subset,
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
@@ -1864,9 +1737,9 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if lisi_graph_:
         print('LISI graph score...')
-        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub*100, 
-                                        multiprocessing = True, verbose=verbose)
+        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key,
+                label_key=label_key, type_=type_, subsample=kBET_sub, embed=embed,
+                multiprocessing = True, verbose=verbose)
     else:
         ilisi_g_score = np.nan
         clisi_g_score = np.nan
