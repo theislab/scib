@@ -147,12 +147,9 @@ rule convert_RDS_h5ad:
 # Compute metrics
 # ------------------------------------------------------------------------------
 
-all_metrics = cfg.get_all_file_patterns("metrics")
-all_metrics.extend(cfg.get_all_file_patterns("metrics_unintegrated"))
-
 rule metrics:
     input:
-        tables = all_metrics,
+        tables = cfg.get_all_metrics_files(),
         script = "scripts/merge_metrics.py"
     output: 
         cfg.get_filename_pattern("metrics", "final")
