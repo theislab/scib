@@ -188,7 +188,7 @@ class ParsedConfig:
                                    scenario=self.get_all_scenarios(),
                                    hvg=self.get_all_feature_selections(),
                                    scaling=self.SCALING,
-                                   o_type=output_types)
+                                   o_type="full")
         else:
             for method in self.METHODS:
 
