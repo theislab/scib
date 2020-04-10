@@ -16,8 +16,8 @@ def join_path(*args):
 class ParsedConfig:
 
     OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance', 'metrics_unintegrated']
-    OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 
-                                  'by_method_scaling', 'directory_by_setting']
+    OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 'by_method_scaling', 
+                         'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
         
     def __init__(self, config):
@@ -115,7 +115,7 @@ class ParsedConfig:
     def get_filename_pattern(self, file_type, level, file_suffix=None):
         """
         file_type: ParsedConfig.OUTPUT_FILE_TYPES
-        level: one of ParsedConfig.LEVELS
+        level: one of ParsedConfig.OUTPUT_LEVELS
         """
 
         if file_type not in ParsedConfig.OUTPUT_FILE_TYPES:
