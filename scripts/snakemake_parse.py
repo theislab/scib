@@ -33,6 +33,7 @@ class ParsedConfig:
         self.r_env             = config["r_env"]
         self.py_env            = config["py_env"]
         self.conv_env          = config["conv_env"]
+        self.unintegrated_m    = config["unintegrated_metrics"]
 
 
     def get_all_scalings(self):
@@ -226,3 +227,12 @@ class ParsedConfig:
                     all_files.extend(f)
 
         return all_files
+
+    def get_all_metrics_files(self):
+        all_metrics = self.get_all_file_patterns("metrics")
+        # only include unintegrated if specfied in config
+        if self.unintegrated_m:
+            um = self.get_all_file_patterns("metrics_unintegrated")
+            all_metrics.extend(um)
+        return all_metrics
+

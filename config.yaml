@@ -4,6 +4,8 @@ py_env : sc-tutorial
 conv_env : conversion
 timing: false
 
+unintegrated_metrics: false
+
 FEATURE_SELECTION:
   hvg: 2000
   full_feature: 0
