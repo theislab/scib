@@ -1073,7 +1073,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=False):
+def lisi(adata, batch_key, label_key, k0=90, type_=None, scale=True, embed=None, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -1094,7 +1094,7 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep=embed, copy=True)
     elif (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
@@ -1316,7 +1316,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
 
 #LISI graph function (analoguous to lisi function) 
 def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None, 
-               subsample = None, scale=True, 
+               subsample = None, scale=True, embed=None, 
                multiprocessing = None, nodes = None, verbose=False):
     """
     Compute lisi score (after integration)
@@ -1346,7 +1346,7 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
         
     #recompute neighbours
     if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep = 'X_emb', copy=True)
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep=embed, copy=True)
     if (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver = 'arpack')
@@ -1368,11 +1368,11 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     
     #compute LISI score
     ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subset, 
+                  n_neighbors = k0, perplexity=None, subsample = subset,
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subset, 
+                  n_neighbors = k0, perplexity=None, subsample = subset,
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
@@ -1737,9 +1737,9 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if lisi_graph_:
         print('LISI graph score...')
-        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub, 
-                                        multiprocessing = True, verbose=verbose)
+        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key,
+                label_key=label_key, type_=type_, subsample=kBET_sub, embed=embed,
+                multiprocessing = True, verbose=verbose)
     else:
         ilisi_g_score = np.nan
         clisi_g_score = np.nan
