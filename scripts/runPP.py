@@ -38,11 +38,6 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
         print("Scaling data ...")
         adata = scIB.preprocessing.scale_batch(adata, batch)
         
-    # compute PCA and kNN (needed for metrics on unintegrated data)
-    scIB.preprocessing.reduce_data(adata, pca=True, ignore_hvg=False,
-                                   neighbors=True, umap=False)
-    adata.obsm["X_emb"] = adata.obsm["X_pca"]
-
     if rout:
         print("Save as RDS")
         scIB.preprocessing.saveSeurat(adata, outPath, batch, hvgs)
