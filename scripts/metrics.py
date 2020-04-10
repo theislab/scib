@@ -139,6 +139,11 @@ if __name__=='__main__':
         # legacy check
         if ('emb' in adata_int.uns) and (adata_int.uns['emb']):
             adata_int.obsm["X_emb"] = adata_int.obsm["X_pca"].copy()
+        # fix for unintegrated metrics
+        if "X_emb" not in adata_int.obsm:
+            embed = "X_pca"
+            n_hvgs = args.hvgs if args.hvgs > 0 else None
+        print(embed)
     
     # case3: kNN graph output
     elif (type_ == "knn"):
