@@ -1307,7 +1307,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
             adata.uns['neighbors']['connectivities'], 
             symmetry='general')
     # call knn-graph computation in Cpp
-    cpp_file_path = './code/test.out'
+    cpp_file_path = './knn_graph/knn_graph.o'
     #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
     n_splits = n_chunks -1
     args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits)]
