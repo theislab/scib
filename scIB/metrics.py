@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
 import anndata
-import networkx as nx
+#import networkx as nx
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
+from scipy.io import mmwrite
+from os import mkdir, path
+import subprocess
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -1120,17 +1123,19 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     return ilisi_score, clisi_score
 
 #LISI core function for shortest paths 
-def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None, n_neighbors = 90,
-                                  perplexity = 30, subsample = None, n_chunks = 10, chunk_no = 1,tol = 1e-5, 
-                                verbose = False):
+def compute_simpson_index_graph(input_path = None, 
+                                batch_labels = None, n_batches = None, n_neighbors = 90,
+                                perplexity = 30, subsample = None, chunk_no = 0,tol = 1e-5):
     """
     Simpson index of batch labels subsetted for each group.
     params:
-        D: graph object
+        input_path: file_path to pre-computed index and distance files
         batch_labels: a vector of length n_cells with batch info
         n_batches: number of unique batch labels
         n_neighbors: number of nearest neighbors
         perplexity: effective neighborhood size
+        subsample: numpy array of indices to keep for the evaluation
+        chunk_no: for parallelisation, chunk id to evaluate
         tol: a tolerance for testing effective neighborhood size
     returns:
         simpson: the simpson index for the neighborhood of each cell
@@ -1140,46 +1145,66 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
     #the distance from one to all others when we actually need it
     #dist = nx.all_pairs_dijkstra_path_length(D)
     
+    #available: index and distances for each cell are pre-computed, thus, I need the path to those files
+    #available: sanity check file where the length of each neighborhood is documented
+  
+    
+    #D = nx.from_scipy_sparse_matrix(connectivity)
     n = len(batch_labels)
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
     
-    #prepare chunk
-    if n_chunks is not None:
-        n_ch = n_chunks #number of chunks
-        #get start and endpoint of chunk
-        bounds = np.arange(0,n, np.ceil(n/n_ch).astype('int'))
-        if chunk_no < n_ch - 1:
-            chunk_ids = np.arange(bounds[chunk_no], bounds[chunk_no+1])
-            if verbose:
-                print(f"Entering chunk {chunk_no}.")
-        else: #last chunk
-            chunk_ids = np.arange(bounds[chunk_no], n)
-            if verbose:
-                print("Entering last chunk.")
-    else:
-        chunk_ids = np.arange(0, n)
-        
+    if chunk_no is None:
+        chunk_no = 0
+    #read distances and indices with nan value handling
+    if os.stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
+        print("File has no entries. Doing nothing.")
+        lists = np.zeros(0)
+        return lists
+    
+    indices = pd.read_csv(input_path + '_indices_'+ str(chunk_no) + '.txt', 
+                          header= None,sep='\n')
+    indices = indices[0].str.split(',', expand=True)
+    indices.index = indices[0] #move cell index to DF index 
+    indices = indices.drop(columns=[0]) #drop first column
+    indices = indices.T
+    distances = pd.read_csv(input_path + '_distances_'+ str(chunk_no) + '.txt', 
+                            header= None, sep='\n')
+    distances = distances[0].str.split(',', expand=True)
+    distances.index = distances[0] #move cell index to DF index 
+    distances = distances.drop(columns=[0]) #drop first column
+    distances = distances.T
+    
+    #get cell ids
+    chunk_ids = indices.columns.values.astype('int')
+    
+    
     #remove chunk_ids, which are not in subsample
     if subsample is not None:
         chunk_ids = chunk_ids[np.in1d(chunk_ids, subsample)]
-        
+        #reduce distance and index matrix
+        #indices = indices[indices.columns[np.flatnonzero(keep_idx)]]
+        #distances = distances[distances.columns[np.flatnonzero(keep_idx)]]
+       
     simpson = np.zeros(len(chunk_ids))
     #chunk has a start and an end
-    #if chunk_ids[0] != 0:
-    #    consume(dist, chunk_ids[0]) #fast forward to first element of chunk
     
-    #loop over all cells in chunk number
+    #loop over all cells in chunk 
     for i in enumerate(chunk_ids): 
         #get neighbors and distances
-        res = nx.single_source_dijkstra_path_length(D, i[1])
-        if len(res)<n_neighbors:
+        #read line i from indices matrix
+        get_col = indices[str(i[1])]
+        
+        if get_col.isnull().sum()>0:
             #not enough neighbors
+            print(str(i[1]) + " has not enough neighbors.")
             simpson[i[0]] = 1 # np.nan #set nan for testing
             continue
-        #get sorted list of neighbours (keys) and distances (values)
-        keys = np.array(list(res.keys()))
-        values = np.array(list(res.values()))
+        else:
+            knn_idx = get_col.astype('int') -1 #get 0-based indexing
+        
+        #read line i from distances matrix
+        D_act = distances[str(i[1])].values.astype('float')
         
         #start lisi estimation
         beta = 1
@@ -1187,8 +1212,7 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
         betamin = -np.inf
         # positive infinity
         betamax = np.inf
-        #set distances
-        D_act = values[1:][:n_neighbors]
+        
         H, P = Hbeta(D_act, beta)
         Hdiff = H - logU
         tries = 0
@@ -1215,7 +1239,6 @@ def compute_simpson_index_graph(D = None, batch_labels = None, n_batches = None,
             simpson[i[0]] = -1
             continue        
         #then compute Simpson's Index
-        knn_idx = keys[1:][:n_neighbors]
         batch = batch_labels[knn_idx] 
         B = convertToOneHot(batch, n_batches)
         sumP = np.matmul(P,B) #sum P per batch
@@ -1250,21 +1273,17 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                                                                                                                 
     # run LISI in python
     if verbose:
-        print("Compute shortest paths") 
-                                                                                                
-    #turn connectivities matrix into graph
-    G = nx.from_scipy_sparse_matrix(adata.uns['neighbors']['connectivities'])  
-          
-    if verbose:
-        print("LISI score estimation")
+        print("Compute knn on shortest paths") 
     
-    #do the simpson call 
+    #define number of chunks
+    n_chunks = 1
+    
     if multiprocessing is not None:
-        #import tools needed for multiprocessing
+    #import tools needed for multiprocessing
         import itertools
         from multiprocessing import Pool
         import multiprocessing
-        
+    
         #set up multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
@@ -1273,6 +1292,33 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                np.ceil(n_cpu/2)]).astype('int')
         else:
             n_processes = nodes
+        #update numbr of chunks    
+        n_chunks = n_processes
+    
+    #create temporary directory
+    dir_path = "./tmp_lisi"                                                                                                                                         
+    while path.isdir(dir_path):                                                                                                                                                      
+        dir_path += '2'                                                                                                                                                              
+    dir_path += '/'                                                                                                                                                                  
+    mkdir(dir_path)
+    #write to temporary directory
+    mtx_file_path = dir_path + 'input.mtx'
+    mmwrite(mtx_file_path, 
+            adata.uns['neighbors']['connectivities'], 
+            symmetry='general')
+    # call knn-graph computation in Cpp
+    cpp_file_path = './code/test.out'
+    #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
+    n_splits = n_chunks -1
+    args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits)]
+    subprocess.run(args_int)
+          
+    if verbose:
+        print("LISI score estimation")
+    
+    #do the simpson call 
+    if multiprocessing is not None:
+        
 
         if verbose:
             print(f"{n_processes} processes started.")
@@ -1280,13 +1326,12 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         count = np.arange(0, n_processes)
         
         #create argument list for each worker
-        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(G),
+        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(dir_path),
                                                                 itertools.repeat(batch),
                                                                 itertools.repeat(n_batches),
                                                                 itertools.repeat(n_neighbors),
                                                                 itertools.repeat(perplexity),
                                                                 itertools.repeat(subsample),
-                                                                itertools.repeat(n_processes),
                                                                 count))
         pool.close()
         pool.join()
@@ -1294,15 +1339,13 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         simpson_est_batch = 1/np.concatenate(results)    
      
     else: 
-        simpson_estimate_batch = compute_simpson_index_graph(D = G, 
+        simpson_estimate_batch = compute_simpson_index_graph(input_path = dir_path, 
                                                   batch_labels = batch,                           
                                                   n_batches = n_batches,
                                                   perplexity = perplexity, 
                                                   subsample = subsample,
-                                                  n_neighbors = n_neighbors,
-                                                  n_chunks = None,
-                                                  chunk_no = None,
-                                                  verbose = verbose
+                                                  n_neighbors = n_neighbors, 
+                                                  chunk_no = None
                                                  )
         simpson_est_batch = 1/simpson_estimate_batch
     # extract results
