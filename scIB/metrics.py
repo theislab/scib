@@ -1156,14 +1156,12 @@ def compute_simpson_index_graph(input_path = None,
     indices = pd.read_csv(input_path + '_indices_'+ str(chunk_no) + '.txt', 
                           header= None,sep='\n')
     indices = indices[0].str.split(',', expand=True)
-    indices.index = indices[0] #move cell index to DF index 
-    indices = indices.drop(columns=[0]) #drop first column
+    indices.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
     indices = indices.T
     distances = pd.read_csv(input_path + '_distances_'+ str(chunk_no) + '.txt', 
                             header= None, sep='\n')
     distances = distances[0].str.split(',', expand=True)
-    distances.index = distances[0] #move cell index to DF index 
-    distances = distances.drop(columns=[0]) #drop first column
+    distances.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
     distances = distances.T
     
     #get cell ids
@@ -1171,7 +1169,6 @@ def compute_simpson_index_graph(input_path = None,
     
     #define result vector
     simpson = np.zeros(len(chunk_ids))
-    
     
     #loop over all cells in chunk 
     for i in enumerate(chunk_ids): 
