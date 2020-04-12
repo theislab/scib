@@ -13,6 +13,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
 from os import mkdir, path
 import subprocess
+import pathlib
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -1295,7 +1296,9 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
             adata.uns['neighbors']['connectivities'], 
             symmetry='general')
     # call knn-graph computation in Cpp
-    cpp_file_path = './code/knn_graph.o'
+    
+    root = pathlib.Path(__file__).parent #get current root directory
+    cpp_file_path = './' + root / 'knn_graph/knn_graph.o' #create string to execute compiled cpp-code 
     #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
     n_splits = n_chunks -1
     args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
