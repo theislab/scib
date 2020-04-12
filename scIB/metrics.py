@@ -1125,7 +1125,7 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
 #LISI core function for shortest paths 
 def compute_simpson_index_graph(input_path = None, 
                                 batch_labels = None, n_batches = None, n_neighbors = 90,
-                                perplexity = 30, subsample = None, chunk_no = 0,tol = 1e-5):
+                                perplexity = 30, chunk_no = 0,tol = 1e-5):
     """
     Simpson index of batch labels subsetted for each group.
     params:
@@ -1134,34 +1134,25 @@ def compute_simpson_index_graph(input_path = None,
         n_batches: number of unique batch labels
         n_neighbors: number of nearest neighbors
         perplexity: effective neighborhood size
-        subsample: numpy array of indices to keep for the evaluation
         chunk_no: for parallelisation, chunk id to evaluate
         tol: a tolerance for testing effective neighborhood size
     returns:
         simpson: the simpson index for the neighborhood of each cell
     """
-    #compute shortest paths of everyone to everyone
-    #Update: We don't actually need that, because we can compute 
-    #the distance from one to all others when we actually need it
-    #dist = nx.all_pairs_dijkstra_path_length(D)
     
-    #available: index and distances for each cell are pre-computed, thus, I need the path to those files
-    #available: sanity check file where the length of each neighborhood is documented
-  
-    
-    #D = nx.from_scipy_sparse_matrix(connectivity)
-    n = len(batch_labels)
+    #initialize
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
     
     if chunk_no is None:
         chunk_no = 0
-    #read distances and indices with nan value handling
+    #check if the target file is not empty
     if os.stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
         print("File has no entries. Doing nothing.")
         lists = np.zeros(0)
         return lists
     
+    #read distances and indices with nan value handling
     indices = pd.read_csv(input_path + '_indices_'+ str(chunk_no) + '.txt', 
                           header= None,sep='\n')
     indices = indices[0].str.split(',', expand=True)
@@ -1178,16 +1169,9 @@ def compute_simpson_index_graph(input_path = None,
     #get cell ids
     chunk_ids = indices.columns.values.astype('int')
     
-    
-    #remove chunk_ids, which are not in subsample
-    if subsample is not None:
-        chunk_ids = chunk_ids[np.in1d(chunk_ids, subsample)]
-        #reduce distance and index matrix
-        #indices = indices[indices.columns[np.flatnonzero(keep_idx)]]
-        #distances = distances[distances.columns[np.flatnonzero(keep_idx)]]
-       
+    #define result vector
     simpson = np.zeros(len(chunk_ids))
-    #chunk has a start and an end
+    
     
     #loop over all cells in chunk 
     for i in enumerate(chunk_ids): 
@@ -1270,6 +1254,13 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if perplexity is None or perplexity >=n_neighbors:
         # use LISI default
         perplexity = np.floor(n_neighbors/3)
+    
+    #setup subsampling
+    subset = 100 #default, no subsampling 
+    if subsample is not None:
+        subset = subsample #do not use subsampling
+        if isinstance(subsample, int) == False: #need to set as integer
+            subset = int(subsample)
                                                                                                                                 
     # run LISI in python
     if verbose:
@@ -1279,7 +1270,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     n_chunks = 1
     
     if multiprocessing is not None:
-    #import tools needed for multiprocessing
+        #import tools needed for multiprocessing
         import itertools
         from multiprocessing import Pool
         import multiprocessing
@@ -1296,7 +1287,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         n_chunks = n_processes
     
     #create temporary directory
-    dir_path = "/tmp/tmp_lisi"                                                                                                                                         
+    dir_path = "./tmp_lisi"                                                                                                                                         
     while path.isdir(dir_path):                                                                                                                                                      
         dir_path += '2'                                                                                                                                                              
     dir_path += '/'                                                                                                                                                                  
@@ -1307,10 +1298,10 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
             adata.uns['neighbors']['connectivities'], 
             symmetry='general')
     # call knn-graph computation in Cpp
-    cpp_file_path = './knn_graph/knn_graph.o'
+    cpp_file_path = './code/knn_graph.o'
     #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
     n_splits = n_chunks -1
-    args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits)]
+    args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
     subprocess.run(args_int)
           
     if verbose:
@@ -1331,7 +1322,6 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                                                 itertools.repeat(n_batches),
                                                                 itertools.repeat(n_neighbors),
                                                                 itertools.repeat(perplexity),
-                                                                itertools.repeat(subsample),
                                                                 count))
         pool.close()
         pool.join()
@@ -1343,7 +1333,6 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                                   batch_labels = batch,                           
                                                   n_batches = n_batches,
                                                   perplexity = perplexity, 
-                                                  subsample = subsample,
                                                   n_neighbors = n_neighbors, 
                                                   chunk_no = None
                                                  )
@@ -1371,7 +1360,7 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
             Please note that the initial neighborhood size that is
             used to compute shortest paths is 15.
         type_: type of data integration, either knn, full or embed
-        subsample: Fraction of observations (between 0 and 1) 
+        subsample: Percentage of observations (integer between 0 and 100) 
                    to which lisi scoring should be subsampled
         scale: scale output values (True/False)
         multiprocessing: parallel computation of LISI scores, if None, no parallisation 
@@ -1397,25 +1386,14 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     else:
         adata_tmp = adata.copy()
     #if knn - do not compute a new neighbourhood graph (it exists already)
-    
-    if subsample is not None:
-        #check if subsample is indeed 1 float number between 0 and 1
-        if (not isinstance(subsample,float)) or np.logical_or(subsample<0, subsample>1):
-            raise ValueError('`subsample` not a fraction between 0 and 1 or has wrong size.')
-        subset = np.random.choice(np.arange(0,adata_tmp.n_obs), 
-                     np.floor(subsample*adata_tmp.n_obs).astype('int'),
-                     replace=False
-                     )
-    else:
-        subset = None
-    
+       
     #compute LISI score
     ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subset, 
+                  n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
-                  n_neighbors = k0, perplexity=None, subsample = subset, 
+                  n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     # iLISI: 2 good, 1 bad
