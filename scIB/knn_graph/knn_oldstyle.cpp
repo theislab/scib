@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <random>
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
@@ -342,8 +343,8 @@ static vector<Matrix::Entry> getTopKNeighbors(const Matrix& m, unsigned start, u
 }
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
-   if (argc != 5) {
-      cout << "usage: " << argv[0] << " matrixfile, output_prefix, k, n_chunks" << endl;
+   if (argc != 6) {
+      cout << "usage: " << argv[0] << " matrixfile, output_prefix, k, n_chunks, percent_subsample" << endl;
       return 0;
    }
 
@@ -364,6 +365,14 @@ int main(int argc, char* argv[]) {
    else{
    	len_ch = limit/n_chunks;
    }
+   //get percentage to which should be subsampled
+   unsigned sub = stoi(argv[5]);
+
+   //ininitialize random number generator
+   random_device rd; //used to obtain seed for random number engine
+   mt19937 gen(rd()); //standard merseen_twister_engine seeded with rd() 
+   uniform_int_distribution<> dis(0, 100); //uniform int distribution between 0 and 100  
+   int rand_res;
    //sanity check
    //double sum = 0; 
    
@@ -393,10 +402,16 @@ int main(int argc, char* argv[]) {
       //cout << row << endl;
       // Ignore empty rows
       if (matrix.getRow(row).empty()) {
-	  distances << row << endl; //add index to distances file to keep order 
-	  indices << row << endl; //add index to indices file to keep order
+	  //distances << row << endl; //add index to distances file to keep order 
+	  //indices << row << endl; //add index to indices file to keep order
 	  continue;
       }
+      // use subsampling 
+      rand_res = dis(gen); //generate random number
+      if (rand_res> sub){ //skip for 100-sub percent of the data
+          continue;
+      }
+
       // Find the top k neighbors
       auto neighbors = getTopKNeighbors(matrix, row, k);
       distances << row; //add index of the root index to file
