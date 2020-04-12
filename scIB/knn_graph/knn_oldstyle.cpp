@@ -366,21 +366,25 @@ int main(int argc, char* argv[]) {
    }
    //sanity check
    //double sum = 0; 
+   
+   //variable declaration
+   ofstream distances;
+   ofstream indices;
+   string dist;
+   string indi;
+   unsigned lower;
+   unsigned upper;
 
    for (unsigned n_ch = 0; n_ch <= n_chunks; ++n_ch){   
    // Find the top k elements for all nodes. Computes the sum of all the weights, just to have some result to show
    // write all neighbors and weights to two files
-    ofstream distances;
-    ofstream indices;
-    string dist;
-    string indi;
     dist = output_prefix + "_distances_" + to_string(n_ch) + ".txt";
     indi = output_prefix + "_indices_" + to_string(n_ch) + ".txt";
    
     distances.open(dist, ios::out | ios::binary);
     indices.open(indi, ios::out | ios::binary);
-    unsigned lower = n_ch * len_ch + 1;
-    unsigned upper = (n_ch+1)*len_ch;
+    lower = n_ch * len_ch + 1;
+    upper = (n_ch+1)*len_ch;
     // don't run over upper limit
     if (upper > limit) {
      upper = limit;
