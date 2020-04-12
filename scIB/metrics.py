@@ -1296,7 +1296,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         n_chunks = n_processes
     
     #create temporary directory
-    dir_path = "./tmp_lisi"                                                                                                                                         
+    dir_path = "./tmp/tmp_lisi"                                                                                                                                         
     while path.isdir(dir_path):                                                                                                                                                      
         dir_path += '2'                                                                                                                                                              
     dir_path += '/'                                                                                                                                                                  
