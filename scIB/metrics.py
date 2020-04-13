@@ -1299,9 +1299,10 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     
     root = pathlib.Path(__file__).parent #get current root directory
     cpp_file_path = root / 'knn_graph/knn_graph.o' #create POSIX path to file to execute compiled cpp-code 
+    #comment: POSIX path needs to be converted to string - done below with 'as_posix()'
     #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
     n_splits = n_chunks -1
-    args_int = [cpp_file_path, mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
+    args_int = [cpp_file_path.as_posix(), mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
     subprocess.run(args_int)
           
     if verbose:
