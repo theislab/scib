@@ -371,7 +371,7 @@ int main(int argc, char* argv[]) {
    //ininitialize random number generator
    random_device rd; //used to obtain seed for random number engine
    mt19937 gen(rd()); //standard merseen_twister_engine seeded with rd() 
-   uniform_int_distribution<> dis(0, 100); //uniform int distribution between 0 and 100  
+   uniform_int_distribution<> dis(1, 100); //uniform int distribution between 1 and 100  
    int rand_res;
    //sanity check
    //double sum = 0; 
