@@ -1340,10 +1340,9 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         simpson_est_batch = 1/simpson_estimate_batch
     # extract results
     d = {batch_key : simpson_est_batch}
-    if subsample is None:
-        lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
-    else:
-        lisi_estimate = pd.DataFrame(data=d, index=np.sort(subsample))
+    
+    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
+    
     
     return lisi_estimate
 
