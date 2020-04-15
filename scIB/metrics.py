@@ -1281,19 +1281,19 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
                                np.ceil(n_cpu/2)]).astype('int')
         else:
             n_processes = nodes
-        #update numbr of chunks    
+        #update numbr of chunks
         n_chunks = n_processes
     
     #create temporary directory
-    dir_path = "/tmp"                                                                                                                                         
-    while path.isdir(dir_path):                                                                                                                                                      
-        dir_path += '2'                                                                                                                                                              
-    dir_path += '/'                                                                                                                                                                  
+    dir_path = "/tmp/lisi_tmp"
+    while path.isdir(dir_path):
+        dir_path += '2'
+    dir_path += '/'
     mkdir(dir_path)
     #write to temporary directory
     mtx_file_path = dir_path + 'input.mtx'
-    mmwrite(mtx_file_path, 
-            adata.uns['neighbors']['connectivities'], 
+    mmwrite(mtx_file_path,
+            adata.uns['neighbors']['connectivities'],
             symmetry='general')
     # call knn-graph computation in Cpp
     
