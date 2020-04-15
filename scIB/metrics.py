@@ -1759,7 +1759,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if lisi_graph_:
         print('LISI graph score...')
         ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub, 
+                                        type_ = type_, subsample = kBET_sub*100, 
                                         multiprocessing = True, verbose=verbose)
     else:
         ilisi_g_score = np.nan
