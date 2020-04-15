@@ -6,10 +6,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
 import anndata
+#import networkx as nx
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
+from scipy.io import mmwrite
+from os import mkdir, path, remove, stat
+import subprocess
+import pathlib
 
 import rpy2.rinterface_lib.callbacks
 import logging
@@ -197,8 +202,8 @@ def onmi(group1, group2, nmi_dir=None, verbose=True):
     nmi_max = float(nmi_split[0][1])
     
     # remove temporary files
-    os.remove(group1_file)
-    os.remove(group2_file)
+    remove(group1_file)
+    remove(group2_file)
     
     return nmi_max
 
@@ -741,66 +746,75 @@ def select_hvg(adata, select=True):
         return adata
 
 ### diffusion for connectivites matrix extension
-def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=16):
     '''
     This function performs graph diffusion on the connectivities matrix until a
     minimum number `min_k` of entries per row are non-zero.
-
+    
     Note:
-    Due to self-loops min_k-1 non-zero connectivies entries is actually the stopping 
+    Due to self-loops min_k-1 non-zero connectivies entries is actually the stopping
     criterion. This is equivalent to `sc.pp.neighbors`.
-
+    
     Returns:
        The diffusion-enhanced connectivities matrix of a copy of the AnnData object
        with the diffusion-enhanced connectivities matrix is in 
        `adata.uns["neighbors"]["conectivities"]`
     '''
-    if isinstance(adata, anndata.AnnData):
-        
-        if 'neighbors' not in adata.uns:
-            raise ValueError('`neighbors` not in adata object. '
-                             'Please compute a neighbourhood graph!')
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '
+                         'Please compute a neighbourhood graph!')
+
+    if 'connectivities' not in adata.uns['neighbors']:
+        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
+                         'Please pass an object with connectivities computed!')
+
+
+    T = adata.uns['neighbors']['connectivities']
+
+    #Normalize T with max row sum
+    # Note: This keeps the matrix symmetric and ensures |M| doesn't keep growing
+    T = sparse.diags(1/np.array([T.sum(1).max()]*T.shape[0]))*T
     
-        if 'connectivities' not in adata.uns['neighbors']:
-            raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
-                             'Please pass an object with connectivities computed!')
-        
-        T = adata.uns['neighbors']['connectivities']
-
-    else:
-        T = adata
-
     M = T
 
+    # Check for disconnected component
+    n_comp, labs = connected_components(adata.uns['neighbors']['connectivities'],
+                                                       connection='strong')
+    
+    if n_comp > 1:
+        tab = pd.value_counts(labs)
+        small_comps = tab.index[tab<min_k]
+        large_comp_mask = np.array(~pd.Series(labs).isin(small_comps))
+    else:
+        large_comp_mask = np.array([True]*M.shape[0])
+
+    T_agg = T
     i = 2
-    while ((M>0).sum(1).min() < min_k) and (i < max_iterations):
+    while ((M[large_comp_mask,:][:,large_comp_mask]>0).sum(1).min() < min_k) and (i < max_iterations):
         print(f'Adding diffusion to step {i}')
-        M += T**i
+        T_agg *= T
+        M += T_agg
         i+=1
 
-    if (M>0).sum(1).min() < min_k:
-        raise ValueError('could not create diffusion connectivities matrix' 
+    if (M[large_comp_mask,:][:,large_comp_mask]>0).sum(1).min() < min_k:
+        raise ValueError('could not create diffusion connectivities matrix'
                          f'with at least {min_k} non-zero entries in'
                          f'{max_iterations} iterations.\n Please increase the'
                          'value of max_iterations or reduce k_min.\n')
 
     M.setdiag(0)
 
-    if isinstance(adata, anndata.AnnData):
-        if copy:
-            adata_tmp = adata.copy()
-            adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
-            return adata_tmp
-
-        else:
-            return M
+    if copy:
+        adata_tmp = adata.copy()
+        adata_tmp.uns['neighbors'].update({'diffusion_connectivities': M})
+        return adata_tmp
 
     else:
-        print('Input object is not an AnnData object and thus will not be copied.')
         return M
+
     
 ### diffusion neighbourhood score
-def diffusion_nn(adata, k, max_iterations=20):
+def diffusion_nn(adata, k, max_iterations=16):
     '''
     This function generates a nearest neighbour list from a connectivities matrix
     as supplied by BBKNN or Conos. This allows us to select a consistent number
@@ -818,13 +832,19 @@ def diffusion_nn(adata, k, max_iterations=20):
                          'Please pass an object with connectivities computed!')
         
     T = adata.uns['neighbors']['connectivities']
-    M = T+T**2+T**3
+
+    # Row-normalize T
+    T = sparse.diags(1/T.sum(1).A.ravel())*T
+    
+    T_agg = T**3
+    M = T+T**2+T_agg
     i = 4
     
     while ((M>0).sum(1).min() < (k+1)) and (i < max_iterations): 
         #note: k+1 is used as diag is non-zero (self-loops)
         print(f'Adding diffusion to step {i}')
-        M += T**i
+        T_agg *= T
+        M += T_agg
         i+=1
 
     if (M>0).sum(1).min() < (k+1):
@@ -938,6 +958,37 @@ def Hbeta(D_row, beta):
         P /= sumP
     return H, P
 
+#helper function for LISI
+def convertToOneHot(vector, num_classes=None):
+    """
+    Converts an input 1-D vector of integers into an output
+    2-D array of one-hot vectors, where an i'th input value
+    of j will set a '1' in the i'th row, j'th column of the
+    output array.
+
+    Example:
+        v = np.array((1, 0, 4))
+        one_hot_v = convertToOneHot(v)
+        print one_hot_v
+
+        [[0 1 0 0 0]
+         [1 0 0 0 0]
+         [0 0 0 0 1]]
+    """
+
+    #assert isinstance(vector, np.ndarray)
+    #assert len(vector) > 0
+
+    if num_classes is None:
+        num_classes = np.max(vector)+1
+    #else:
+    #    assert num_classes > 0
+    #    assert num_classes >= np.max(vector)
+
+    result = np.zeros(shape=(len(vector), num_classes))
+    result[np.arange(len(vector)), vector] = 1
+    return result.astype(int)
+
 #LISI core functions (which we want to implement in cython for speed 
 def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batches = None,
                           perplexity = 15, tol = 1e-5): 
@@ -994,12 +1045,16 @@ def compute_simpson_index(D = None, knn_idx = None, batch_labels = None, n_batch
             continue        
     
         #then compute Simpson's Index
-        for b in np.arange(0, n_batches,1):
-            non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
-            q = np.flatnonzero(batch_labels[non_nan_knn] == b) #indices of cells belonging to batch (b)
-            if (len(q) > 0):
-                sumP = np.sum(P[q])
-                simpson[i] += sumP ** 2         
+        non_nan_knn = knn_idx[i][np.invert(np.isnan(knn_idx[i]))].astype('int')
+        batch = batch_labels[non_nan_knn] 
+        #convertToOneHot omits all nan entries. 
+        #Therefore, we run into errors in np.matmul.
+        if len(batch) == len(P):
+            B = convertToOneHot(batch, n_batches)
+            sumP = np.matmul(P,B) #sum P per batch
+            simpson[i] = np.dot(sumP, sumP) #sum squares
+        else: #assign worst possible score 
+            simpson[i] = 1      
   
     return simpson
 
@@ -1127,7 +1182,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     
     return lisi_estimate
 
-def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
+def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=False):
     """
     Compute lisi score (after integration)
     params:
@@ -1142,11 +1197,20 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
     
+    
     #if type_ != 'knn':
     #    if verbose: 
     #        print("recompute kNN graph with {k0} nearest neighbors.")
     #recompute neighbours
-    adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    if (type_ == 'embed'):
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=k0, use_rep = 'X_emb', copy=True)
+    elif (type_ == 'full'):
+        if 'X_pca' not in adata.obsm.keys():
+            sc.pp.pca(adata, svd_solver = 'arpack')
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    else:
+        adata_tmp = adata.copy()
+    #if knn - do not compute a new neighbourhood graph (it exists already)
     
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
@@ -1164,7 +1228,293 @@ def lisi(adata, batch_key, label_key, k0=90, scale=True, verbose=False):
     
     return ilisi_score, clisi_score
 
+#LISI core function for shortest paths 
+def compute_simpson_index_graph(input_path = None, 
+                                batch_labels = None, n_batches = None, n_neighbors = 90,
+                                perplexity = 30, chunk_no = 0,tol = 1e-5):
+    """
+    Simpson index of batch labels subsetted for each group.
+    params:
+        input_path: file_path to pre-computed index and distance files
+        batch_labels: a vector of length n_cells with batch info
+        n_batches: number of unique batch labels
+        n_neighbors: number of nearest neighbors
+        perplexity: effective neighborhood size
+        chunk_no: for parallelisation, chunk id to evaluate
+        tol: a tolerance for testing effective neighborhood size
+    returns:
+        simpson: the simpson index for the neighborhood of each cell
+    """
     
+    #initialize
+    P = np.zeros(n_neighbors)
+    logU = np.log(perplexity)
+    
+    if chunk_no is None:
+        chunk_no = 0
+    #check if the target file is not empty
+    if stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
+        print("File has no entries. Doing nothing.")
+        lists = np.zeros(0)
+        return lists
+    
+    #read distances and indices with nan value handling
+    indices = pd.read_csv(input_path + '_indices_'+ str(chunk_no) + '.txt', 
+                          header= None,sep='\n')
+    indices = indices[0].str.split(',', expand=True)
+    indices.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
+    indices = indices.T
+    distances = pd.read_csv(input_path + '_distances_'+ str(chunk_no) + '.txt', 
+                            header= None, sep='\n')
+    distances = distances[0].str.split(',', expand=True)
+    distances.set_index(keys=0, drop=True, inplace=True) #move cell index to DF index 
+    distances = distances.T
+    
+    #get cell ids
+    chunk_ids = indices.columns.values.astype('int')
+    
+    #define result vector
+    simpson = np.zeros(len(chunk_ids))
+    
+    #loop over all cells in chunk 
+    for i in enumerate(chunk_ids): 
+        #get neighbors and distances
+        #read line i from indices matrix
+        get_col = indices[str(i[1])]
+        
+        if get_col.isnull().sum()>0:
+            #not enough neighbors
+            print(str(i[1]) + " has not enough neighbors.")
+            simpson[i[0]] = 1 # np.nan #set nan for testing
+            continue
+        else:
+            knn_idx = get_col.astype('int') -1 #get 0-based indexing
+        
+        #read line i from distances matrix
+        D_act = distances[str(i[1])].values.astype('float')
+        
+        #start lisi estimation
+        beta = 1
+        # negative infinity
+        betamin = -np.inf
+        # positive infinity
+        betamax = np.inf
+        
+        H, P = Hbeta(D_act, beta)
+        Hdiff = H - logU
+        tries = 0
+        #first get neighbor probabilities
+        while (np.logical_and(np.abs(Hdiff) > tol, tries < 50)):
+            if (Hdiff > 0):
+                betamin = beta
+                if (betamax == np.inf): 
+                    beta *= 2
+                else:
+                    beta = (beta + betamax) / 2
+            else:
+                betamax = beta
+                if (betamin == -np.inf):
+                    beta /= 2
+                else:
+                    beta = (beta + betamin) / 2
+                
+            H, P = Hbeta(D_act, beta)
+            Hdiff = H - logU
+            tries += 1
+        
+        if (H == 0):
+            simpson[i[0]] = -1
+            continue        
+        #then compute Simpson's Index
+        batch = batch_labels[knn_idx] 
+        B = convertToOneHot(batch, n_batches)
+        sumP = np.matmul(P,B) #sum P per batch
+        simpson[i[0]] = np.dot(sumP, sumP) #sum squares
+        
+    return simpson
+
+#function to prepare call of compute_simpson_index
+def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample = None, 
+                  multiprocessing = None, nodes = None, verbose=False):
+    """
+    Compute LISI score on shortes path based on kNN graph provided in the adata object. 
+    By default, perplexity is chosen as 1/3 * number of nearest neighbours in the knn-graph.
+    """
+    
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
+                              "kNN graph has been computed")    
+    elif verbose:                                                    
+        print("using precomputed kNN graph")
+                                                                        
+    #get knn index matrix
+    if verbose:
+        print("Convert nearest neighbor matrix and distances for LISI.")
+               
+    batch = adata.obs[batch_key].cat.codes.values        
+    n_batches = len(np.unique(adata.obs[batch_key])) 
+                                        
+    if perplexity is None or perplexity >=n_neighbors:
+        # use LISI default
+        perplexity = np.floor(n_neighbors/3)
+    
+    #setup subsampling
+    subset = 100 #default, no subsampling 
+    if subsample is not None:
+        subset = subsample #do not use subsampling
+        if isinstance(subsample, int) == False: #need to set as integer
+            subset = int(subsample)
+                                                                                                                                
+    # run LISI in python
+    if verbose:
+        print("Compute knn on shortest paths") 
+    
+    #define number of chunks
+    n_chunks = 1
+    
+    if multiprocessing is not None:
+        #import tools needed for multiprocessing
+        import itertools
+        from multiprocessing import Pool
+        import multiprocessing
+    
+        #set up multiprocessing
+        if nodes is None:
+            #take all but one CPU and 1 CPU, if there's only 1 CPU.
+            n_cpu = multiprocessing.cpu_count()
+            n_processes = np.max([ n_cpu, 
+                               np.ceil(n_cpu/2)]).astype('int')
+        else:
+            n_processes = nodes
+        #update numbr of chunks
+        n_chunks = n_processes
+    
+    #create temporary directory
+    dir_path = "/tmp/lisi_tmp"
+    while path.isdir(dir_path):
+        dir_path += '2'
+    dir_path += '/'
+    mkdir(dir_path)
+    #write to temporary directory
+    mtx_file_path = dir_path + 'input.mtx'
+    mmwrite(mtx_file_path,
+            adata.uns['neighbors']['connectivities'],
+            symmetry='general')
+    # call knn-graph computation in Cpp
+    
+    root = pathlib.Path(__file__).parent #get current root directory
+    cpp_file_path = root / 'knn_graph/knn_graph.o' #create POSIX path to file to execute compiled cpp-code 
+    #comment: POSIX path needs to be converted to string - done below with 'as_posix()'
+    #create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
+    n_splits = n_chunks -1
+    args_int = [cpp_file_path.as_posix(), mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
+    subprocess.run(args_int)
+          
+    if verbose:
+        print("LISI score estimation")
+    
+    #do the simpson call 
+    if multiprocessing is not None:
+        
+
+        if verbose:
+            print(f"{n_processes} processes started.")
+        pool = Pool(processes=n_processes)
+        count = np.arange(0, n_processes)
+        
+        #create argument list for each worker
+        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(dir_path),
+                                                                itertools.repeat(batch),
+                                                                itertools.repeat(n_batches),
+                                                                itertools.repeat(n_neighbors),
+                                                                itertools.repeat(perplexity),
+                                                                count))
+        pool.close()
+        pool.join()
+        
+        simpson_est_batch = 1/np.concatenate(results)    
+     
+    else: 
+        simpson_estimate_batch = compute_simpson_index_graph(input_path = dir_path, 
+                                                  batch_labels = batch,                           
+                                                  n_batches = n_batches,
+                                                  perplexity = perplexity, 
+                                                  n_neighbors = n_neighbors, 
+                                                  chunk_no = None
+                                                 )
+        simpson_est_batch = 1/simpson_estimate_batch
+    # extract results
+    d = {batch_key : simpson_est_batch}
+    
+    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0,len(simpson_est_batch)))
+    
+    
+    return lisi_estimate
+
+#LISI graph function (analoguous to lisi function) 
+def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None, 
+               subsample = None, scale=True, 
+               multiprocessing = None, nodes = None, verbose=False):
+    """
+    Compute lisi score (after integration)
+    params:
+        adata: adata object to calculate on
+        batch_key: variable to compute iLISI on
+        label_key: variable to compute cLISI on
+        k0: number of nearest neighbors to compute lisi score
+            Please note that the initial neighborhood size that is
+            used to compute shortest paths is 15.
+        type_: type of data integration, either knn, full or embed
+        subsample: Percentage of observations (integer between 0 and 100) 
+                   to which lisi scoring should be subsampled
+        scale: scale output values (True/False)
+        multiprocessing: parallel computation of LISI scores, if None, no parallisation 
+                         via multiprocessing is performed
+        nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
+               multiprocessing is set to None
+    return:
+        pd.DataFrame with median cLISI and median iLISI scores 
+        (following the harmony paper)
+    """
+    
+    checkAdata(adata)
+    checkBatch(batch_key, adata.obs)
+    checkBatch(label_key, adata.obs)
+        
+    #recompute neighbours
+    if (type_ == 'embed'):
+        adata_tmp = sc.pp.neighbors(adata,n_neighbors=15, use_rep = 'X_emb', copy=True)
+    if (type_ == 'full'):
+        if 'X_pca' not in adata.obsm.keys():
+            sc.pp.pca(adata, svd_solver = 'arpack')
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, copy=True)
+    else:
+        adata_tmp = adata.copy()
+    #if knn - do not compute a new neighbourhood graph (it exists already)
+       
+    #compute LISI score
+    ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
+                  n_neighbors = k0, perplexity=None, subsample = subsample, 
+                  multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
+    
+    clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
+                  n_neighbors = k0, perplexity=None, subsample = subsample, 
+                  multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
+    
+    # iLISI: 2 good, 1 bad
+    ilisi_score = np.nanmedian(ilisi_score)
+    # cLISI: 1 good, 2 bad
+    clisi_score = np.nanmedian(clisi_score)
+    
+    if scale:
+        #Comment: Scaling should be applied at the end when all scenarios are rated 
+        ilisi_score = ilisi_score - 1
+        #scale clisi score to 0 bad 1 good
+        clisi_score = 2 - clisi_score
+    
+    return ilisi_score, clisi_score
+
+
 ### kBET
 def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, heuristic=True, verbose=False):
     """
@@ -1202,7 +1552,7 @@ def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, h
     else:
         return ro.r("batch.estimate$average.pval")[0]
 
-def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = 'diffconn.mtx',
+def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
     """
     Compare the effect before and after integration
@@ -1212,8 +1562,6 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = '
         pd.DataFrame with kBET p-values per cluster for batch
     """
     
-    import os
-    
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
@@ -1222,12 +1570,8 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = '
     if type_ != 'knn':
         adata_tmp = sc.pp.neighbors(adata, n_neighbors = 50, use_rep=embed, copy=True)
     else:
+        #check if pre-computed neighbours are stored in input file
         adata_tmp = adata.copy()
-        #check if pre-computed neighbours exist
-        if os.path.isfile(diff_conn):
-            tmp_diff = scio.mmread(diff_conn)
-            adata_tmp.uns['neighbors'].update({'diffusion_connectivities': sparse.csr_matrix(tmp_diff)})
-        
         if 'diffusion_connectivities' not in adata.uns['neighbors']:
             if verbose:
                 print(f"Compute: Diffusion neighbours.")
@@ -1251,7 +1595,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = '
             score = np.nan
         else:
             quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts())/4).astype('int')
-            k0 = np.min([100, np.max([10, quarter_mean])])
+            k0 = np.min([70, np.max([10, quarter_mean])])
             #check k0 for reasonability
             if (k0*adata_sub.n_obs) >=size_max:
                 k0 = np.floor(size_max/adata_sub.n_obs).astype('int')
@@ -1260,7 +1604,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None, diff_conn = '
                 
             if verbose:
                 print(f"Use {k0} nearest neighbors.")
-            n_comp, labs = sparse.csgraph.connected_components(adata_sub.uns['neighbors']['connectivities'], 
+            n_comp, labs = connected_components(adata_sub.uns['neighbors']['connectivities'], 
                                                               connection='strong')
             if n_comp > 1:
                 #check the number of components where kBET can be computed upon
@@ -1355,6 +1699,26 @@ def trajectory_conservation(adata_pre, adata_post, label_key):
     adata_post_sub.obs['dpt_pseudotime'][adata_post_sub.obs['dpt_pseudotime']>1]=0
     return (adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')+1)/2
 
+
+def graph_connectivity(adata_post, label_key):
+    """"
+    Metric that quantifies how connected the subgraph corresponding to each batch cluster is.
+    """
+    if 'neighbors' not in adata_post.uns:
+        raise KeyError('Please compute the neighborhood graph before running this '
+                       'function!')
+
+    clust_res = [] 
+
+    for ct in adata_post.obs[label_key].cat.categories:
+        adata_post_sub = adata_post[adata_post.obs[label_key].isin([ct]),]
+        _,labs = connected_components(adata_post_sub.uns['neighbors']['connectivities'], connection='strong')
+        tab = pd.value_counts(labs)
+        clust_res.append(tab[0]/sum(tab))
+
+    return np.mean(clust_res)
+
+
 ### Time and Memory
 def measureTM(*args, **kwargs):
     """
@@ -1381,9 +1745,10 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
-            isolated_labels_=False, n_isolated=None,
-            kBET_=False, kBET_sub=0.5, diff_conn = 'diffconn.mtx',
-            lisi_=False, trajectory_= False, type_ = None
+
+            isolated_labels_=False, n_isolated=None, graph_conn_=False,
+            kBET_=False, kBET_sub=0.5, lisi_graph_=False,
+            trajectory_= False, type_ = None
            ):
     """
     summary of all metrics for one Anndata object
@@ -1469,26 +1834,44 @@ def metrics(adata, adata_int, batch_key, label_key,
         il_score_sil  = np.nan
     results['isolated_label_F1'] = il_score_clus
     results['isolated_label_silhouette'] = il_score_sil
+
+    if graph_conn_:
+        print('Graph connectivity...')
+        graph_conn_score = graph_connectivity(adata_int, label_key=label_key)
+    else:
+        graph_conn_score = np.nan
+    results['graph_conn'] = graph_conn_score
     
     if kBET_:
         print('kBET...')
         kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
-                                       diff_conn = diff_conn,
-                           subsample=kBET_sub, heuristic=True, verbose=verbose)['kBET'])
+                                       embed = embed, subsample=kBET_sub, 
+                                       heuristic=True, verbose=verbose)['kBET'])
     else: 
         kbet_score = np.nan
     results['kBET'] = kbet_score
 
-    if lisi_:
-        print('LISI score...')
-        ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
-                                        verbose=verbose)
-    else:
-        ilisi_score = np.nan
-        clisi_score = np.nan
-    results['iLISI'] = ilisi_score
-    results['cLISI'] = clisi_score
+    #if lisi_:
+    #    print('LISI score...')
+    #    ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
+    #                                    type_ = type_, verbose=verbose)
+    #else:
+    #    ilisi_score = np.nan
+    #    clisi_score = np.nan
+    #results['iLISI'] = ilisi_score
+    #results['cLISI'] = clisi_score
     
+    if lisi_graph_:
+        print('LISI graph score...')
+        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
+                                        type_ = type_, subsample = kBET_sub, 
+                                        multiprocessing = True, verbose=verbose)
+    else:
+        ilisi_g_score = np.nan
+        clisi_g_score = np.nan
+    results['iLISI'] = ilisi_g_score
+    results['cLISI'] = clisi_g_score
+        
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
