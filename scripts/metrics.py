@@ -210,6 +210,9 @@ if __name__=='__main__':
         lisi_=False
         trajectory_=False
 
+    if adata.n_obs > 300000:
+        kBET_=False
+
     if verbose:
         print(f'type:\t{type_}')
         print(f'    ASW:\t{silhouette_}')
