@@ -11,7 +11,7 @@ from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
-from os import mkdir, path
+from os import mkdir, path, remove, stat
 import subprocess
 import pathlib
 
@@ -200,8 +200,8 @@ def onmi(group1, group2, nmi_dir=None, verbose=True):
     nmi_max = float(nmi_split[0][1])
     
     # remove temporary files
-    os.remove(group1_file)
-    os.remove(group2_file)
+    remove(group1_file)
+    remove(group2_file)
     
     return nmi_max
 
@@ -1148,7 +1148,7 @@ def compute_simpson_index_graph(input_path = None,
     if chunk_no is None:
         chunk_no = 0
     #check if the target file is not empty
-    if os.stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
+    if stat(input_path + '_indices_'+ str(chunk_no) + '.txt').st_size == 0:
         print("File has no entries. Doing nothing.")
         lists = np.zeros(0)
         return lists
