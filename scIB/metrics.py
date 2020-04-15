@@ -12,6 +12,7 @@ from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
 from os import mkdir, path
+import os 
 import subprocess
 import pathlib
 
