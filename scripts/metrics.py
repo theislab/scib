@@ -36,7 +36,6 @@ if __name__=='__main__':
     parser.add_argument('--type', required=True, choices=RESULT_TYPES, help='Type of result: full, embed, knn\n full: scanorama, seurat, MNN\n embed: scanorama, Harmony\n knn: BBKNN')
     parser.add_argument('--assay', default='expression', choices=ASSAYS, help='Experimental assay')
     parser.add_argument('--hvgs', default=0, help='Number of highly variable genes. Use 0 to specify that no feature selection had been used.', type=int)
-    #parser.add_argument('--diffconn', default='somefile.mtx', help='A precomputed connectivity matrix for kBET. Only used for knn type.')
     parser.add_argument('-v', '--verbose', action='store_true')
     
     args = parser.parse_args()
@@ -48,7 +47,6 @@ if __name__=='__main__':
     assay = args.assay
     organism = args.organism
     n_hvgs = args.hvgs if args.hvgs > 0 else None
-    diff_conn = 'somefile.mtx'
     
     # set prefix for output and results column name
     base = os.path.basename(args.integrated)
@@ -144,8 +142,6 @@ if __name__=='__main__':
         n_hvgs = None
         precompute_pca = False
         recompute_neighbors = False
-        #set path to precomputed connectivities file
-        diff_conn = (args.integrated).split('.h5ad')[0] + '_diffconn.mtx'
     
     if verbose:
         print('reduce integrated data:')
@@ -171,8 +167,10 @@ if __name__=='__main__':
     cell_cycle_ = True
     isolated_labels_ = True
     hvg_score_ = True
-    kBET_ = True
-    lisi_ = True
+    graph_conn_ = True
+    kBET_ = False
+    #lisi_ = True
+    lisi_graph_ = True
     
     
     # by output type
@@ -183,7 +181,7 @@ if __name__=='__main__':
         pcr_ = False
         cell_cycle_ = False
         hvg_score_ = False
-        lisi_ = False
+        #lisi_ = False
     
      # by assay
     if args.assay == 'atac':
@@ -206,8 +204,10 @@ if __name__=='__main__':
         cell_cycle_=False
         isolated_labels_=False
         hvg_score_=False
+        graph_conn_=False
         kBET_=False
-        lisi_=False
+        #lisi_=False
+        lisi_graph_=False
         trajectory_=False
 
     if verbose:
@@ -221,7 +221,8 @@ if __name__=='__main__':
         print(f'    iso lab ASW:\t{isolated_labels_ & silhouette_}')
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
-        print(f'    LISI:\t{lisi_}')
+        #print(f'    LISI:\t{lisi_}')
+        print(f'    LISI:\t{lisi_graph_}')
         print(f'    Trajectory:\t{trajectory_}')
         
     results = scIB.me.metrics(adata, adata_int, verbose=verbose,
@@ -234,8 +235,10 @@ if __name__=='__main__':
                               pcr_=pcr_,
                               cell_cycle_=cell_cycle_, organism=organism,
                               isolated_labels_=isolated_labels_, n_isolated=None,
-                              kBET_=kBET_, diff_conn = diff_conn,
-                              lisi_=lisi_,
+                              graph_conn_=graph_conn_,
+                              kBET_=kBET_,
+                              #lisi_=lisi_,
+                              lisi_graph_= lisi_graph_,
                               trajectory_=trajectory_
                              )
     results.rename(columns={results.columns[0]:out_prefix}, inplace=True)

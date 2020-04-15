@@ -19,6 +19,7 @@ setup(name='scIB',
           'anndata2ri',
           'scanorama',
           'memory_profiler',
+          'networkx>=2.3'
       ],
       classifiers=[
          'Development Status :: 3 - Alpha',      

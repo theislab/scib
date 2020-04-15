@@ -13,6 +13,8 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 # - 'csv_scalability_*_path' would be the path of the scalability files
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
+                                         csv_ATAC_1 = "./mouse_brain_atac_large_3datasets_summary_scores.csv",
+                                         csv_ATAC_2 = "./mouse_brain_atac_small_3datasets_summary_scores.csv",
                                          csv_usability_path = "./scIB Usability  - Sheet4.csv", 
                                          csv_scalability_time_path = "./scalability_score_time.csv", 
                                          csv_scalability_memory_path = "./scalability_score_memory.csv", 
@@ -26,6 +28,10 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   metrics <- gsub("_", " ", metrics)
   metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
                              to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
+  
+  # Remove cLISI 
+  metrics <- metrics[-grep("cLISI", metrics)]
+  metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
   
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
@@ -46,6 +52,11 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   if(substring(methods_info_full[1], 1, 1) == "/"){
     methods_info_full <- sub("/", "", methods_info_full)
   }
+  
+  # Remove trvae full
+  ind.trvae_full <- grep("trvae_full", methods_info_full)
+  methods_info_full <- methods_info_full[-ind.trvae_full]
+  metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
   
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
@@ -166,7 +177,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    if(met == "Scanorama" || met == "TrVAE"){
+    if(met == "Scanorama"){
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
     } else{
@@ -189,9 +200,19 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             all = F, sort = F)
   
   
+  ########## ADD ATAC datasets
+  atac_large <- read.csv(csv_ATAC_1)
+  atac_small <- read.csv(csv_ATAC_2)
   
-
-
+  # create comparable strings out of best_methods
+  best_method_string <- paste(best_methods_tab$Method, best_methods_tab$Output, best_methods_tab$Features, best_methods_tab$Scaling, sep = "/")
+  atac_large_string <- paste(atac_large$Method, atac_large$Output, "HVG", "unscaled", sep = "/")
+  atac_small_string <- paste(atac_small$Method, atac_small$Output, "HVG", "unscaled", sep = "/")
+  
+  # match best methods with atac
+  best_methods_tab$`ATAC large` <- atac_large[match(best_method_string, atac_large_string), "Overall.Score"]
+  best_methods_tab$`ATAC small` <- atac_small[match(best_method_string, atac_small_string), "Overall.Score"]
+  
   ########## ADD USABILITY TABLE
   usability_mat <- read.csv(csv_usability_path)
   avg.usability <- rowMeans(usability_mat[,-1])
@@ -211,30 +232,36 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   best_methods_tab$`Scalability time` <- scalability_time[match(best_method_string, scalability_time$metrics), "AUC_scaled"]
   best_methods_tab$`Scalability memory` <- scalability_memory[match(best_method_string, scalability_memory$metrics), "AUC_scaled"]
   
+  ############## add first column = ranking
+  best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
+  
+  
+  
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
   
   column_info <- data.frame(id = colnames(best_methods_tab),
-                            group = c("Text", "Text", "Text", "Text",  
+                            group = c("Text", "Text", "Image", "Text", "Text",  
                                       rep("RNA", n_atlas_RNA),
-                                      rep("Simulation", n_simulation), 
+                                      rep("Simulation", n_simulation), "ATAC", "ATAC",
                                       "Usability", "Scalability", "Scalability"), 
-                            geom = c("text", "text", "text", "text", 
-                                     rep("bar", n_atlas_RNA + n_simulation + 3)),
-                            width = c(3.5,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 3)),
+                            geom = c("text", "text", "image", "text", "text", 
+                                     rep("bar", n_atlas_RNA + n_simulation + 5)),
+                            width = c(1.5,4,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 5)),
                             overlay = F)
   
   # defining colors palette
   palettes <- list("RNA" = "Blues",
                    "Simulation" = "Greens",
+                   "ATAC" = "Purples",
                    "Usability" = "Oranges",
                    "Scalability" = "Greys")
  
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)
   now <- Sys.time()
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.pdf"), g, device = cairo_pdf, width = g$width/4, height = g$height/4)
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = g$width/4, height = g$height/4)
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = g$width/4, height = g$height/4)
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }
