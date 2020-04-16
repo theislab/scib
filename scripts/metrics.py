@@ -168,7 +168,7 @@ if __name__=='__main__':
     isolated_labels_ = True
     hvg_score_ = True
     graph_conn_ = True
-    kBET_ = False
+    kBET_ = True
     #lisi_ = True
     lisi_graph_ = True
     
