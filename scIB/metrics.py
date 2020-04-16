@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+import scipy.io as scio
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -22,6 +23,7 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 
+import gc
 
 ### Silhouette score
 def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
@@ -386,37 +388,91 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
         print(f"{label}: {score}")
     
     return score
+
+def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
+    adata_list = splitBatches(adata, batch, hvg=features)
+    hvg_dir = {}
+    for i in adata_list:
+        sc.pp.filter_genes(i, min_cells=1)
+        n_hvg_tmp = np.minimum(n_hvg, int(0.5*i.n_vars))
+        if n_hvg_tmp<n_hvg:
+            print(i.obs[batch][0]+' has less than the specified number of genes')
+            print('Number of genes: '+str(i.n_vars))
+        hvg = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
+        hvg_dir[i.obs[batch][0]] = i.var.index[hvg['highly_variable']]
+    adata_list=None
+    if save_hvg:    
+        adata.uns['hvg_before']=hvg_dir
+    else:
+        return hvg_dir
+        
     
     
 ### Highly Variable Genes conservation
 def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500):
-    hvg_post = adata_post.var.index
+    hvg_post = adata_post.var_names
     
-    adata_pre_list = splitBatches(adata_pre, batch, hvg=hvg_post)
     adata_post_list = splitBatches(adata_post, batch)
     overlap = []
     
-    for i in range(len(adata_pre_list)):#range(len(adata_pre_list)):
-        sc.pp.filter_genes(adata_pre_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
-        sc.pp.filter_genes(adata_post_list[i], min_cells=1)
+    if ('hvg_before' in adata_pre.uns_keys()) and (set(hvg_post) == set(adata_pre.var_names)):
+        print('Using precomputed hvgs per batch')
+        hvg_pre_list = adata_pre.uns['hvg_before']
+    
+    else:
+        hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post)
+   
+    
+        for i in range(len(adata_post_list)):#range(len(adata_pre_list)):
+            sc.pp.filter_genes(adata_post_list[i], min_cells=1) # remove genes unexpressed (otherwise hvg might break)
         
-        ov = list(set(adata_pre_list[i].var_names).intersection(adata_post_list[i].var_names))
-        adata_pre_list[i] = adata_pre_list[i][:,ov]
-        adata_post_list[i] = adata_post_list[i][:,ov]
+            #ov = list(set(adata_pre_list[i].var_names).intersection(set(hvg_pre_list[i])))
+            #adata_pre_list[i] = adata_pre_list[i][:,ov]
+            #adata_post_list[i] = adata_post_list[i][:,ov]
+            batch_var = adata_post_list[i].obs[batch][0]
         
-        n_hvg_tmp = np.minimum(n_hvg, int(0.5*adata_pre_list[i].n_vars))
-        if n_hvg_tmp<n_hvg:
-            print(adata_pre_list[i].obs[batch][0]+' has less than the specified number of genes')
-            print('Number of genes: '+str(adata_pre_list[i].n_vars))
-        hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-        tmp_pre = adata_pre_list[i].var.index[hvg_pre['highly_variable']]
-        hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-        tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
-        n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
-        overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real)
+            n_hvg_tmp = len(hvg_pre_list[batch_var])#adata_pre.uns['n_hvg'][hvg_post]#np.minimum(n_hvg, int(0.5*adata_post_list[i].n_vars))
+            print(n_hvg_tmp)
+            #if n_hvg_tmp<n_hvg:
+            #    print(adata_post_list[i].obs[batch][0]+' has less than the specified number of genes')
+            #    print('Number of genes: '+str(adata_post_list[i].n_vars))
+            #hvg_pre = sc.pp.highly_variable_genes(adata_pre_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
+            tmp_pre = hvg_pre_list[batch_var] #adata_pre_list[i].var.index[hvg_pre['highly_variable']]
+            hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
+            tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
+            n_hvg_real = np.minimum(len(tmp_pre),len(tmp_post))
+            overlap.append((len(set(tmp_pre).intersection(set(tmp_post))))/n_hvg_real) 
     return np.mean(overlap)
 
 ### Cell cycle effect
+def precompute_cc_score(adata, batch_key, organism='mouse', 
+                        n_comps=50, verbose=False):
+
+    batches = adata.obs[batch_key].cat.categories
+    scores_before = {}
+    s_score = []
+    g2m_score = []
+    
+    for batch in batches:
+        raw_sub = adata[adata.obs[batch_key] == batch].copy()
+        #score cell cycle if not already done
+        if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
+            score_cell_cycle(raw_sub, organism=organism)
+            s_score.append(raw_sub.obs['S_score'])
+            g2m_score.append(raw_sub.obs['G2M_score'])
+            
+        covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
+        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        scores_before.update({batch : before})
+    
+    if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
+        adata.obs['S_score'] = pd.concat(s_score)
+        adata.obs['G2M_score'] = pd.concat(g2m_score)
+    adata.uns['scores_before'] = scores_before
+    return 
+
+
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                organism='mouse', n_comps=50, verbose=False):
     """
@@ -445,44 +501,93 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     scores_final = []
     scores_before = []
     scores_after = []
-    for batch in batches:
-        raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
-        int_sub = adata_post[adata_post.obs[batch_key] == batch]
-        int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+    #if both (s-score, g2m-score) and pc-regression are pre-computed 
+    if (np.in1d(['S_score', 'G2M_score'], 
+                adata_pre.obs_keys()).sum() == 2) and ('scores_before' in adata_pre.uns_keys()): 
+        #extract needed infos from adata_pre and delete it from memory
+        df_pre = adata_pre.obs[['S_score', 'G2M_score', batch_key]]
         
-        if raw_sub.shape[0] != int_sub.shape[0]:
-            message = f'batch "{batch}" of batch_key "{batch_key}" '
-            message += 'has unequal number of entries before and after integration.'
-            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
-            raise ValueError(message)
+        scores_precomp = pd.Series(adata_pre.uns['scores_before'])
+        del adata_pre
+        n_item = gc.collect()
         
-        if verbose:
-            print("score cell cycle")
-        score_cell_cycle(raw_sub, organism=organism)
-        covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        for batch in enumerate(batches):
+            raw_sub = df_pre.loc[df_pre[batch_key] == batch[1]]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]].copy()
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
         
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-        scores_before.append(before)
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch[1]}" of batch_key "{batch_key}" '
+                message += 'has unequal number of entries before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
         
-        after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
-        scores_after.append(after)
-        
-        score = 1 - abs(after - before)/before # scaled result
-        if score < 0:
-            # Here variance contribution becomes more than twice as large as before
             if verbose:
-                print("Variance contrib more than twice as large after integration.")
-                print("Setting score to 0.")
-            score = 0
+                print("score cell cycle")
+            
+            covariate = raw_sub[['S_score', 'G2M_score']]
+            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+            #get score before from list of pre-computed scores
+            before = scores_precomp[batch[1]]
+            scores_before.append(before)
+
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
         
-        scores_final.append(score)
+            scores_final.append(score)
         
-        if verbose:
-            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+            if verbose:
+                print(f"batch: {batch[1]}\t before: {before}\t after: {after}\t score: {score}")
+                 
+    else: #not everything is pre-computed
+       
+        for batch in batches:
+            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+        
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch}" of batch_key "{batch_key}" '
+                message += 'has unequal number of entries before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
+        
+            if verbose:
+                print("score cell cycle")
+            #compute cell cycle score if not done already    
+            if (np.in1d(['S_score', 'G2M_score'], raw_sub.obs_keys()).sum() < 2):
+                score_cell_cycle(raw_sub, organism=organism)
+                
+            covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
+            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_before.append(before)
+        
+            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+        
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
+        
+            scores_final.append(score)
+        
+            if verbose:
+                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
         
     if agg_func is None:
         return pd.DataFrame([batches, scores_before, scores_after, scores_final],
-                            columns=['batch', 'before', 'after', 'score'])
+                                columns=['batch', 'before', 'after', 'score'])
     else:
         return agg_func(scores_final)
 

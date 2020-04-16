@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import scanpy as sc
+import scipy.io as scio
 from scIB.metrics import diffusion_conn 
 import numpy as np
 import warnings
@@ -16,7 +17,7 @@ RESULT_TYPES = [
 
 if __name__=='__main__':
     """
-    read adata object, precompute diffusion connectivities for knn data integration methods and output anndata object.
+    read adata object, precompute diffusion connectivities for knn data integration methods and output connectivity matrix.
     """
     
     import argparse
@@ -36,7 +37,7 @@ if __name__=='__main__':
     type_ = args.type
         
     # set prefix for output and results column name
-    base = os.path.basename(args.input)
+    base = os.path.basename(args.input).split('.h5ad')[0]
     
     
     if verbose:
@@ -52,8 +53,10 @@ if __name__=='__main__':
         adata = sc.read(args.input, cache=True)
         print(adata)
         if (type_ == 'knn'):
-            adata = diffusion_conn(adata, min_k=50, copy=True, max_iterations=20)
-            sc.write(adata=adata, filename = os.path.join(args.output, f'{base}'))
+            neighbors = adata.uns['neighbors']['connectivities']
+            del adata
+            diff_neighbors = diffusion_conn(neighbors, min_k=50, copy=False, max_iterations=20)
+            scio.mmwrite(target = os.path.join(args.output, f'{base}_diffconn.mtx'), a = diff_neighbors)
             print("done")
         else:
             print('Wrong type chosen, doing nothing.')
