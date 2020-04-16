@@ -13,6 +13,7 @@ from scIB.clustering import opt_louvain
 from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
 from os import mkdir, path, remove, stat
+from time import time
 import subprocess
 import pathlib
 
@@ -1390,7 +1391,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         n_chunks = n_processes
     
     #create temporary directory
-    dir_path = "/tmp/lisi_tmp"
+    dir_path = "/tmp/lisi_tmp"+str(int(time()))
     while path.isdir(dir_path):
         dir_path += '2'
     dir_path += '/'
@@ -1864,7 +1865,7 @@ def metrics(adata, adata_int, batch_key, label_key,
     if lisi_graph_:
         print('LISI graph score...')
         ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub, 
+                                        type_ = type_, subsample = kBET_sub*100, 
                                         multiprocessing = True, verbose=verbose)
     else:
         ilisi_g_score = np.nan
