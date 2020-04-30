@@ -13,28 +13,27 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 # - 'csv_scalability_*_path' would be the path of the scalability files
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
-                                         csv_ATAC_1 = "./mouse_brain_atac_large_3datasets_summary_scores.csv",
-                                         csv_ATAC_2 = "./mouse_brain_atac_small_3datasets_summary_scores.csv",
                                          csv_usability_path = "./scIB Usability  - Sheet4.csv", 
-                                         csv_scalability_time_path = "./scalability_score_time.csv", 
-                                         csv_scalability_memory_path = "./scalability_score_memory.csv", 
-                                         n_atlas_RNA = 4, n_simulation = 2){
+                                         csv_scalability_time_path = "./scalability_score_time2404.csv", 
+                                         csv_scalability_memory_path = "./scalability_score_memory2404.csv", 
+                                         n_atlas_RNA = 5, n_simulation = 2){
   
   metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
+  
   
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
   metrics <- gsub("\\.", "/", metrics)
   metrics <- gsub("_", " ", metrics)
-  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory"), 
-                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation"))
+  metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory", "graph conn"), 
+                             to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation", "graph connectivity"))
   
   # Remove cLISI 
-  metrics <- metrics[-grep("cLISI", metrics)]
-  metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
+  #metrics <- metrics[-grep("cLISI", metrics)]
+  #metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
   
   # metrics names as they are supposed to be ordered
-  group_batch <- c("PCR batch", "Batch ASW", "iLISI", "kBET")
+  group_batch <- c("PCR batch", "Batch ASW", "iLISI", "graph connectivity", "kBET")
   group_bio <- c("NMI cluster/label", "ARI cluster/label", "Cell type ASW", 
                  "isolated label F1", "isolated label silhouette", "CC conservation", "HVG conservation", "trajectory conservation","cLISI")
   # set original values of number of metrics
@@ -55,12 +54,14 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Remove trvae full
   ind.trvae_full <- grep("trvae_full", methods_info_full)
-  methods_info_full <- methods_info_full[-ind.trvae_full]
-  metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
-  
+  if(length(ind.trvae_full) >0){
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+  }
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
-  
+  # order scenarios 
+  data.scenarios <- c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
   
   methods.table.list <- list()
   
@@ -137,7 +138,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
     metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
-    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = "kBET")
+    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = 3+n_metrics_batch)
     
     metrics_tab <- add_column(metrics_tab, "Output" = method_groups, .after = "Method")
     metrics_tab <- add_column(metrics_tab, "Features" = hvg, .after = "Output")
@@ -161,12 +162,12 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "simulations_1_1", "simulations_2"),
-                                                    to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Sim 1", "Sim 2"))
+                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
+                                                    to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)", "Sim 1", "Sim 2"))
   atlas.ranks <- methods.table.merged
   
   # columns to be ranked on
-  rank.cols <- c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)")
+  rank.cols <- c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)")
   atlas.ranks[, rank.cols] <- apply(atlas.ranks[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
   avg.ranks <- apply(atlas.ranks[, rank.cols], 1, mean)
   
@@ -199,19 +200,14 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
                             all = F, sort = F)
   
+  # Delete rows that are empty
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, 5:11])) == 7)
+  if(length(rowsNA) >0){
+    best_methods_tab <- best_methods_tab[-rowsNA, ]
+    }
   
-  ########## ADD ATAC datasets
-  atac_large <- read.csv(csv_ATAC_1)
-  atac_small <- read.csv(csv_ATAC_2)
   
-  # create comparable strings out of best_methods
-  best_method_string <- paste(best_methods_tab$Method, best_methods_tab$Output, best_methods_tab$Features, best_methods_tab$Scaling, sep = "/")
-  atac_large_string <- paste(atac_large$Method, atac_large$Output, "HVG", "unscaled", sep = "/")
-  atac_small_string <- paste(atac_small$Method, atac_small$Output, "HVG", "unscaled", sep = "/")
   
-  # match best methods with atac
-  best_methods_tab$`ATAC large` <- atac_large[match(best_method_string, atac_large_string), "Overall.Score"]
-  best_methods_tab$`ATAC small` <- atac_small[match(best_method_string, atac_small_string), "Overall.Score"]
   
   ########## ADD USABILITY TABLE
   usability_mat <- read.csv(csv_usability_path)
@@ -243,17 +239,16 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   column_info <- data.frame(id = colnames(best_methods_tab),
                             group = c("Text", "Text", "Image", "Text", "Text",  
                                       rep("RNA", n_atlas_RNA),
-                                      rep("Simulation", n_simulation), "ATAC", "ATAC",
+                                      rep("Simulation", n_simulation), 
                                       "Usability", "Scalability", "Scalability"), 
                             geom = c("text", "text", "image", "text", "text", 
-                                     rep("bar", n_atlas_RNA + n_simulation + 5)),
-                            width = c(1.5,4,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 5)),
+                                     rep("bar", n_atlas_RNA + n_simulation + 3)),
+                            width = c(1.5,4,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 3)),
                             overlay = F)
   
   # defining colors palette
   palettes <- list("RNA" = "Blues",
                    "Simulation" = "Greens",
-                   "ATAC" = "Purples",
                    "Usability" = "Oranges",
                    "Scalability" = "Greys")
  
