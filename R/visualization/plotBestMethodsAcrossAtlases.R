@@ -134,7 +134,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     score_group2 <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
                              na.rm = T)
     
-    score_all <- (score_group1 + score_group2) / 2
+    score_all <- (0.4*score_group1 + 0.6*score_group2)
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
     metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
