@@ -275,7 +275,7 @@ atac = FALSE
                                                 function(x) rep(x, nrow(dat_mat)))), 
                              y = rep(row_pos$y, ncol(dat_mat)),
                              image = mapvalues(dat_mat, from = c("graph", "embed", "gene"), 
-                                               to = c("./img/luke/graph.png", "./img/luke/embedding.png", "./img/luke/matrix.png"))
+                                               to = c("./img/graph.png", "./img/embedding.png", "./img/matrix.png"))
                              )
     
   }
