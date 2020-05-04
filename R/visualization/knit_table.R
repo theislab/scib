@@ -316,7 +316,7 @@ atac = FALSE
   
   output_img <- data.frame(x = leg_min_x+0.5,
                            y = c(leg_max_y-2, leg_max_y-3.2,leg_max_y-4.4),
-                           image = c("./img/luke/matrix.png", "./img/luke/embedding.png", "./img/luke/graph.png")
+                           image = c("./img/matrix.png", "./img/embedding.png", "./img/graph.png")
                            )
   if(atac){
     output_text <- data.frame(xmin = leg_min_x+1.5, 
