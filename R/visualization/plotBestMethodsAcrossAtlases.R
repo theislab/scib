@@ -61,7 +61,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   # order scenarios 
-  data.scenarios <- c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
+  data.scenarios <- c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
   
   methods.table.list <- list()
   
@@ -162,7 +162,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
+                                                    from = c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
                                                     to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)", "Sim 1", "Sim 2"))
   atlas.ranks <- methods.table.merged
   
