@@ -61,21 +61,23 @@ The metrics are located at `scIB.metrics`. To run multiple metrics in one run, u
 ### Metrics
 For a detailed description of the metrics implemented in this package, please see the [manuscript](link).
 
-Batch correction metrics include:
-- `pcr_comparison()`
-- `silhouette()`
-- `lisi()`
-- `kBET()`
+Batch removal metrics include:
+- Principal component regression (`pcr_comparison()`)
+- Batch ASW (`silhouette()`)
+- K-nearest neighbour batch effect (`kBET()`)
+- Graph connectivity (`graph_connectivity()`)
+- Graph iLISI (`lisi_graph()`)
 
 Biological conservation metrics include:
-- `nmi()`
-- `ari()`
-- `silhouette_batch()`
-- `isolated_labels()`
-- `cell_cycle()`
-- `hvg_overlap()`
-- `trajectory_conservation()`
-- `lisi()`
+- Normalised mutual information (`nmi()`)
+- Adjusted Rand Index (`ari()`)
+- Cell type ASW (`silhouette_batch()`)
+- Isolated label score F1 (`isolated_labels()`)
+- Isolated label score ASW (`isolated_labels()`)
+- Cell cycle conservation (`cell_cycle()`)
+- Highly variable gene conservation (`hvg_overlap()`)
+- Trajectory conservation (`trajectory_conservation()`)
+- Graph cLISI (`lisi_graph()`)
 
 ## Tools
 Tools to be compared include:
