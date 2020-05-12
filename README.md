@@ -90,7 +90,7 @@ Tools to be compared include:
 - [LIGER](https://github.com/MacoskoLab/liger)
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [Harmony](https://github.com/immunogenomics/harmony)
-- [Combat](https://academic.oup.com/biostatistics/article/8/1/118/252073)
+- [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
 <!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
 - [scAlign](https://github.com/quon-titative-biology/scAlign) -->
 <!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
