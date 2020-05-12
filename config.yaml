@@ -1,7 +1,7 @@
 ROOT: /storage/groups/ml01/workspace/scIB
-r_env : conosTest
-py_env : sc-tutorial
-conv_env : conversion
+r_env : scIB-R-integration
+py_env : scIB-python
+conv_env : scIB-R-conversion
 timing: false
 
 FEATURE_SELECTION:
