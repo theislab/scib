@@ -34,7 +34,8 @@ column_info,
 row_info,
 palettes,
 usability = FALSE,
-atac = FALSE
+atac = FALSE,
+atac_best = FALSE
 ) {
   # no point in making these into parameters
   row_height <- 1.1
@@ -205,7 +206,7 @@ atac = FALSE
   text_data[text_data$label_value == "+" | text_data$label_value == "-", "fontface"] <- "bold"
   
   # ADD top3 ranking for each bar column
-  if(usability){
+  if(usability || atac_best){
     cols_bar <- unique(rect_data$label)
     cols_bar <- as.character(cols_bar[!is.na(cols_bar)])
     for(c in cols_bar){
@@ -318,7 +319,7 @@ atac = FALSE
                            y = c(leg_max_y-2, leg_max_y-3.2,leg_max_y-4.4),
                            image = c("./img/matrix.png", "./img/embedding.png", "./img/graph.png")
                            )
-  if(atac){
+  if(atac || atac_best){
     output_text <- data.frame(xmin = leg_min_x+1.5, 
                               xmax = leg_min_x+3, 
                               ymin = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
@@ -342,7 +343,7 @@ atac = FALSE
   image_data <- bind_rows(image_data, output_img)
 
   # Create legend for scaling
-  if(!atac){
+  if(!atac && !atac_best){
   leg_min_x <- x_min_scaling
   scaling_title_data <- data.frame(xmin = leg_min_x, 
                                   xmax = leg_min_x+ 2, 
@@ -372,10 +373,12 @@ atac = FALSE
   if(usability){
     rank_minimum_x <- list("RNA" = leg_min_x, 
                            "Simulation" = leg_min_x+1, 
-                           "ATAC" = leg_min_x+2,
-                           "Usability" = leg_min_x+3,
-                           "Scalability" = leg_min_x+4)
-    leg_max_x <- leg_min_x+4
+                           "Usability" = leg_min_x+2,
+                           "Scalability" = leg_min_x+3)
+    leg_max_x <- leg_min_x+3
+  } else if(atac_best){
+    rank_minimum_x <- list("ATAC" = leg_min_x)
+    leg_max_x <- leg_min_x
   } else{
     rank_minimum_x <- list("Score overall" = leg_min_x, 
                            "Removal of batch effects" = leg_min_x+1, 
@@ -426,7 +429,7 @@ atac = FALSE
   
   # CREATE LEGEND for circle scores
   # circle legend
-  if(!usability){
+  if(!usability && !atac_best){
     cir_minimum_x <- x_min_score
     
     cir_legend_size <- 1
@@ -545,7 +548,7 @@ atac = FALSE
     # Set fontface for legend bold
     text_data[text_data$label_value == "Ranking", "fontface"] <- "bold"
     # Set fontface for ranking numbers bold
-    if(usability){
+    if(usability || atac_best){
     text_data[1:nrow(data), "fontface"] <- "bold"
     }
     # subset text_data to left-aligned rows
@@ -555,7 +558,7 @@ atac = FALSE
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = hjust, vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data)
     
     text_data_left[text_data_left$group == "Method", "x"] <- text_data_left[text_data_left$group == "Method", "x"] - 1.75
-    if(usability){
+    if(usability || atac_best){
     text_data_left[text_data_left$group == "top3", "x"] <- text_data_left[text_data_left$group == "top3", "xmin"] + .3
     }
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = "left", vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data_left)
@@ -582,7 +585,7 @@ atac = FALSE
   # ADD SIZE
   # reserve a bit more room for text that wants to go outside the frame
   minimum_x <- minimum_x - 2
-  maximum_x <- maximum_x + 4
+  maximum_x <- maximum_x + 5
   minimum_y <- minimum_y - 2
   maximum_y <- maximum_y + 4
   
@@ -595,12 +598,7 @@ atac = FALSE
   
   # PLOT IMAGES
   if(length(ind_img) > 0){
-    if(usability){
-      g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width") 
-    } else{
       g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width")
-    }
-    
   }
   
   
