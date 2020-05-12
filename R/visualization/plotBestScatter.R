@@ -83,7 +83,7 @@ plotBestScatter <- function(scores) {
             aes(ymin = BioMean   - BioSD, ymax = BioMean   + BioSD)
         ) +
         geom_point(size = 3, stroke = 1, fill = "white") +
-        scale_color_paletteer_d(
+        paletteer::scale_color_paletteer_d(
             palette = "ggsci::category20_d3",
             labels = glue::glue(
                 "{scores_summ$Method} ({scores_summ$Output}, ",
@@ -99,17 +99,20 @@ plotBestScatter <- function(scores) {
             colour = guide_legend(
                 title          = "Method",
                 title.position = "top",
-                ncol           = 1,
+                ncol           = 2,
                 order          = 10
             )
         ) +
         theme_minimal() +
         theme(
-            legend.position  = "right",
-            axis.text        = element_text(size = 7),
+            legend.position  = "bottom",
+            axis.title       = element_text(size = 20),
+            axis.text        = element_text(size = 14),
             panel.border     = element_rect(fill = NA),
             strip.background = element_rect(fill = "black"),
-            strip.text       = element_text(size = 10, colour = "white")
+            strip.text       = element_text(size = 10, colour = "white"),
+            legend.title     = element_blank(),
+            legend.text      = element_text(size = 16)
         )
 }
 
