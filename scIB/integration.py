@@ -133,8 +133,8 @@ def runScvi(adata, batch, hvg=None):
     from scvi.dataset import AnnDatasetFromAnnData
 
     # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
-    n_epochs=100
-    n_latent=30
+    n_epochs=400
+    n_latent=10
     n_hidden=128
     n_layers=2
     
@@ -162,7 +162,7 @@ def runScvi(adata, batch, hvg=None):
     trainer = UnsupervisedTrainer(
         vae,
         net_adata,
-        train_size=1,
+        train_size=1.0,
         use_cuda=False,
     )
 
