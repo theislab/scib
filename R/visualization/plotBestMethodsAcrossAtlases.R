@@ -14,8 +14,8 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
                                          csv_usability_path = "./scIB Usability  - Sheet4.csv", 
-                                         csv_scalability_time_path = "./scalability_score_time2404.csv", 
-                                         csv_scalability_memory_path = "./scalability_score_memory2404.csv", 
+                                         csv_scalability_time_path = "./scalability_score_time1905.csv", 
+                                         csv_scalability_memory_path = "./scalability_score_memory1905.csv", 
                                          n_atlas_RNA = 5, n_simulation = 2){
   
   metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
@@ -61,7 +61,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   # order scenarios 
-  data.scenarios <- c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
+  data.scenarios <- c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
   
   methods.table.list <- list()
   
@@ -85,7 +85,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
                                     from = c("Seurat", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat"), 
-                                    to = c("Seurat v3", "MNN", "BBKNN", "TrVAE", "scVI", "LIGER", "ComBat"))
+                                    to = c("Seurat v3", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
@@ -162,12 +162,24 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
+                                                    from = c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
                                                     to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)", "Sim 1", "Sim 2"))
-  atlas.ranks <- methods.table.merged
   
+  # Assign unintegrated overall score to methods that did not run over one/more atlases
+  
+  atlas.ranks <- methods.table.merged
   # columns to be ranked on
   rank.cols <- c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)")
+  
+  for(c in rank.cols){
+    na.idx <- is.na(atlas.ranks[,c])
+    if(sum(na.idx)>0){
+      atlas.ranks[na.idx,c] <- atlas.ranks[atlas.ranks$Method == "Unintegrated", c]
+    }
+  }
+ 
+  
+ 
   atlas.ranks[, rank.cols] <- apply(atlas.ranks[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
   avg.ranks <- apply(atlas.ranks[, rank.cols], 1, mean)
   
@@ -201,7 +213,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             all = F, sort = F)
   
   # Delete rows that are empty
-  rowsNA <- which(rowSums(is.na(best_methods_tab[, 5:11])) == 7)
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == 7)
   if(length(rowsNA) >0){
     best_methods_tab <- best_methods_tab[-rowsNA, ]
     }
