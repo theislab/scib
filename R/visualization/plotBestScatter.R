@@ -148,15 +148,15 @@ loadBestScores <- function(scores_files) {
     best_methods <- c(
         "BBKNN_graph_HVG_unscaled",
         "Scanorama_embed_HVG_scaled",
+        "scVI_embed_HVG_unscaled",
         "Conos_graph_HVG_unscaled",
         "Scanorama_gene_HVG_scaled",
         "ComBat_gene_HVG_unscaled",
         "MNN_gene_HVG_scaled",
         "Harmony_embed_HVG_unscaled",
         "Seurat v3_gene_HVG_unscaled",
-        "TrVAE_embed_HVG_unscaled",
-        "LIGER_embed_HVG_unscaled",
-        "scVI_embed_HVG_unscaled"
+        "trVAE_embed_HVG_unscaled",
+        "LIGER_embed_HVG_unscaled"
         # "Unintegrated_gene_FULL_unscaled"
     )
 
