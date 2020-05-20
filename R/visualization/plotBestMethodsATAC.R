@@ -22,9 +22,6 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory", "graph conn"), 
                              to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation", "graph connectivity"))
   
-  # Remove cLISI 
-  #metrics <- metrics[-grep("cLISI", metrics)]
-  #metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
   
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "graph connectivity", "kBET")
@@ -48,9 +45,10 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   
   # Remove trvae full
   ind.trvae_full <- grep("trvae_full", methods_info_full)
+  if(length(ind.trvae_full) >0){
   methods_info_full <- methods_info_full[-ind.trvae_full]
   metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
-  
+  }
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   
@@ -69,7 +67,7 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
                                     from = c("Seurat", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat"), 
-                                    to = c("Seurat v3", "MNN", "BBKNN", "TrVAE", "scVI", "LIGER", "ComBat"))
+                                    to = c("Seurat v3", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
@@ -144,11 +142,22 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
                                                     from = c("mouse_brain_atac_large_3datasets", "mouse_brain_atac_small_3datasets"),
                                                     to = c("Brain (mou) large", "Brain (mou) small"))
-  atlas.ranks <- methods.table.merged
-  
   # columns to be ranked on
   rank.cols <- c("Brain (mou) large", "Brain (mou) small")
-  atlas.ranks[, rank.cols] <- apply(atlas.ranks[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
+  
+  # Assign unintegrated overall score to methods that did not run over one/more atlases
+  atlas.ranks <- methods.table.merged
+  
+  for(c in rank.cols){
+    na.idx <- is.na(atlas.ranks[,c])
+    if(sum(na.idx)>0){
+      atlas.ranks[na.idx,c] <- atlas.ranks[atlas.ranks$Method == "Unintegrated", c]
+    }
+  }
+  
+  
+ 
+  atlas.ranks[, rank.cols] <- apply(atlas.ranks[, rank.cols], 2, function(x) rank(-x, ties.method = "average"))
   avg.ranks <- apply(atlas.ranks[, rank.cols], 1, mean)
   
   
@@ -172,8 +181,11 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
                             all = F, sort = F)
   
   # Delete rows that are empty
-  rowsNA <- which(rowSums(is.na(best_methods_tab[, 3:4])) == 2)
-  best_methods_tab <- best_methods_tab[-rowsNA, ]
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == 2)
+  if(length(rowsNA)>0){
+    best_methods_tab <- best_methods_tab[-rowsNA, ]
+  }
+
   
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
