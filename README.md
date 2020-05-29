@@ -59,7 +59,7 @@ Functions for the integration methods are in `scIB.integrate`. The methods are c
 The metrics are located at `scIB.metrics`. To run multiple metrics in one run, use the `scIB.metrics.metrics()` function.
 
 ### Metrics
-For a detailed description of the metrics implemented in this package, please see the [manuscript](link).
+For a detailed description of the metrics implemented in this package, please see the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
 
 Batch removal metrics include:
 - Principal component regression (`pcr_comparison()`)
