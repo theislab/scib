@@ -115,7 +115,31 @@ def runTrVaep(adata, batch, hvg=None):
     adata.X = data
 
     return adata
+
+def runScGen(adata, batch, cell_type, epochs=100, hvg=None):
+    checkSanity(adata, batch, hvg)
+    import scgen
     
+    # save cell_types for later
+    cell_types = adata.obs[cell_type].copy()
+    batches = adata.obs[batch].copy()
+    
+    # set 'cell_type' and 'batch' for scGen
+    adata.obs['cell_type'] = adata.obs[cell_type].copy()
+    adata.obs['batch'] = adata.obs[batch].copy()
+    
+    # Fit the model
+    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
+    network.train(train_data=adata, n_epochs=epochs)
+    corrected_adata = scgen.batch_removal(network, adata)
+    network.sess.close()
+    
+    # reset fields (just in case they were overwritten)
+    adata.obs[cell_type] = cell_types
+    adata.obs[batch] = batches
+    
+    return corrected_adata
+
 
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
