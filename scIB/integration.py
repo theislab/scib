@@ -329,8 +329,9 @@ def runCombat(adata, batch):
     return adata
 
 
-def runDESC(adata, batch, res=0.8, ncores=24):
-
+def runDESC(adata, batch, res=0.8, ncores=24, tmp_dir='/localscratch/'):
+    import desc
+    
     adata_out = desc.scale_bygroup(adata, groupby=batch, max_value=6)
     
     adata_out = desc.train(adata_out,
@@ -339,7 +340,7 @@ def runDESC(adata, batch, res=0.8, ncores=24):
                      n_neighbors=10,
                      batch_size=256,
                      louvain_resolution=res,
-                     save_dir="/localscratch/",
+                     save_dir=tmp_dir,
                      do_tsne=False,
                      use_GPU=False,
                      num_Cores=ncores,
