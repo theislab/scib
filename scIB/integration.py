@@ -324,21 +324,33 @@ def runConos(adata, batch, hvg=None):
     return out
     """
     
-
-
-if __name__=="__main__":
-    adata = sc.read('testing.h5ad')
-    #emb, corrected = runScanorama(adata, 'method', False)
-    #print(emb)
-    #print(corrected)
-
-
-        
-
-
 def runCombat(adata, batch):
     sc.pp.combat(adata, key=batch)
     return adata
+
+
+def runDESC(adata, batch, res=0.8, ncores=24):
+
+    adata_out = desc.scale_bygroup(adata, groupby=batch, max_value=6)
+    
+    adata_out = desc.train(adata_out,
+                     dims=[adata.shape[1],128,32],
+                     tol=0.001,
+                     n_neighbors=10,
+                     batch_size=256,
+                     louvain_resolution=res,
+                     save_dir="/localscratch/",
+                     do_tsne=False,
+                     use_GPU=False,
+                     num_Cores=ncores,
+                     save_encoder_weights=False,
+                     use_ae_weights=False,
+                     do_umap=False)
+    
+    adata.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+
+    return adata
+
 
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
