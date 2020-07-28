@@ -21,6 +21,7 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 from scipy.sparse import issparse
+import SAUCIE
 
 # functions for running the methods
 
@@ -176,7 +177,7 @@ def runScvi(adata, batch, hvg=None):
     return adata
 
 
-def runSeurat(adata, batch, hvg=None):
+"""def runSeurat(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import time
     import os
@@ -186,7 +187,7 @@ def runSeurat(adata, batch, hvg=None):
     adata_out = readSeurat(tmpName+'_out.RDS')
 
     return adata_out
-
+"""
     
     """ro.r('library(Seurat)')
     ro.r('library(scater)')
@@ -243,6 +244,8 @@ def runSeurat(adata, batch, hvg=None):
     anndata2ri.deactivate()
     return integrated"""
 
+
+"""    
 def runHarmony(adata, batch, hvg = None):
     checkSanity(adata, batch, hvg)
     #import_rpy2()
@@ -263,6 +266,7 @@ def runHarmony(adata, batch, hvg = None):
     #out.uns['emb']=True
 
     return out
+"""
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy
@@ -283,6 +287,18 @@ def runBBKNN(adata, batch, hvg=None):
         corrected = bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
     return corrected
 
+
+def runSaucie(adata, batch):
+    saucie = SAUCIE.SAUCIE(adata.X.shape[1])
+    loader = SAUCIE.Loader(adata.X.todense(), labels=adata.obs[batch])
+    saucie.train(loader, steps=1000)
+    adata.obsm['X_emb'] = saucie.get_embedding(loader)[0]
+    adata.X = saucie.get_reconstruction(loader)[0]
+    
+    return adata
+    
+
+"""
 def runConos(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import time
@@ -293,6 +309,7 @@ def runConos(adata, batch, hvg=None):
     adata_out = readConos(tmpName)
 
     return adata_out
+"""
 
     """anndata2ri.activate()
     ro.r('library(Seurat)')
