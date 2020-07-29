@@ -331,8 +331,10 @@ def runCombat(adata, batch):
 
 def runDESC(adata, batch, res=0.8, ncores=24, tmp_dir='/localscratch/'):
     import desc
-    
-    adata_out = desc.scale_bygroup(adata, groupby=batch, max_value=6)
+
+    adata_out = adata.copy()
+
+    adata_out = desc.scale_bygroup(adata_out, groupby=batch, max_value=6)
     
     adata_out = desc.train(adata_out,
                      dims=[adata.shape[1],128,32],
