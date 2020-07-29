@@ -174,6 +174,69 @@ def runScvi(adata, batch, hvg=None):
     adata.obsm['X_emb'] = latent
 
     return adata
+def runScanvi(adata, batch, labels, hvg=None):
+    # Use non-normalized (count) data for scvi!
+    # Expects data only on HVGs
+    
+    scIB.utils.checkSanity(adata, batch, hvg)
+
+    # Check for counts data layer
+    if 'counts' not in adata.layers:
+        raise TypeError('Adata does not contain a `counts` layer in `adata.layers[`counts`]`')
+
+    from scvi.models import VAE, SCANVI
+    from scvi.inference import AlternateSemiSupervisedTrainer, SemiSupervisedTrainer
+    from sklearn.preprocessing import LabelEncoder
+    from scvi.dataset import AnnDatasetFromAnnData
+
+    # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
+    n_epochs=np.min([round((20000/adata.n_obs)*400), 400])
+    n_latent=30
+    n_hidden=128
+    n_layers=2
+    
+    net_adata = adata.copy()
+    net_adata.X = adata.layers['counts']
+    del net_adata.layers['counts']
+    # Ensure that the raw counts are not accidentally used
+    del net_adata.raw # Note that this only works from anndata 0.7
+
+    # Define batch indices
+    le = LabelEncoder()
+    net_adata.obs['batch_indices'] = le.fit_transform(net_adata.obs[batch].values)
+    net_adata.obs['labels'] = le.fit_transform(net_adata.obs[labels].values)
+
+    net_adata_out = AnnDatasetFromAnnData(net_adata)
+    net_adata_out.labels = net_adata.obs['labels']
+
+    scanvi = SCANVI(
+        net_adata_out.nb_genes,
+        reconstruction_loss='nb',
+        n_batch=net_adata_out.n_batches,
+        n_labels=net_adata_out.n_labels,
+        n_layers=n_layers,
+        #n_latent=n_latent,
+        #n_hidden=n_hidden,
+    )
+
+    trainer = SemiSupervisedTrainer(
+        scanvi,
+        net_adata_out,
+        train_size=1.0,
+        n_epochs_classifier=10,
+        use_cuda=False,
+    )
+    
+    trainer.labelled_set = trainer.create_posterior()
+
+    trainer.train(n_epochs=10)
+
+    full = trainer.create_posterior(trainer.model, net_adata_out, indices=np.arange(len(net_adata_out)))
+    latent, _, _ = full.sequential().get_latent()
+    
+    adata.obsm['X_emb'] = latent
+
+    return adata
 
 
 def runSeurat(adata, batch, hvg=None):
