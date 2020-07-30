@@ -21,7 +21,7 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning 
 import rpy2.robjects as ro
 import anndata2ri
 from scipy.sparse import issparse
-import SAUCIE
+
 
 # functions for running the methods
 
@@ -288,6 +288,10 @@ def runBBKNN(adata, batch, hvg=None):
 
 
 def runSaucie(adata, batch):
+    """
+    parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
+    """
+    import SAUCIE
     expr = adata.X.todense()
     saucie = SAUCIE.SAUCIE(adata.X.shape[1], lambda_b=0.1)
     loader = SAUCIE.Loader(expr, labels=adata.obs[batch].cat.codes, shuffle=True)
