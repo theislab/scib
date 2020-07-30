@@ -49,6 +49,9 @@ METHODS: # method name : ouput type(s)
     no_scale: true
     R: true
     output_type: embed
+  fastmnn:
+    R: true
+    output_type: full
 
 DATA_SCENARIOS:
   pancreas:
