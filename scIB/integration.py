@@ -295,7 +295,7 @@ def runSaucie(adata, batch):
     saucie.train(loader, steps=5000)
     #print('iteration '+str(i))
     ret = adata.copy()
-    ret.obsm['X_emb'] = saucie.get_embedding(loader)[0]
+    #ret.obsm['X_emb'] = saucie.get_embedding(loader)[0]
     ret.X = saucie.get_reconstruction(SAUCIE.Loader(expr, labels=adata.obs[batch].cat.codes))[0]
     
     return ret
