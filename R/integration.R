@@ -145,7 +145,7 @@ runFastMNN = function(sobj, batch) {
 
 	expr <- sobj@assays$RNA@data
 
-	sce <- fastMNN(expr, batch = batch)
+	sce <- fastMNN(expr, batch = sobj@meta.data[[batch]])
 
 	sobj@reductions['X_emb'] <- reducedDim(sce, "corrected")
 
