@@ -201,6 +201,7 @@ def runSaucie(adata, batch):
     parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
     """
     import SAUCIE
+    import sklearn.decomposition
     pca_op = sklearn.decomposition.PCA(100)
     expr = adata.X.todense()
     data = pca_op.fit_transform(expr)
