@@ -51,7 +51,9 @@ METHODS: # method name : ouput type(s)
     output_type: embed
   fastmnn:
     R: true
-    output_type: full
+    output_type:
+      - embed
+      - full
 
 DATA_SCENARIOS:
   pancreas:
