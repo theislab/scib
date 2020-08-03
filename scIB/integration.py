@@ -329,7 +329,7 @@ def runCombat(adata, batch):
     return adata
 
 
-def runDESC(adata, batch, res=0.8, ncores=24, tmp_dir='/localscratch/'):
+def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
     """
     Convenience function to run DESC. Parametrization was taken from:
     https://github.com/eleozzr/desc/issues/28
@@ -337,6 +337,10 @@ def runDESC(adata, batch, res=0.8, ncores=24, tmp_dir='/localscratch/'):
     as suggested by the developer (rather than from the tutorial notebook).
     """
     import desc
+
+    # Set number of CPUs to all available
+    if ncores is None:
+        ncores = os.cpu_count()
 
     adata_out = adata.copy()
 
