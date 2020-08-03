@@ -147,7 +147,7 @@ runFastMNN = function(sobj, batch) {
 
 	sce <- fastMNN(expr, batch = sobj@meta.data[[batch]])
 
-	sobj@reductions['X_emb'] <- reducedDim(sce, "corrected")
+	sobj@reductions['X_emb'] <- CreateDimReducObject(reducedDim(sce, "corrected"), key='fastmnn_')
 
 	return(sobj)
 }
