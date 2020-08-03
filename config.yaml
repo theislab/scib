@@ -23,7 +23,9 @@ METHODS: # method name : ouput type(s)
     R: true
     output_type: full
   saucie:
-    output_type: full
+    output_type:
+      - full
+      - embed
   trvae:
     no_scale: true
     output_type: 
