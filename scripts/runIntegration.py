@@ -48,7 +48,7 @@ if __name__=='__main__':
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
     parser.add_argument("-t", '--timing', help='Activate runtime and memory profiling', action='store_true')
-    parser.add_argumennt("-c", '--celltype', help='Cell type variable', default=None)
+    parser.add_argument("-c", '--celltype', help='Cell type variable', default=None)
 
     args = parser.parse_args()
     file = args.input_file
@@ -62,7 +62,7 @@ if __name__=='__main__':
         'scanorama': scIB.integration.runScanorama,
         'trvae': scIB.integration.runTrVae,
         'trvaep': scIB.integration.runTrVaep,
-        'scgen': scIB.integrationn.runScGen,
+        'scgen': scIB.integration.runScGen,
         'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
