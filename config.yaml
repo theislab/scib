@@ -101,7 +101,7 @@ DATA_SCENARIOS:
     #label_key: cell_type
     #organism: mouse
     #assay: expression
-    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
+    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_slim_cc_rev.h5ad
     #  mouse_brain_atac:
     #    batch_key: batchname
     #label_key: cell_type_consensus
