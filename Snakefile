@@ -9,7 +9,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        cfg.get_filename_pattern("metrics", "scaled_final")
+        cfg.get_filename_pattern("metrics", "final")
 
 rule integration:
     input:
