@@ -27,11 +27,6 @@ METHODS: # method name : ouput type(s)
     output_type: 
       - embed
       - full
-  # trvaep:
-  #   no_scale: true
-  #   output_type:
-  #     - embed
-  #     - full
   harmony:
     R: true
     output_type: embed
