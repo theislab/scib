@@ -59,6 +59,13 @@ def get_prep_adata(wildcards):
 # Python specific integration rule.
 # TODO: decorate with some detailed information
 # ------------------------------------------------------------------------------
+
+def get_celltype_option_for_integration(wildcards):
+    if cfg.get_from_method(wildcards.method, "use_celltype"):
+        label_key = cfg.get_from_scenario(wildcards.scenario, key="label_key")
+        return f"-c {label_key}"
+    return ""
+
 rule integration_run_python:
     input:
         adata  = get_prep_adata,
@@ -72,9 +79,11 @@ rule integration_run_python:
         dataset: {wildcards.scenario}
         command: {params.cmd}
         hvgs: {params.hvgs}
+        cell type option: {params.cell_type}
         """
     params:
         batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
+        cell_type = get_celltype_option_for_integration,
         hvgs      = lambda wildcards, input: cfg.get_hvg(wildcards, input.adata[0]),
         timing    = "-t" if cfg.timing else "",
         cmd       = f"conda run -n {cfg.py_env} python"
@@ -83,7 +92,8 @@ rule integration_run_python:
     shell:
         """
         {params.cmd} {input.pyscript} -i {input.adata} -o {output} \
-	      -b {params.batch_key} --method {wildcards.method} {params.hvgs} {params.timing}
+	      -b {params.batch_key} --method {wildcards.method} {params.hvgs} {params.cell_type} \
+	      {params.timing}
         """
 
 # ------------------------------------------------------------------------------
