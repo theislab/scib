@@ -59,7 +59,6 @@ if __name__=='__main__':
         'bbknn': scIB.integration.runBBKNN,
         'scvi': scIB.integration.runScvi,
         'combat': scIB.integration.runCombat,
-        'scanvi': scIB.integration.runScanvi,
         'saucie': scIB.integration.runSaucie
     }
     
