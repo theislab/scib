@@ -22,7 +22,6 @@ import rpy2.robjects as ro
 import anndata2ri
 from scipy.sparse import issparse
 
-
 # functions for running the methods
 
 def runScanorama(adata, batch, hvg = None):
