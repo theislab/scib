@@ -34,7 +34,7 @@ if(opt$method=='seurat'){
 	else {
 		hvg <- rownames(sobj@assays$RNA)
 	}
-	
+
 	out = runSeurat(sobj, opt$b, hvg)
 }
 
@@ -62,9 +62,17 @@ if(opt$method=='liger'){
 	else {
 		hvg <- rownames(sobj@assays$RNA)
 	}
-	
+
 	out = runLiger(sobj, opt$b, hvg)
 }
 
-saveSeuratObject(out, opt$o)
+if(opt$method=='fastmnn'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+		sobj <- subset(sobj, features=hvg)
+	}
 
+	out=runFastMNN(sobj, opt$b)
+}
+
+saveSeuratObject(out, opt$o)
