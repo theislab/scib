@@ -127,7 +127,7 @@ def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localsc
     
     # Fit the model
     network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
-    network.train(train_data=adata, n_epochs=epochs)
+    network.train(train_data=adata, n_epochs=epochs, save=False)
     corrected_adata = scgen.batch_removal(network, adata, batch_key=batch, cell_label_key=cell_type)
 
     network.sess.close()
