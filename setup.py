@@ -20,7 +20,8 @@ setup(name='scIB',
           'scanorama',
           'memory_profiler',
           'networkx>=2.3',
-          'python-igraph'
+          'python-igraph',
+          'louvain>=0.6,!=0.6.2'
       ],
       classifiers=[
          'Development Status :: 3 - Alpha',      
