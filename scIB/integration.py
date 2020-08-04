@@ -360,9 +360,9 @@ def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
                      use_ae_weights=False,
                      do_umap=False)
     
-    adata.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+    adata_out.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
 
-    return adata
+    return adata_out
 
 
 if __name__=="__main__":
