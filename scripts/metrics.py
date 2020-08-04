@@ -83,7 +83,7 @@ if __name__=='__main__':
 
     if (n_hvgs is not None):
         if (adata_int.n_vars < n_hvgs):
-            raise ValueError("There are less genes in the uncorrected adata than specified for HVG selection")
+            raise ValueError("There are less genes in the corrected adata than specified for HVG selection")
        
     # check input files
     if adata.n_obs != adata_int.n_obs:

@@ -47,8 +47,7 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
             gene_threshold=(0,np.inf), 
             gene_filter_threshold=(0,np.inf),
             count_threshold=(0,np.inf), 
-            count_filter_threshold=(0,np.inf), 
-            palette=sc.pl.palettes.godsnot_64):
+            count_filter_threshold=(0,np.inf)):
     
     if count_filter_threshold == (0, np.inf):
         count_filter_threshold = count_threshold
@@ -84,7 +83,7 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
 
 def plot_scatter(adata, count_threshold=0, gene_threshold=0,
                  color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
-                palette=None):
+                 palette=None):
     
     checkAdata(adata)
     if color:
@@ -471,7 +470,7 @@ def readConos(inPath):
     from os import mkdir, path
     import pandas as pd
     
-    dir_path = "/tmp/conos"+str(int(time()))
+    dir_path = "/localscratch/conos"+str(int(time()))
     while path.isdir(dir_path):
         dir_path += '2'
     dir_path += '/'
