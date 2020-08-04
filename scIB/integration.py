@@ -216,19 +216,46 @@ def runSaucie(adata, batch):
     return ret
                                                              
     
-if __name__=="__main__":
-    adata = sc.read('testing.h5ad')
-    #emb, corrected = runScanorama(adata, 'method', False)
-    #print(emb)
-    #print(corrected)
-
-
-        
-
 
 def runCombat(adata, batch):
     sc.pp.combat(adata, key=batch)
     return adata
+
+
+def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
+    """
+    Convenience function to run DESC. Parametrization was taken from:
+    https://github.com/eleozzr/desc/issues/28
+    as suggested by the developer (rather than from the tutorial notebook).
+    """
+    import desc
+
+    # Set number of CPUs to all available
+    if ncores is None:
+        ncores = os.cpu_count()
+
+    adata_out = adata.copy()
+
+    adata_out = desc.scale_bygroup(adata_out, groupby=batch, max_value=6)
+    
+    adata_out = desc.train(adata_out,
+                     dims=[adata.shape[1],128,32],
+                     tol=0.001,
+                     n_neighbors=10,
+                     batch_size=256,
+                     louvain_resolution=res,
+                     save_dir=tmp_dir,
+                     do_tsne=False,
+                     use_GPU=False,
+                     num_Cores=ncores,
+                     save_encoder_weights=False,
+                     use_ae_weights=False,
+                     do_umap=False)
+    
+    adata.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+
+    return adata
+
 
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')

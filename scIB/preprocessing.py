@@ -470,7 +470,7 @@ def readConos(inPath):
     from os import mkdir, path
     import pandas as pd
     
-    dir_path = "/tmp/conos"+str(int(time()))
+    dir_path = "/localscratch/conos"+str(int(time()))
     while path.isdir(dir_path):
         dir_path += '2'
     dir_path += '/'

@@ -59,6 +59,7 @@ if __name__=='__main__':
         'scvi': scIB.integration.runScvi,
         'combat': scIB.integration.runCombat,
         'saucie': scIB.integration.runSaucie
+        'desc': scIB.integration.runDESC
     }
     
     if method not in methods.keys():
