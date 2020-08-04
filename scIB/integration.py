@@ -45,13 +45,13 @@ def runTrVae(adata, batch, hvg=None):
     checkSanity(adata, batch, hvg)
     import trvae
 
-    n_batches = len(adata.obs[batch].cat.categories)
+    batches = adata.obs[batch].unique().tolist()
 
     network = trvae.models.trVAE(x_dimension=adata.shape[1],
                                  architecture=[256,64],
                                  z_dimension=10,
                                  gene_names=adata.var_names.tolist(),
-                                 conditions=batch,
+                                 conditions=batches,
                                  model_path='/localscratch/',
                                  alpha=0.0001,
                                  beta=50,
