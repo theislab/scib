@@ -217,8 +217,9 @@ def runSaucie(adata, batch):
     
 
 def runCombat(adata, batch):
-    sc.pp.combat(adata, key=batch)
-    return adata
+    adata_int = adata.copy()
+    sc.pp.combat(adata_int, key=batch)
+    return adata_int
 
 
 def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
