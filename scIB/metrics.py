@@ -1216,16 +1216,19 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
-    # iLISI: 2 good, 1 bad
+    
+    # iLISI: nbatches good, 1 bad
     ilisi_score = np.nanmedian(lisi_score[batch_key])
-    # cLISI: 1 good, 2 bad
+    # cLISI: 1 good, nbatches bad
     clisi_score = np.nanmedian(lisi_score[label_key])
     
     if scale:
-        #Comment: Scaling should be applied at the end when all scenarios are rated 
-        ilisi_score = ilisi_score - 1
+        #get number of batches
+        nbatches = len(np.unique(adata.obs[batch_key]))
+        #scale iLISI score to 0 bad 1 good
+        ilisi_score = (ilisi_score - 1)/(nbatches-1)
         #scale clisi score to 0 bad 1 good
-        clisi_score = 2 - clisi_score
+        clisi_score = (nbatches - clisi_score)/(nbatches-1)
     
     return ilisi_score, clisi_score
 
