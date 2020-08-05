@@ -115,7 +115,25 @@ def runTrVaep(adata, batch, hvg=None):
     adata.X = data
 
     return adata
+
+def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
+    """
+    Parametrization taken from the tutorial notebook at:
+    https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
+    """
+    import scgen
+
+    checkSanity(adata, batch, hvg)
     
+    # Fit the model
+    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
+    network.train(train_data=adata, n_epochs=epochs, save=False)
+    corrected_adata = scgen.batch_removal(network, adata, batch_key=batch, cell_label_key=cell_type)
+
+    network.sess.close()
+    
+    return corrected_adata
+
 
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
@@ -202,7 +220,10 @@ def runSaucie(adata, batch):
     import SAUCIE
     import sklearn.decomposition
     pca_op = sklearn.decomposition.PCA(100)
-    expr = adata.X.todense()
+    if isinstance(adata.X, sp.sparse.csr_matrix):
+        expr = adata.X.A
+    else:
+        expr = adata.X
     data = pca_op.fit_transform(expr)
     saucie = SAUCIE.SAUCIE(100, lambda_b=0.1)
     loader_train = SAUCIE.Loader(data, labels=adata.obs[batch].cat.codes, shuffle=True)
@@ -217,11 +238,12 @@ def runSaucie(adata, batch):
     
 
 def runCombat(adata, batch):
-    sc.pp.combat(adata, key=batch)
-    return adata
+    adata_int = adata.copy()
+    sc.pp.combat(adata_int, key=batch)
+    return adata_int
 
 
-def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
+def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
     """
     Convenience function to run DESC. Parametrization was taken from:
     https://github.com/eleozzr/desc/issues/28
@@ -243,11 +265,11 @@ def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/'):
                      n_neighbors=10,
                      batch_size=256,
                      louvain_resolution=res,
+                     save_encoder_weights=False,
                      save_dir=tmp_dir,
                      do_tsne=False,
-                     use_GPU=False,
+                     use_GPU=use_gpu,
                      num_Cores=ncores,
-                     save_encoder_weights=False,
                      use_ae_weights=False,
                      do_umap=False)
     
