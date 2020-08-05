@@ -262,11 +262,11 @@ def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/
                      n_neighbors=10,
                      batch_size=256,
                      louvain_resolution=res,
+                     save_encoder_weights=False,
                      save_dir=tmp_dir,
                      do_tsne=False,
                      use_GPU=use_gpu,
                      num_Cores=ncores,
-                     save_encoder_weights=False,
                      use_ae_weights=False,
                      do_umap=False)
     
