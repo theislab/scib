@@ -12,7 +12,7 @@ METHODS = {
     "scanorama": {"output_type": ["embed", "full"]},
     "seurat": { "output_type": ["embed", "full"], "R": True},
     "trvae": {"output_type": ["embed", "full"], "no_scale": True},
-    "scgen": {"output_type": ["embed", "full"], "use_celltype": True}
+    "scgen": {"output_type": ["full"], "use_celltype": True}
     # TODO: include rest of methods
 }
 
@@ -47,9 +47,9 @@ def setup_test_directory(methods):
     # write config file
     config = {
         "ROOT" : output_dir,
-        "r_env": "scIB_env",
-        "py_env": "scIB_env",
-        "conv_env": "scIB_env",
+        "r_env": "benchmarking_data_integration_dev",
+        "py_env": "benchmarking_data_integration_dev",
+        "conv_env": "benchmarking_data_integration_dev",
         "timing": False,
         "FEATURE_SELECTION": {
             "hvg": 2000,
@@ -120,7 +120,7 @@ def test_snakemake_dryrun():
     )
 
 def test_snakemake():
-    paths = setup_test_directory(["scgen", "scanorama"])
+    paths = setup_test_directory(["scgen"])
     run_snakemake(
         snakeroot=paths["workdir"],
         configfile=paths["configfile"],
