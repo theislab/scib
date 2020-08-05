@@ -61,7 +61,7 @@ def runTrVae(adata, batch, hvg=None):
 
     network.train(adata,
               batch,
-              train_size=0.9,
+              train_size=0.8,
               n_epochs=50,
               batch_size=512,
               early_stop_limit=10,
