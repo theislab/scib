@@ -220,7 +220,10 @@ def runSaucie(adata, batch):
     import SAUCIE
     import sklearn.decomposition
     pca_op = sklearn.decomposition.PCA(100)
-    expr = adata.X.todense()
+    if isinstance(adata.X, sp.sparse.csr_matrix):
+        expr = adata.X.todense()
+    else:
+        expr = adata.X
     data = pca_op.fit_transform(expr)
     saucie = SAUCIE.SAUCIE(100, lambda_b=0.1)
     loader_train = SAUCIE.Loader(data, labels=adata.obs[batch].cat.codes, shuffle=True)
