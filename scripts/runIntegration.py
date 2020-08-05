@@ -63,11 +63,12 @@ if __name__=='__main__':
         'trvae': scIB.integration.runTrVae,
         'trvaep': scIB.integration.runTrVaep,
         'scgen': scIB.integration.runScGen,
-        'harmony': scIB.integration.runHarmony,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
         'scvi': scIB.integration.runScvi,
-        'combat': scIB.integration.runCombat
+        'combat': scIB.integration.runCombat,
+        'saucie': scIB.integration.runSaucie,
+        'desc': scIB.integration.runDESC
     }
     
     if method not in methods.keys():
