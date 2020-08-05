@@ -30,7 +30,7 @@ class ParsedConfig:
         self.conv_env          = config["conv_env"]
 
         self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 
+        self.OUTPUT_LEVEL      = ['single', 'final', 'by_method', 
                                   'by_method_scaling', 'directory_by_setting']
         self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
@@ -150,8 +150,8 @@ class ParsedConfig:
             return join_path(self.ROOT, "{{scenario}}", file_type, "{scaling}", "{{hvg}}", suffix)
         elif level == "final":
             return join_path(self.ROOT, f"{file_type}.csv")
-        elif level == "scaled_final":
-            return join_path(self.ROOT, f"{file_type}_scaled.csv")
+        #elif level == "scaled_final":
+        #    return join_path(self.ROOT, f"{file_type}_scaled.csv")
 
         
 
