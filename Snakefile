@@ -205,16 +205,3 @@ rule cc_single:
         --hvgs {params.hvgs} --organism {params.organism}
         """
 
-#rule scale_lisi:
-#    input:
-#        i = cfg.get_filename_pattern("metrics", "final"),
-#        script = "scripts/scale_halfopen.py"
-#    output: cfg.get_filename_pattern("metrics", "scaled_final")
-#    message: "Rescale LISI in merged metrics"
-#    params:
-#        cmd = f"conda run -n {cfg.py_env} python"
-#    shell:
-#        """
-#        {params.cmd} {input.script} -i {input.i} -o {output}
-#        """
-    
