@@ -15,6 +15,11 @@ def join_path(*args):
 
 class ParsedConfig:
 
+    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'cc_variance']
+    OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 'by_method_scaling', 
+                         'directory_by_setting']
+    OUTPUT_TYPES      = ['full', 'embed', 'knn']
+        
     def __init__(self, config):
 
         # TODO: define and check schema of config
@@ -28,11 +33,11 @@ class ParsedConfig:
         self.r_env             = config["r_env"]
         self.py_env            = config["py_env"]
         self.conv_env          = config["conv_env"]
+        try:
+            self.unintegrated_m = config["unintegrated_metrics"]
+        except:
+            self.unintegrated_m = False
 
-        self.OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance']
-        self.OUTPUT_LEVEL      = ['single', 'final', 'scaled_final', 'by_method', 
-                                  'by_method_scaling', 'directory_by_setting']
-        self.OUTPUT_TYPES      = ['full', 'embed', 'knn']
 
     def get_all_scalings(self):
         return self.SCALING
@@ -112,14 +117,14 @@ class ParsedConfig:
 
     def get_filename_pattern(self, file_type, level, file_suffix=None):
         """
-        file_type: one of ['integration', 'metrics', 'cc_variance']
-        level: one of ['single', 'final', 'by_method']
+        file_type: ParsedConfig.OUTPUT_FILE_TYPES
+        level: one of ParsedConfig.OUTPUT_LEVELS
         """
 
-        if file_type not in self.OUTPUT_FILE_TYPES:
+        if file_type not in ParsedConfig.OUTPUT_FILE_TYPES:
             raise ValueError(f"{file_type} not a valid output file type")
 
-        if level not in self.OUTPUT_LEVEL:
+        if level not in ParsedConfig.OUTPUT_LEVELS:
             raise ValueError(f"{level} not a valid output level")
 
         if file_suffix not in ["rds", "rds_to_h5ad", "h5ad", None]:
@@ -166,51 +171,62 @@ class ParsedConfig:
             Output types are ['full', 'embed', 'knn']
         """
 
-        if file_type not in self.OUTPUT_FILE_TYPES:
+        if file_type not in ParsedConfig.OUTPUT_FILE_TYPES:
             raise ValueError(f"{file_type} not a valid output file type")
 
         if output_types is None:
-            output_types = self.OUTPUT_TYPES
+            output_types = ParsedConfig.OUTPUT_TYPES
         else:
             for ot in output_types:
-                if ot not in self.OUTPUT_TYPES:
+                if ot not in ParsedConfig.OUTPUT_TYPES:
                     raise ValueError(f"{output_types} not a valid output type")
 
         all_files = []
-        for method in self.METHODS:
+        
+        if file_type == 'metrics_unintegrated':
+                # add unintegrated
+                file_pattern = self.get_filename_pattern("metrics", "single")
+                all_files = expand(file_pattern,
+                                   scenario=self.get_all_scenarios(),
+                                   hvg="full_feature",
+                                   scaling="unscaled",
+                                   method="unintegrated", o_type="full")
+        else:
+            for method in self.METHODS:
 
-            ot = self.get_from_method(method, "output_type")
-            # keep only types to be considered
-            ot = [x for x in as_list(ot) if x in as_list(output_types)]
-            if not ot:
-                continue # skip if method does not have any
-            
-            # skip scaling for certain methods
-            scaling = self.SCALING.copy()
-            skip_scaling = self.get_from_method(method, "no_scale")
-            if skip_scaling and "scaled" in scaling:
-                scaling.remove("scaled")
+                ot = self.get_from_method(method, "output_type")
+                # keep only types to be considered
+                ot = [x for x in as_list(ot) if x in as_list(output_types)]
+                if not ot:
+                    continue # skip if method does not have any
 
-            file_level = "by_method_scaling"
+                # skip scaling for certain methods
+                scaling = self.SCALING.copy()
+                skip_scaling = self.get_from_method(method, "no_scale")
+                if skip_scaling and "scaled" in scaling:
+                    scaling.remove("scaled")
 
-            if file_type == 'integration':
-                is_r = self.get_from_method(method, "R")
-                if is_r:
-                    file_pattern = self.get_filename_pattern(file_type, file_level, "rds_to_h5ad")
+                file_level = "by_method_scaling"
+
+                if file_type == 'integration':
+                    is_r = self.get_from_method(method, "R")
+                    if is_r:
+                        file_pattern = self.get_filename_pattern(file_type, file_level, "rds_to_h5ad")
+                    else:
+                        file_pattern = self.get_filename_pattern(file_type, file_level, "h5ad")
+
+                    expanded = expand(file_pattern, method=method, scaling=scaling)
+
+                elif file_type in ['metrics', 'cc_variance']:
+                    file_pattern = self.get_filename_pattern(file_type, file_level)
+                    expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
                 else:
-                    file_pattern = self.get_filename_pattern(file_type, file_level, "h5ad")
+                    raise ValueError(f"{file_type} is not a valid file type")
 
-                expanded = expand(file_pattern, method=method, scaling=scaling)
-
-            elif file_type in ['metrics', 'cc_variance']:
-                file_pattern = self.get_filename_pattern(file_type, file_level)
-                expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
-            else:
-                raise ValueError(f"{file_type} is not a valid file type")
-
-            for p in expanded:
-                f = expand(p, scenario=self.get_all_scenarios(),
-                           hvg=self.get_all_feature_selections())
-                all_files.extend(f)
+                for p in expanded:
+                    f = expand(p, scenario=self.get_all_scenarios(),
+                               hvg=self.get_all_feature_selections())
+                    all_files.extend(f)
 
         return all_files
+
