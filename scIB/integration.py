@@ -221,7 +221,7 @@ def runSaucie(adata, batch):
     import sklearn.decomposition
     pca_op = sklearn.decomposition.PCA(100)
     if isinstance(adata.X, sp.sparse.csr_matrix):
-        expr = adata.X.todense()
+        expr = adata.X.A
     else:
         expr = adata.X
     data = pca_op.fit_transform(expr)
