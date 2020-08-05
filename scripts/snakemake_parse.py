@@ -189,7 +189,7 @@ class ParsedConfig:
                 all_files = expand(file_pattern,
                                    scenario=self.get_all_scenarios(),
                                    hvg=self.get_all_feature_selections(),
-                                   scaling=self.SCALING,
+                                   scaling="unscaled",
                                    method="unintegrated", o_type="full")
         else:
             for method in self.METHODS:
