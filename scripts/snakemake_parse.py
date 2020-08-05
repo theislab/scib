@@ -188,7 +188,7 @@ class ParsedConfig:
                 file_pattern = self.get_filename_pattern("metrics", "single")
                 all_files = expand(file_pattern,
                                    scenario=self.get_all_scenarios(),
-                                   hvg=self.get_all_feature_selections(),
+                                   hvg="full_feature",
                                    scaling="unscaled",
                                    method="unintegrated", o_type="full")
         else:
