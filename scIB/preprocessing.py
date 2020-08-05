@@ -339,11 +339,11 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 ### Feature Reduction
 def reduce_data(adata, batch_key=None, subset=False,
                 filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
-                pca=True, pca_comps=50, ignore_hvg=True,
+                pca=True, pca_comps=50, overwrite_hvg=True,
                 neighbors=True, use_rep='X_pca', 
                 umap=True):
     """
-    ignore_hvg:
+    overwrite_hvg:
         if True, ignores any pre-existing 'highly_variable' column in adata.var
         and recomputes it if `n_top_genes` is specified else calls PCA on full features.
         if False, skips HVG computation even if `n_top_genes` is specified and uses
@@ -354,10 +354,10 @@ def reduce_data(adata, batch_key=None, subset=False,
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
-    if n_top_genes is not None and ignore_hvg:
+    if n_top_genes is not None and overwrite_hvg:
         print("HVG")
         
-        ignore_hvg = False
+        overwrite_hvg = False
         
         ## quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
@@ -379,7 +379,7 @@ def reduce_data(adata, batch_key=None, subset=False,
         
     if pca:
         print("PCA")
-        use_hvgs = not ignore_hvg and "highly_variable" in adata.var
+        use_hvgs = not overwrite_hvg and "highly_variable" in adata.var
         sc.tl.pca(adata,
                   n_comps=pca_comps, 
                   use_highly_variable=use_hvgs, 
