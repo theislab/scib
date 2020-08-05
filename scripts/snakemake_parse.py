@@ -15,7 +15,7 @@ def join_path(*args):
 
 class ParsedConfig:
 
-    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'cc_variance', 'metrics_unintegrated']
+    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'cc_variance']
     OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 'by_method_scaling', 
                          'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
@@ -33,7 +33,10 @@ class ParsedConfig:
         self.r_env             = config["r_env"]
         self.py_env            = config["py_env"]
         self.conv_env          = config["conv_env"]
-        self.unintegrated_m    = config["unintegrated_metrics"]
+        try:
+            self.unintegrated_m = config["unintegrated_metrics"]
+        except:
+            self.unintegrated_m = False
 
 
     def get_all_scalings(self):
@@ -131,8 +134,7 @@ class ParsedConfig:
             "prepare"     : "{method}.h5ad",
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
-            "cc_variance" : "{method}_{o_type}.csv",
-            "metrics_unintegrated" : "{o_type}.csv"
+            "cc_variance" : "{method}_{o_type}.csv"
         }
 
         # in case of R, we need a different suffix for the integration part
@@ -183,12 +185,12 @@ class ParsedConfig:
         
         if file_type == 'metrics_unintegrated':
                 # add unintegrated
-                file_pattern = self.get_filename_pattern(file_type, "single")
+                file_pattern = self.get_filename_pattern("metrics", "single")
                 all_files = expand(file_pattern,
                                    scenario=self.get_all_scenarios(),
                                    hvg=self.get_all_feature_selections(),
                                    scaling=self.SCALING,
-                                   o_type="full")
+                                   method="unintegrated", o_type="full")
         else:
             for method in self.METHODS:
 
@@ -227,12 +229,4 @@ class ParsedConfig:
                     all_files.extend(f)
 
         return all_files
-
-    def get_all_metrics_files(self):
-        all_metrics = self.get_all_file_patterns("metrics")
-        # only include unintegrated if specfied in config
-        if self.unintegrated_m:
-            um = self.get_all_file_patterns("metrics_unintegrated")
-            all_metrics.extend(um)
-        return all_metrics
 

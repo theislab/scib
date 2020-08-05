@@ -147,29 +147,43 @@ rule convert_RDS_h5ad:
 # Compute metrics
 # ------------------------------------------------------------------------------
 
+rule metrics_unintegrated:
+    input:        cfg.get_all_file_patterns("metrics_unintegrated")
+    message:        "Collect all unintegrated metrics"
+
+rule metrics_integrated:
+    input: cfg.get_all_file_patterns("metrics")
+    message: "Collect all integrated metrics"
+
+all_metrics = rules.metrics_integrated.input
+if cfg.unintegrated_m:
+    all_metrics.extend(rules.metrics_unintegrated.input)
+
 rule metrics:
     input:
-        tables = cfg.get_all_metrics_files(),
+        tables = all_metrics,
         script = "scripts/merge_metrics.py"
-    output: 
+    output:
         cfg.get_filename_pattern("metrics", "final")
     message: "Merge all metrics"
     params:
         cmd = f"conda run -n {cfg.py_env} python"
     shell: "{params.cmd} {input.script} -i {input.tables} -o {output} --root {cfg.ROOT}"
 
-def get_prepared_adata():
-    pattern = str(rules.integration_prepare.output)
-    file = os.path.splitext(pattern)[0]
-    file = f"{file}.h5ad"
-    return file
+def get_integrated_for_metrics(wildcards):
+    if wildcards.method == "unintegrated":
+        pattern = str(rules.integration_prepare.output)
+        file = os.path.splitext(pattern)[0]
+        return f"{file}.h5ad"
+    elif cfg.get_from_method(wildcards.method, "R"):
+        return cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
+    else:
+        return cfg.get_filename_pattern("integration", "single", "h5ad")
 
 rule metrics_single:
     input:
-        u      = lambda wildcards: get_prepared_adata(),
-        i      = lambda wildcards: cfg.get_filename_pattern("integration", "single", "rds_to_h5ad")
-                                   if cfg.get_from_method(wildcards.method, "R")
-                                   else cfg.get_filename_pattern("integration", "single", "h5ad"),
+        u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        i      = get_integrated_for_metrics,
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
     message: 
@@ -191,32 +205,6 @@ rule metrics_single:
         --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
         """
 
-rule metrics_single_unintegrated:
-    input:
-        u      = lambda wildcards: get_prepared_adata(),
-        i      = lambda wildcards: get_prepared_adata(),
-        script = "scripts/metrics.py"
-    output: cfg.get_filename_pattern("metrics_unintegrated", "single")
-    message: 
-        """
-        Metrics on unintegrated data
-        {wildcards}
-        output: {output}
-        """
-    params:
-        batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
-        label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
-        organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
-        assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
-        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
-        cmd       = f"conda run -n {cfg.py_env} python"	
-    shell:
-        """
-        {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} -m unintegrated \
-        -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
-        --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
-        """
-        
 rule scale_lisi:
     input:
         i = cfg.get_filename_pattern("metrics", "final"),
