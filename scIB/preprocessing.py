@@ -58,7 +58,7 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
     plot_scatter(adata, color=color, title=color,
                  gene_threshold=gene_filter_threshold[0], 
                  count_threshold=count_filter_threshold[0],
-                 legend_loc=legend_loc, palette=palette)
+                 legend_loc=legend_loc)
     
     if not histogram:
         return
