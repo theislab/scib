@@ -38,7 +38,6 @@ class ParsedConfig:
         except:
             self.unintegrated_m = False
 
-
     def get_all_scalings(self):
         return self.SCALING
 
