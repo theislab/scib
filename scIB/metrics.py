@@ -1506,9 +1506,9 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
     # iLISI: nbatches good, 1 bad
-    ilisi_score = np.nanmedian(lisi_score[batch_key])
+    ilisi_score = np.nanmedian(ilisi_score)
     # cLISI: 1 good, nbatches bad
-    clisi_score = np.nanmedian(lisi_score[label_key])
+    clisi_score = np.nanmedian(clisi_score)
     
     if scale:
         #get number of batches
