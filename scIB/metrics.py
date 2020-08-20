@@ -1513,11 +1513,15 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     if scale:
         #get number of batches
         nbatches = len(np.unique(adata.obs[batch_key]))
-        #scale iLISI score to 0 bad 1 good
-        ilisi_score = (ilisi_score - 1)/(nbatches-1)
-        #scale clisi score to 0 bad 1 good
-        clisi_score = (nbatches - clisi_score)/(nbatches-1)
-    
+        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
+
+    return ilisi_score, clisi_score
+
+def scale_lisi(ilisi_score, clisi_score, nbatches):
+    #scale iLISI score to 0 bad 1 good
+    ilisi_score = (ilisi_score - 1)/(nbatches-1)
+    #scale clisi score to 0 bad 1 good
+    clisi_score = (nbatches - clisi_score)/(nbatches-1)
     return ilisi_score, clisi_score
 
 
@@ -1869,15 +1873,21 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if lisi_graph_:
         print('LISI graph score...')
-        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub*100, 
+        ilisi_raw, clisi_raw = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
+                                        type_=type_, subsample=kBET_sub*100, scale=False,
                                         multiprocessing = True, verbose=verbose)
+        nbatches = len(np.unique(adata_int.obs[batch_key]))
+        ilisi_scaled, clisi_scaled = scale_lisi(ilisi_raw, clisi_raw, nbatches)
     else:
-        ilisi_g_score = np.nan
-        clisi_g_score = np.nan
-    results['iLISI'] = ilisi_g_score
-    results['cLISI'] = clisi_g_score
-        
+        ilisi_raw = np.nan
+        clisi_raw = np.nan
+        ilisi_scaled = np.nan
+        clisi_scaled = np.nan
+    results['iLISI_raw'] = ilisi_raw
+    results['cLISI_raw'] = clisi_raw
+    results['iLISI'] = ilisi_scaled
+    results['cLISI'] = clisi_scaled
+    
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
