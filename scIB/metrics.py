@@ -1755,9 +1755,8 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
-
             isolated_labels_=False, n_isolated=None, graph_conn_=False,
-            kBET_=False, kBET_sub=0.5, lisi_graph_=False,
+            kBET_=False, kBET_sub=0.5, lisi_graph_=False, lisi_raw=False,
             trajectory_= False, type_ = None
            ):
     """
@@ -1878,16 +1877,15 @@ def metrics(adata, adata_int, batch_key, label_key,
                                         multiprocessing = True, verbose=verbose)
         nbatches = len(np.unique(adata_int.obs[batch_key]))
         ilisi_scaled, clisi_scaled = scale_lisi(ilisi_raw, clisi_raw, nbatches)
+        if lisi_raw:
+            results['iLISI_raw'] = ilisi_raw
+            results['cLISI_raw'] = clisi_raw
     else:
-        ilisi_raw = np.nan
-        clisi_raw = np.nan
         ilisi_scaled = np.nan
         clisi_scaled = np.nan
-    results['iLISI_raw'] = ilisi_raw
-    results['cLISI_raw'] = clisi_raw
     results['iLISI'] = ilisi_scaled
     results['cLISI'] = clisi_scaled
-    
+
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
