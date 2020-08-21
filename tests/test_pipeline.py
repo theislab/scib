@@ -61,7 +61,7 @@ def setup_test_directory(methods):
             "test_data": {
                 "batch_key": "batch",
                 "label_key": "celltype",
-                "organism": "human",
+                "organism": "mouse",
                 "assay": "expression",
                 "file": input_adata_file
             }
@@ -69,7 +69,7 @@ def setup_test_directory(methods):
     }
     config_file = os.path.join(data_dir, "config.json")
     with open(config_file, 'w') as f:
-        json.dump(config, f)
+        f.write(json.dumps(config, indent=4))
 
     workdir = pathlib.Path(scIB.__file__).parent.parent
 

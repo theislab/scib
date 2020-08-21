@@ -16,7 +16,7 @@ def join_path(*args):
 class ParsedConfig:
 
     OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'cc_variance']
-    OUTPUT_LEVELS     = ['single', 'final', 'scaled_final', 'by_method', 'by_method_scaling', 
+    OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling', 
                          'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
         
@@ -155,8 +155,8 @@ class ParsedConfig:
             return join_path(self.ROOT, "{{scenario}}", file_type, "{scaling}", "{{hvg}}", suffix)
         elif level == "final":
             return join_path(self.ROOT, f"{file_type}.csv")
-        elif level == "scaled_final":
-            return join_path(self.ROOT, f"{file_type}_scaled.csv")
+        #elif level == "scaled_final":
+        #    return join_path(self.ROOT, f"{file_type}_scaled.csv")
 
         
 
