@@ -1225,10 +1225,7 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     if scale:
         #get number of batches
         nbatches = len(np.unique(adata.obs[batch_key]))
-        #scale iLISI score to 0 bad 1 good
-        ilisi_score = (ilisi_score - 1)/(nbatches-1)
-        #scale clisi score to 0 bad 1 good
-        clisi_score = (nbatches - clisi_score)/(nbatches-1)
+        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
     
     return ilisi_score, clisi_score
 
