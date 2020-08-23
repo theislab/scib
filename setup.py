@@ -13,7 +13,7 @@ setup(name='scIB',
       keywords = ['benchmark', 'single cell', 'data integration'], 
       install_requires=[            
           'anndata>=0.7',
-          'scanpy',
+          'scanpy<1.5',
           'rpy2>=3',
           'bbknn',
           'anndata2ri',
