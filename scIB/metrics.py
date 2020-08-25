@@ -283,7 +283,7 @@ def ari(adata, group1, group2):
     checkAdata(adata)
     
     if isinstance(group1, str):
-        checblob/master/envs/scIB-python.ymlatch(group1, adata.obs)
+        checkBatch(group1, adata.obs)
         group1 = adata.obs[group1].tolist()
     elif isinstance(group1, pd.Series):
         group1 = group1.tolist()
