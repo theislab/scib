@@ -143,7 +143,7 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
         plt.show()
 
 ### Normalisation
-def normalize(adata, min_mean = 0.1):
+def normalize(adata, min_mean = 0.1, logtransform=True):
     
     checkAdata(adata)
     
@@ -173,7 +173,11 @@ def normalize(adata, min_mean = 0.1):
     # modify adata
     adata.obs['size_factors'] = size_factors
     adata.X /= adata.obs['size_factors'].values[:,None]
-    sc.pp.log1p(adata)
+    if logtransform == True:
+        print("Note! Performing log1p-transformation after normalization.")
+        sc.pp.log1p(adata)
+    else:
+        print("No log-transformation performed after normalization.")
     # convert to sparse, bc operation always converts to dense
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
