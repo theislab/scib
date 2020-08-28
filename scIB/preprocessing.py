@@ -58,7 +58,7 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
     plot_scatter(adata, color=color, title=color,
                  gene_threshold=gene_filter_threshold[0], 
                  count_threshold=count_filter_threshold[0],
-                 legend_loc=legend_loc, palette=palette)
+                 legend_loc=legend_loc)
     
     if not histogram:
         return
@@ -339,17 +339,26 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 ### Feature Reduction
 def reduce_data(adata, batch_key=None, subset=False,
                 filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
-                pca=True, pca_comps=50,
+                pca=True, pca_comps=50, overwrite_hvg=True,
                 neighbors=True, use_rep='X_pca', 
                 umap=True):
+    """
+    overwrite_hvg:
+        if True, ignores any pre-existing 'highly_variable' column in adata.var
+        and recomputes it if `n_top_genes` is specified else calls PCA on full features.
+        if False, skips HVG computation even if `n_top_genes` is specified and uses
+        pre-existing HVG column for PCA
+    """
     
     checkAdata(adata)
     if batch_key:
         checkBatch(batch_key, adata.obs)
     
-    hvg = n_top_genes is not None
-    if hvg:
+    if n_top_genes is not None and overwrite_hvg:
         print("HVG")
+        
+        overwrite_hvg = False
+        
         ## quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
@@ -370,9 +379,10 @@ def reduce_data(adata, batch_key=None, subset=False,
         
     if pca:
         print("PCA")
+        use_hvgs = not overwrite_hvg and "highly_variable" in adata.var
         sc.tl.pca(adata,
                   n_comps=pca_comps, 
-                  use_highly_variable=hvg, 
+                  use_highly_variable=use_hvgs, 
                   svd_solver='arpack', 
                   return_info=True)
     
@@ -470,7 +480,7 @@ def readConos(inPath):
     from os import mkdir, path
     import pandas as pd
     
-    dir_path = "/tmp/conos"+str(int(time()))
+    dir_path = "/localscratch/conos"+str(int(time()))
     while path.isdir(dir_path):
         dir_path += '2'
     dir_path += '/'

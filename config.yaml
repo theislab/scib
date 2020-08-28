@@ -4,6 +4,8 @@ py_env : scIB-python
 conv_env : scIB-R-conversion
 timing: false
 
+unintegrated_metrics: false
+
 FEATURE_SELECTION:
   hvg: 2000
   full_feature: 0
@@ -22,6 +24,10 @@ METHODS: # method name : ouput type(s)
   seurat:
     R: true
     output_type: full
+  saucie:
+    output_type:
+      - full
+      - embed
   trvae:
     no_scale: true
     output_type: 
@@ -48,6 +54,16 @@ METHODS: # method name : ouput type(s)
   liger:
     no_scale: true
     R: true
+    output_type: embed
+  scgen:
+    output_type: full
+    use_celltype: true
+  fastmnn:
+    R: true
+    output_type:
+      - embed
+      - full
+  desc:
     output_type: embed
 
 DATA_SCENARIOS:
@@ -99,7 +115,7 @@ DATA_SCENARIOS:
     #label_key: cell_type
     #organism: mouse
     #assay: expression
-    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_norm.h5ad
+    #file: /storage/groups/ml01/workspace/maren.buettner/data_integration/data/mouse_brain/mouse_brain_slim_cc_rev.h5ad
     #  mouse_brain_atac:
     #    batch_key: batchname
     #label_key: cell_type_consensus

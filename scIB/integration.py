@@ -115,7 +115,25 @@ def runTrVaep(adata, batch, hvg=None):
     adata.X = data
 
     return adata
+
+def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
+    """
+    Parametrization taken from the tutorial notebook at:
+    https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
+    """
+    import scgen
+
+    checkSanity(adata, batch, hvg)
     
+    # Fit the model
+    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
+    network.train(train_data=adata, n_epochs=epochs, save=False)
+    corrected_adata = scgen.batch_removal(network, adata, batch_key=batch, cell_label_key=cell_type)
+
+    network.sess.close()
+    
+    return corrected_adata
+
 
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
@@ -256,95 +274,6 @@ def runScanvi(adata, batch, labels, hvg=None):
     adata.obsm['X_emb'] = latent
 
     return adata#, scanvi_full.sequential(), trainer_scanvi
-
-def runSeurat(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import time
-    import os
-    tmpName = "/tmp/seurat"+time.time()+".RDS"
-    saveSeurat(adata, tmpName)
-    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runSeurat.R '+tmpName+' '+batch+' '+tmpName+'_out.RDS')
-    adata_out = readSeurat(tmpName+'_out.RDS')
-
-    return adata_out
-
-    
-    """ro.r('library(Seurat)')
-    ro.r('library(scater)')
-    anndata2ri.activate()
-
-    if issparse(adata.X):
-        if not adata.X.has_sorted_indices:
-            adata.X.sort_indices()
-
-    for key in adata.layers:
-        if issparse(adata.layers[key]):
-            if not adata.layers[key].has_sorted_indices:
-                adata.layers[key].sort_indices()
-
-    ro.globalenv['adata'] = adata
-    
-    ro.r('sobj = as.Seurat(adata, counts=NULL, data = "X")')
-
-    # Fix error if levels are 0 and 1
-    # ro.r(f'sobj$batch <- as.character(sobj${batch})')
-    ro.r(f'Idents(sobj) = "{batch}"')
-
-    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
-    #ro.r('to_integrate <- Reduce(intersect, lapply(batch_list, rownames))')
-
-    ro.r('anchors = FindIntegrationAnchors('+
-        'object.list = batch_list, '+
-        'anchor.features = 2000,'+
-        'scale = T,'+
-        'l2.norm = T,'+
-        'dims = 1:30,'+
-        'k.anchor = 5,'+
-        'k.filter = 200,'+
-        'k.score = 30,'+
-        'max.features = 200,'+
-        'eps = 0)'
-    )
-    ro.r('integrated = IntegrateData('+
-        'anchorset = anchors,'+
-        'new.assay.name = "integrated",'+
-        'features = NULL,'+
-        'features.to.integrate = NULL,'+
-        'dims = 1:30,'+
-        'k.weight = 100,'+
-        'weight.reduction = NULL,'+
-        'sd.weight = 1,'+
-        'sample.tree = NULL,'+
-        'preserve.order = F,'+
-        'do.cpp = T,'+
-        'eps = 0,'+
-        'verbose = T)'
-    )
-    integrated = ro.r('as.SingleCellExperiment(integrated)')
-    anndata2ri.deactivate()
-    return integrated"""
-
-def runHarmony(adata, batch, hvg = None):
-    checkSanity(adata, batch, hvg)
-    #import_rpy2()
-    ro.pandas2ri.activate()
-    ro.r('library(harmony)')
-
-    pca = sc.pp.pca(adata, svd_solver='arpack', copy=True).obsm['X_pca']
-    method = adata.obs[batch]
-
-    ro.globalenv['pca'] = pca
-    ro.globalenv['method'] = method
-
-    ro.r(f'harmonyEmb <- HarmonyMatrix(pca, method, "{batch}", do_pca= F)')
-    emb = ro.r('harmonyEmb')
-    ro.pandas2ri.deactivate()
-    out = adata.copy()
-    out.obsm['X_emb']= emb
-    #out.uns['emb']=True
-
-    return out
-
 def runMNN(adata, batch, hvg = None):
     import mnnpy
     checkSanity(adata, batch, hvg)
@@ -364,62 +293,71 @@ def runBBKNN(adata, batch, hvg=None):
         corrected = bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
     return corrected
 
-def runConos(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import time
-    import os
-    tmpName = "/tmp/conos"+time.time()
-    saveSeurat(adata, tmpName+'.RDS')
-    os.system('Rscript /home/icb/daniel.strobl/Benchmarking_data_integration/R/runConos.R '+tmpName+'.RDS '+batch+' '+tmpName)
-    adata_out = readConos(tmpName)
 
-    return adata_out
-
-    """anndata2ri.activate()
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
-    ro.r('library(conos)')
-
-    ro.globalenv['adata_c'] = adata
-    ro.r('sobj = as.Seurat(adata_c, counts = "counts", data = "X")')
-    ro.r(f'batch_list = SplitObject(sobj, split.by = "{batch}")')
-
-    ro.r('con <- Conos$new(batch_list)')
-    ro.r('con$buildGraph(k=15, k.self=5, space="PCA", ncomps=30)')
-    os.mkdir('conos_tmp')
-    ro.r('saveConosForScanPy(con, output.path="conos_tmp/", verbose=T))')
-
-    DATA_PATH = os.path.expanduser('conos_tmp/')
-    pca_df = pd.read_csv(DATA_PATH+'pca.csv')
-    
-    graph_conn_mtx = sp.io.mmread(DATA_PATH + "graph_connectivities.mtx")
-    graph_dist_mtx = sp.io.mmread(DATA_PATH + "graph_distances.mtx")
-    
-    out = adata.copy()
-    
-    out.X_pca = pca_df.values
-    
-    out.uns['neighbors'] = dict(connectivities=graph_conn_mtx.tocsr(), distances=graph_dist_mtx.tocsr())
-    
-    anndata2ri.deactivate()
-    return out
+def runSaucie(adata, batch):
     """
+    parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
+    """
+    import SAUCIE
+    import sklearn.decomposition
+    pca_op = sklearn.decomposition.PCA(100)
+    if isinstance(adata.X, sp.sparse.csr_matrix):
+        expr = adata.X.A
+    else:
+        expr = adata.X
+    data = pca_op.fit_transform(expr)
+    saucie = SAUCIE.SAUCIE(100, lambda_b=0.1)
+    loader_train = SAUCIE.Loader(data, labels=adata.obs[batch].cat.codes, shuffle=True)
+    loader_eval = SAUCIE.Loader(data, labels=adata.obs[batch].cat.codes, shuffle=False)
+    saucie.train(loader_train, steps=5000)
+    ret = adata.copy()
+    ret.obsm['X_emb'] = saucie.get_reconstruction(loader_eval)[0]
+    ret.X = pca_op.inverse_transform(ret.obsm['X_emb'])
+                                                    
+    return ret
+                                                             
     
-
-
-if __name__=="__main__":
-    adata = sc.read('testing.h5ad')
-    #emb, corrected = runScanorama(adata, 'method', False)
-    #print(emb)
-    #print(corrected)
-
-
-        
-
 
 def runCombat(adata, batch):
-    sc.pp.combat(adata, key=batch)
+    adata_int = adata.copy()
+    sc.pp.combat(adata_int, key=batch)
+    return adata_int
+
+
+def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
+    """
+    Convenience function to run DESC. Parametrization was taken from:
+    https://github.com/eleozzr/desc/issues/28
+    as suggested by the developer (rather than from the tutorial notebook).
+    """
+    import desc
+
+    # Set number of CPUs to all available
+    if ncores is None:
+        ncores = os.cpu_count()
+
+    adata_out = adata.copy()
+
+    adata_out = desc.scale_bygroup(adata_out, groupby=batch, max_value=6)
+    
+    adata_out = desc.train(adata_out,
+                     dims=[adata.shape[1],128,32],
+                     tol=0.001,
+                     n_neighbors=10,
+                     batch_size=256,
+                     louvain_resolution=res,
+                     save_encoder_weights=False,
+                     save_dir=tmp_dir,
+                     do_tsne=False,
+                     use_GPU=use_gpu,
+                     num_Cores=ncores,
+                     use_ae_weights=False,
+                     do_umap=False)
+    
+    adata.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+
     return adata
+
 
 if __name__=="__main__":
     adata = sc.read('testing.h5ad')
