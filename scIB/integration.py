@@ -192,6 +192,89 @@ def runScvi(adata, batch, hvg=None):
     adata.obsm['X_emb'] = latent
 
     return adata
+def runScanvi(adata, batch, labels):
+# Use non-normalized (count) data for scanvi!
+    
+    # Check for counts data layer
+    if 'counts' not in adata.layers:
+        raise TypeError('Adata does not contain a `counts` layer in `adata.layers[`counts`]`')
+
+    from scvi.models import VAE, SCANVI
+    from scvi.inference import UnsupervisedTrainer, SemiSupervisedTrainer
+    from sklearn.preprocessing import LabelEncoder
+    from scvi.dataset import AnnDatasetFromAnnData
+    import numpy as np
+    
+    # STEP 1: prepare the data
+    net_adata = adata.copy()
+    net_adata.X = adata.layers['counts']
+    del net_adata.layers['counts']
+    # Ensure that the raw counts are not accidentally used
+    del net_adata.raw # Note that this only works from anndata 0.7
+
+    # Define batch indices
+    le = LabelEncoder()
+    net_adata.obs['batch_indices'] = le.fit_transform(net_adata.obs[batch].values)
+    net_adata.obs['labels'] = le.fit_transform(net_adata.obs[labels].values)
+
+    net_adata = AnnDatasetFromAnnData(net_adata)
+
+    print("scANVI dataset object with {} batches and {} cell types".format(net_adata.n_batches, net_adata.n_labels))
+
+    #if hvg is True:
+    #    # this also corrects for different batches by default
+    #    net_adata.subsample_genes(2000, mode="seurat_v3")
+
+    # # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
+    n_epochs_scVI = np.min([round((20000/adata.n_obs)*400), 400]) #400
+    n_epochs_scANVI = np.min([10, np.max([2, round(n_epochs_scVI / 3.)])])
+    n_latent=30
+    n_hidden=128
+    n_layers=2
+
+
+    # STEP 2: RUN scVI to initialize scANVI
+
+    vae = VAE(
+        net_adata.nb_genes,
+        reconstruction_loss='nb',
+        n_batch=net_adata.n_batches,
+        n_latent=n_latent,
+        n_hidden=n_hidden,
+        n_layers=n_layers,
+    )
+
+    trainer = UnsupervisedTrainer(
+        vae,
+        net_adata,
+        train_size=1.0,
+        use_cuda=False,
+    )
+
+    trainer.train(n_epochs=n_epochs_scVI, lr=1e-3)
+
+    # STEP 3: RUN scANVI
+
+    scanvi = SCANVI(net_adata.nb_genes, net_adata.n_batches, net_adata.n_labels,
+                          n_hidden=n_hidden, n_latent=n_latent, n_layers=n_layers, dispersion='gene')
+    scanvi.load_state_dict(trainer.model.state_dict(), strict=False)
+
+    # use default parameter from semi-supervised trainer class
+    trainer_scanvi = SemiSupervisedTrainer(scanvi, net_adata)
+    # use all cells as labelled set
+    trainer_scanvi.labelled_set = trainer_scanvi.create_posterior(trainer_scanvi.model, net_adata, indices=np.arange(len(net_adata)))
+    # put one cell in the unlabelled set
+    trainer_scanvi.unlabelled_set = trainer_scanvi.create_posterior(indices=[0])
+    trainer_scanvi.train(n_epochs=n_epochs_scANVI)
+
+    # extract info from posterior
+    scanvi_full = trainer_scanvi.create_posterior(trainer_scanvi.model, net_adata, indices=np.arange(len(net_adata)))
+    latent, _, _ = scanvi_full.sequential().get_latent()
+
+    adata.obsm['X_emb'] = latent
+
+    return adata
+
 
 def runMNN(adata, batch, hvg = None):
     import mnnpy

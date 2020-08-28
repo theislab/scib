@@ -58,6 +58,10 @@ METHODS: # method name : ouput type(s)
   scgen:
     output_type: full
     use_celltype: true
+  scanvi:
+    output_type: embed
+    no_scale: true
+    use_celltype: true
   fastmnn:
     R: true
     output_type:
