@@ -248,7 +248,7 @@ def runScanvi(adata, batch, labels):
         vae,
         net_adata,
         train_size=1.0,
-        use_cuda=True,
+        use_cuda=False,
     )
 
     trainer.train(n_epochs=n_epochs_scVI, lr=1e-3)
@@ -273,7 +273,7 @@ def runScanvi(adata, batch, labels):
 
     adata.obsm['X_emb'] = latent
 
-    return adat
+    return adata
 
 
 def runMNN(adata, batch, hvg = None):
