@@ -192,7 +192,7 @@ def runScvi(adata, batch, hvg=None):
     adata.obsm['X_emb'] = latent
 
     return adata
-def runScanvi(adata, batch, labels, hvg=None):
+def runScanvi(adata, batch, labels):
 # Use non-normalized (count) data for scanvi!
     
     # Check for counts data layer
@@ -273,7 +273,9 @@ def runScanvi(adata, batch, labels, hvg=None):
 
     adata.obsm['X_emb'] = latent
 
-    return adata#, scanvi_full.sequential(), trainer_scanvi
+    return adat
+
+
 def runMNN(adata, batch, hvg = None):
     import mnnpy
     checkSanity(adata, batch, hvg)
