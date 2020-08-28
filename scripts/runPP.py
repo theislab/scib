@@ -37,8 +37,7 @@ def runPP(inPath, outPath, hvg, batch, rout, scale, seurat):
     if scale:
         print("Scaling data ...")
         adata = scIB.preprocessing.scale_batch(adata, batch)
-
-
+        
     if rout:
         print("Save as RDS")
         scIB.preprocessing.saveSeurat(adata, outPath, batch, hvgs)
