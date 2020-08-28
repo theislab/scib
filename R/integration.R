@@ -73,23 +73,23 @@ runConos = function(sobj, batch) {
 	#sobj <- loadSeuratObject(data)
 	batch_list <- SplitObject(sobj, split.by=batch)
  	pp <- lapply(batch_list, preP)
- 
+
 	con <- Conos$new(pp)
 	con$buildGraph(space="genes")
 	con$findCommunities()
 	con$embedGraph(method="UMAP")
-	
+
 	#metadata <- data.frame(Cluster=con$clusters$leiden$groups)
 
 	return(con)
-	
+
 }
 
 saveConos = function(con, outdir) {
 	dir.create(outdir)
 
-	saveConosForScanPy(con, output.path=outdir, 
-                   pseudo.pca=TRUE, pca=TRUE, 
+	saveConosForScanPy(con, output.path=outdir,
+                   pseudo.pca=TRUE, pca=TRUE,
                    verbose=TRUE)
 }
 
@@ -108,14 +108,14 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     require(liger)
     require(Seurat)
 
-    # Only counts is converted to liger object. To pass our own normalized data, 
+    # Only counts is converted to liger object. To pass our own normalized data,
     # store it in the "counts" slot
     sobj@assays$RNA@counts = sobj@assays$RNA@data
 
     # Create Liger object
     lobj = seuratToLiger(sobj, combined.seurat=T, meta.var=batch, renormalize=F,
                          remove.missing=F)
-    
+
     # We only pass nomarlized data, so store it as such
     lobj@norm.data <- lobj@raw.data
 
@@ -123,7 +123,7 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     lobj@var.genes <- hvg
 
     lobj <- scaleNotCenter(lobj, remove.missing=F) # Can't do our own scaling atm
-    
+
     # Use tutorial coarse k suggests of 20.
     lobj <- optimizeALS(lobj, k=k, thresh=5e-5, nrep=3)
 
@@ -138,4 +138,17 @@ runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
     sobj@reductions['X_emb'] <- inmf.obj
 
     return(sobj)
+}
+
+runFastMNN = function(sobj, batch) {
+	require(batchelor)
+
+	expr <- sobj@assays$RNA@data
+
+	sce <- fastMNN(expr, batch = sobj@meta.data[[batch]])
+
+	sobj@assays$RNA <- CreateAssayObject(assay(sce, "reconstructed"))
+	sobj@reductions['X_emb'] <- CreateDimReducObject(reducedDim(sce, "corrected"), key='fastmnn_')
+
+	return(sobj)
 }

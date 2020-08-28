@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def runIntegration(inPath, outPath, method, hvg, batch):
+def runIntegration(inPath, outPath, method, hvg, batch, celltype=None):
     """
     params:
         method: name of method
@@ -18,7 +18,10 @@ def runIntegration(inPath, outPath, method, hvg, batch):
     adata = sc.read(inPath)
     
     if timing:
-        integrated_tmp = scIB.metrics.measureTM(method, adata, batch)
+        if celltype is not None:
+            integrated_tmp = scIB.metrics.measureTM(method, adata, batch, celltype)
+        else:
+            integrated_tmp = scIB.metrics.measureTM(method, adata, batch)            
 
         integrated = integrated_tmp[2][0]
 
@@ -27,8 +30,11 @@ def runIntegration(inPath, outPath, method, hvg, batch):
         integrated.uns['runtime'] = integrated_tmp[1]
 
     else:
-        integrated = method(adata, batch)
-    
+        if celltype is not None:
+            integrated = method(adata, batch, celltype)
+        else:
+            integrated = method(adata, batch)
+                
     sc.write(outPath, integrated)
 
 if __name__=='__main__':
@@ -42,6 +48,7 @@ if __name__=='__main__':
     parser.add_argument('-b', '--batch', required=True, help='Batch variable')
     parser.add_argument('-v', '--hvgs', help='Number of highly variable genes', default=2000)
     parser.add_argument("-t", '--timing', help='Activate runtime and memory profiling', action='store_true')
+    parser.add_argument("-c", '--celltype', help='Cell type variable', default=None)
 
     args = parser.parse_args()
     file = args.input_file
@@ -49,16 +56,18 @@ if __name__=='__main__':
     batch = args.batch
     hvg = int(args.hvgs)
     timing = args.timing
+    celltype = args.celltype
     method = args.method
     methods = {
         'scanorama': scIB.integration.runScanorama,
         'trvae': scIB.integration.runTrVae,
         'trvaep': scIB.integration.runTrVaep,
-        'harmony': scIB.integration.runHarmony,
+        'scgen': scIB.integration.runScGen,
         'mnn': scIB.integration.runMNN,
         'bbknn': scIB.integration.runBBKNN,
         'scvi': scIB.integration.runScvi,
         'combat': scIB.integration.runCombat,
+        'saucie': scIB.integration.runSaucie,
         'desc': scIB.integration.runDESC
     }
     
@@ -66,4 +75,4 @@ if __name__=='__main__':
         raise ValueError('Method does not exist. Please use one of the following:\n'+str(list(methods.keys())))
     
     run= methods[method]
-    runIntegration(file, out, run, hvg, batch)
+    runIntegration(file, out, run, hvg, batch, celltype)

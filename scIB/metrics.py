@@ -747,7 +747,7 @@ def select_hvg(adata, select=True):
         return adata
 
 ### diffusion for connectivites matrix extension
-def diffusion_conn(adata, min_k=50, copy=True, max_iterations=16):
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
     '''
     This function performs graph diffusion on the connectivities matrix until a
     minimum number `min_k` of entries per row are non-zero.
@@ -815,7 +815,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=16):
 
     
 ### diffusion neighbourhood score
-def diffusion_nn(adata, k, max_iterations=16):
+def diffusion_nn(adata, k, max_iterations=20):
     '''
     This function generates a nearest neighbour list from a connectivities matrix
     as supplied by BBKNN or Conos. This allows us to select a consistent number
@@ -1216,16 +1216,16 @@ def lisi(adata, batch_key, label_key, k0=90, type_= None, scale=True, verbose=Fa
     #lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
     lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
     
-    # iLISI: 2 good, 1 bad
+    
+    # iLISI: nbatches good, 1 bad
     ilisi_score = np.nanmedian(lisi_score[batch_key])
-    # cLISI: 1 good, 2 bad
+    # cLISI: 1 good, nbatches bad
     clisi_score = np.nanmedian(lisi_score[label_key])
     
     if scale:
-        #Comment: Scaling should be applied at the end when all scenarios are rated 
-        ilisi_score = ilisi_score - 1
-        #scale clisi score to 0 bad 1 good
-        clisi_score = 2 - clisi_score
+        #get number of batches
+        nbatches = len(np.unique(adata.obs[batch_key]))
+        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
     
     return ilisi_score, clisi_score
 
@@ -1502,17 +1502,23 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
                   n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
-    # iLISI: 2 good, 1 bad
+    # iLISI: nbatches good, 1 bad
     ilisi_score = np.nanmedian(ilisi_score)
-    # cLISI: 1 good, 2 bad
+    # cLISI: 1 good, nbatches bad
     clisi_score = np.nanmedian(clisi_score)
     
     if scale:
-        #Comment: Scaling should be applied at the end when all scenarios are rated 
-        ilisi_score = ilisi_score - 1
-        #scale clisi score to 0 bad 1 good
-        clisi_score = 2 - clisi_score
-    
+        #get number of batches
+        nbatches = len(np.unique(adata.obs[batch_key]))
+        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
+
+    return ilisi_score, clisi_score
+
+def scale_lisi(ilisi_score, clisi_score, nbatches):
+    #scale iLISI score to 0 bad 1 good
+    ilisi_score = (ilisi_score - 1)/(nbatches-1)
+    #scale clisi score to 0 bad 1 good
+    clisi_score = (nbatches - clisi_score)/(nbatches-1)
     return ilisi_score, clisi_score
 
 
@@ -1746,9 +1752,8 @@ def metrics(adata, adata_int, batch_key, label_key,
             nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None, 
             silhouette_=False,  embed='X_pca', si_metric='euclidean',
             pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
-
             isolated_labels_=False, n_isolated=None, graph_conn_=False,
-            kBET_=False, kBET_sub=0.5, lisi_graph_=False,
+            kBET_=False, kBET_sub=0.5, lisi_graph_=False, lisi_raw=False,
             trajectory_= False, type_ = None
            ):
     """
@@ -1864,15 +1869,20 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if lisi_graph_:
         print('LISI graph score...')
-        ilisi_g_score, clisi_g_score = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                        type_ = type_, subsample = kBET_sub*100, 
+        ilisi_raw, clisi_raw = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
+                                        type_=type_, subsample=kBET_sub*100, scale=False,
                                         multiprocessing = True, verbose=verbose)
+        nbatches = len(np.unique(adata_int.obs[batch_key]))
+        ilisi_scaled, clisi_scaled = scale_lisi(ilisi_raw, clisi_raw, nbatches)
+        if lisi_raw:
+            results['iLISI_raw'] = ilisi_raw
+            results['cLISI_raw'] = clisi_raw
     else:
-        ilisi_g_score = np.nan
-        clisi_g_score = np.nan
-    results['iLISI'] = ilisi_g_score
-    results['cLISI'] = clisi_g_score
-        
+        ilisi_scaled = np.nan
+        clisi_scaled = np.nan
+    results['iLISI'] = ilisi_scaled
+    results['cLISI'] = clisi_scaled
+
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
