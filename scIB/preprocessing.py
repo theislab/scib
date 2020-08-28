@@ -143,7 +143,7 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
         plt.show()
 
 ### Normalisation
-def normalize(adata, min_mean = 0.1, logtransform=True):
+def normalize(adata, min_mean = 0.1, log=True):
     
     checkAdata(adata)
     
@@ -173,7 +173,7 @@ def normalize(adata, min_mean = 0.1, logtransform=True):
     # modify adata
     adata.obs['size_factors'] = size_factors
     adata.X /= adata.obs['size_factors'].values[:,None]
-    if logtransform == True:
+    if log:
         print("Note! Performing log1p-transformation after normalization.")
         sc.pp.log1p(adata)
     else:
