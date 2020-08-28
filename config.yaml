@@ -1,4 +1,4 @@
-ROOT: /storage/groups/ml01/workspace/scIB
+ROOT: /storage/groups/ml01/projects/2020_scIB_malte.luecken
 r_env : scIB-R-integration
 py_env : scIB-python
 conv_env : scIB-R-conversion
@@ -104,12 +104,6 @@ DATA_SCENARIOS:
     assay: simulation
     file: /storage/groups/ml01/workspace/scIB/simulations_2/sim2_norm.h5ad
 
-    #mouse_atlas:
-    #batch_key: study # TODO: we need batch over all samples as well
-    #label_key: cell_type_union
-    #organsism: mouse
-    #assay: expression
-    #file: /storage/groups/ml01/workspace/group.daniela/atlases_merged_anno_new.h5ad
     #mouse_brain:
     #batch_key: study
     #label_key: cell_type
