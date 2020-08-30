@@ -310,8 +310,8 @@ def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster",
     params:
         cluster: if True, use clustering approach, otherwise use silhouette score approach
         n: max number of batches per label for label to be considered as isolated.
-            if n=1, take labels that are present for a single batch
-            if n=None, consider any label that is missing at least 1 batch
+            if n is integer, consider labels that are present for n batches as isolated
+            if n=None, consider minimum number of batches that labels are present in
         all_: return scores for all isolated labels instead of aggregated mean
     return:
         by default, mean of scores for each isolated label
