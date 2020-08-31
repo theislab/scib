@@ -256,7 +256,7 @@ def runScanvi(adata, batch, labels):
     # STEP 3: RUN scANVI
 
     scanvi = SCANVI(net_adata.nb_genes, net_adata.n_batches, net_adata.n_labels,
-                          n_hidden=n_hidden, n_latent=n_latent, n_layers=n_layers, dispersion='gene')
+                          n_hidden=n_hidden, n_latent=n_latent, n_layers=n_layers, dispersion='gene', reconstruction_loss='nb')
     scanvi.load_state_dict(trainer.model.state_dict(), strict=False)
 
     # use default parameter from semi-supervised trainer class
