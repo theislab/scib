@@ -14,13 +14,12 @@ dependencies:
   - memory_profiler
   - rpy2>=3
   - anndata2ri
-  - scanorama
   - bbknn==1.3.9
   - libgcc-ng
   - scikit-learn
   - networkx
   - r-base
-  - r-seurat
+  - r-seurat==3.0.2
   - bioconductor-scater
   - bioconductor-scran
   - pip
@@ -48,11 +47,13 @@ dependencies:
   - r-testthat
   - r-vctrs
   - xlrd
+  - umap-learn==0.3.10
   - pip:
     - anndata==0.7.1
-    - trvae
-    - trvaep
-    - mnnpy
+    - trvae==1.1.2
+    - trvaep==0.1.0
+    - scanorama+git://github.com/danielStrobl/scanorama@patch-1
+    - mnnpy==0.1.9.5
     - git+git://github.com/theislab/scib.git  
     - desc==2.0.3
     - pydot
