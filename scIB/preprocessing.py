@@ -184,7 +184,7 @@ def normalize(adata, min_mean = 0.1, log=True):
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
     # Free memory in R
-    ro.r('rm(data_mat)')
+    ro.r('rm(list=ls())')
     ro.r('gc()')
 
 
