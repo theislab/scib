@@ -1852,9 +1852,13 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
-                                       embed = embed, subsample=kBET_sub, 
-                                       heuristic=True, verbose=verbose)['kBET'])
+        try:
+            kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
+                                        embed = embed, subsample=kBET_sub, 
+                                        heuristic=True, verbose=verbose)['kBET'])
+        except ValueError:
+            print('Not enough neighbours')
+            kbet_score = 0
     else: 
         kbet_score = np.nan
     results['kBET'] = kbet_score
@@ -1893,7 +1897,11 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if trajectory_:
         print('Trajectory conservation score...')
-        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        try:
+            trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        except scipy.sparse.linalg.eigen.arpack.arpack.ArpackNoConvergence:
+            print('Neighbourhood graph too disconnected')
+            trajectory_score = 0
     else:
         trajectory_score = np.nan
     results['trajectory'] = trajectory_score
