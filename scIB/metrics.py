@@ -861,6 +861,45 @@ def diffusion_nn(adata, k, max_iterations=20):
     return k_indices
 
 
+def eval_subset_nn(adata = adata, label_key = None, verbose=True):
+    # function to determine the median number of sparsely 
+    # connected neihborhoods after subsetting
+    if label_key is None:
+        raise ValueError('`label_key` is required.')
+    if 'neighbors' not in adata.uns:
+        raise ValueError('`neighbors` not in adata object. '\
+                         'Please compute a neighbourhood graph!')
+    
+    if 'distances' not in adata.uns['neighbors']:
+        raise ValueError('`distances` not in adata.uns["neighbors"]. '\
+                         'Please pass an object with distances computed!')
+        
+    
+    #get default number of nearest neighbors    
+    k = adata.uns['neighbors']['params']['n_neighbors']-1 
+    low_median_k = 0
+    cell_types = adata.obs[label_key].cat.categories
+    for cell_type in cell_types:
+   
+        idx = adata.obs[label_key]==cell_type
+        adata_tmp = adata[adata.obs[label_key]==cell_type].copy()
+        dist_mat = sparse.find(adata_tmp.uns['neighbors']['distances'])
+        perc = np.round(np.sum(idx)/adata.n_obs*100,2)
+        _, e = np.unique(dist_mat[0], return_counts=True)
+        median_k = np.nanmedian(e)
+        #determine whether a neighbourhood is sparse i.e. less than half the number of neighbors 
+        #than before subsetting
+        low_median_k += k/median_k>=2
+        if verbose:
+            print(cell_type + ', make ' + str(perc) +' % of the population')
+        
+            print('Median number of nearest neighbors: ' + str(median_k))
+            print('Maximum number of nearest neighbors: ' + str(np.max(e)))
+    avg_low_k = low_median_k/len(cell_types)
+    #return average number of sparsely connected neighborhoods
+    return(avg_low_k)
+
+
 def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     """
     Deprecated
