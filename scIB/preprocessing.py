@@ -167,7 +167,10 @@ def normalize(adata, min_mean = 0.1, log=True):
     
     ro.globalenv['data_mat'] = adata.X.T
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
-    size_factors = ro.r(f'computeSumFactors(data_mat, clusters = input_groups, min.mean = {min_mean})')
+    size_factors = ro.r('BiocGenerics::sizeFactors(computeSumFactors('
+                        'SingleCellExperiment::SingleCellExperiment(list('
+                        'counts=data_mat)), clusters = input_groups, '
+                        f'min.mean = {min_mean}))')
     del adata_pp
     
     # modify adata
