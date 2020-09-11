@@ -166,6 +166,7 @@ def normalize(adata, min_mean = 0.1, log=True):
     sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
     
     ro.globalenv['data_mat'] = adata.X.T
+    ro.r("if (is(data_mat, 'sparseMatrix')) data_mat <- as(data_mat, 'CsparseMatrix')")
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
     size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
                         'list(counts=data_mat)), clusters = input_groups,'
