@@ -185,6 +185,7 @@ def normalize(adata, min_mean = 0.1, log=True):
 
     # Free memory in R
     ro.r('rm(list=ls())')
+    ro.r('lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)')
     ro.r('invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
          'detach, character.only=TRUE, unload=TRUE))')
     ro.r('gc()')
