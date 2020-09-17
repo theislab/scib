@@ -1676,7 +1676,7 @@ def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
     max_neigh = adata_post.obs[adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().idxmax()].index
     min_dpt = [value for value in min_dpt if value in max_neigh]
     
-    adata_post_sub = adata_post[adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().argmax()]
+    adata_post_sub = adata_post[adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().idxmax()]
     
     min_dpt = [adata_post_sub.obs_names.get_loc(i) for i in min_dpt]
     
