@@ -99,7 +99,6 @@ runHarm = function(sobj, batch) {
 	sobj <- ScaleData(sobj)
 	sobj <- RunPCA(sobj, features=rownames(sobj@assays$RNA))
 	sobj <- RunHarmony(sobj, batch)
-	#sobj@reductions['X_emb'] <- sobj@reductions$harmony
 	sobj[['X_emb']] <- sobj[['harmony']]
     #harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
 	return(sobj)
@@ -149,7 +148,6 @@ runFastMNN = function(sobj, batch) {
 	sce <- fastMNN(expr, batch = sobj@meta.data[[batch]])
 
 	sobj@assays$RNA <- CreateAssayObject(assay(sce, "reconstructed"))
-	#sobj@reductions['X_emb'] <- CreateDimReducObject(reducedDim(sce, "corrected"), key='fastmnn_')
 	sobj[['X_emb']] <- CreateDimReducObject(reducedDim(sce, "corrected"), key='fastmnn_')
 
 	return(sobj)
