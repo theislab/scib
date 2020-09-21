@@ -68,7 +68,7 @@ runConos = function(sobj, batch) {
 	require(conos)
 	require(Seurat)
 
-        batch_list <- SplitObject(sobj, split.by=batch)
+      batch_list <- SplitObject(sobj, split.by=batch)
  	pp <- lapply(batch_list, preP)
 
 	con <- Conos$new(pp)
@@ -91,12 +91,12 @@ runHarm = function(sobj, batch) {
 	require(harmony)
 	require(Seurat)
 
-        sobj <- ScaleData(sobj)
+      sobj <- ScaleData(sobj)
 	sobj <- RunPCA(sobj, features=rownames(sobj@assays$RNA))
 	sobj <- RunHarmony(sobj, batch)
 	sobj[['X_emb']] <- sobj[['harmony']]
 
-        return(sobj)
+      return(sobj)
 }
 
 runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
