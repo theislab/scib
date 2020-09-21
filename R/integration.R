@@ -54,9 +54,6 @@ func_profiler = function(expr, chunksize=20000, filename='timing.out', prof.inte
 #   out$time is timing
 #   out$memory is memory use
 
-
-
-
 preP <- function(so, vars.to.regress=NULL, verbose=TRUE, n.pcs=100) {
     if (verbose) {
     message("Running Seurat v3 workflow")
@@ -70,8 +67,8 @@ preP <- function(so, vars.to.regress=NULL, verbose=TRUE, n.pcs=100) {
 runConos = function(sobj, batch) {
 	require(conos)
 	require(Seurat)
-	#sobj <- loadSeuratObject(data)
-	batch_list <- SplitObject(sobj, split.by=batch)
+
+    batch_list <- SplitObject(sobj, split.by=batch)
  	pp <- lapply(batch_list, preP)
 
 	con <- Conos$new(pp)
@@ -79,10 +76,7 @@ runConos = function(sobj, batch) {
 	con$findCommunities()
 	con$embedGraph(method="UMAP")
 
-	#metadata <- data.frame(Cluster=con$clusters$leiden$groups)
-
 	return(con)
-
 }
 
 saveConos = function(con, outdir) {
@@ -96,12 +90,13 @@ saveConos = function(con, outdir) {
 runHarm = function(sobj, batch) {
 	require(harmony)
 	require(Seurat)
-	sobj <- ScaleData(sobj)
+
+    sobj <- ScaleData(sobj)
 	sobj <- RunPCA(sobj, features=rownames(sobj@assays$RNA))
 	sobj <- RunHarmony(sobj, batch)
 	sobj[['X_emb']] <- sobj[['harmony']]
-    #harmonyEmb <- HarmonyMatrix(pca, method, batch, do_pca=F)
-	return(sobj)
+
+    return(sobj)
 }
 
 runLiger = function(sobj, batch, hvg, k=20, res=0.4, small.clust.thresh=20) {
