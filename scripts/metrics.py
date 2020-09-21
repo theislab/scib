@@ -67,9 +67,6 @@ if __name__=='__main__':
         print(f'    setup:\t{setup}')
         print(f'    optimised clustering results:\t{cluster_nmi}')
 
-    ###
-
-
     empty_file = False
 
     print("reading adata before integration")
@@ -109,9 +106,6 @@ if __name__=='__main__':
     if not np.array_equal(adata.obs[batch_key].cat.categories,adata_int.obs[batch_key].cat.categories):
         #pandas uses the table index to match the correct labels
         adata_int.obs[batch_key] = adata.obs[batch_key]
-        #print(adata.obs[batch_key].value_counts())
-        #print(adata_int.obs[batch_key].value_counts())
-
 
     if (n_hvgs is not None) and (adata_int.n_vars < n_hvgs):
         # check number of HVGs to be computed
@@ -186,7 +180,7 @@ if __name__=='__main__':
         hvg_score_ = False
         #lisi_ = False
 
-     # by assay
+    # by assay
     if args.assay == 'atac':
         cell_cycle_ = False
         hvg_score_ = False
@@ -253,6 +247,7 @@ if __name__=='__main__':
     # save metrics' results
     results.to_csv(args.output)
 
+    # Save UMAPs
     outdir = os.path.dirname(args.output)
     print(f'Calculating UMAP...')
     sc.tl.umap(adata_int)
