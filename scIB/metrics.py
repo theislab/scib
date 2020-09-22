@@ -748,6 +748,10 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
+Class NeigborsError(Exception):
+    def __init__(self, message):
+        self.message = message
+    
 ### diffusion for connectivites matrix extension
 def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
     '''
@@ -851,7 +855,7 @@ def diffusion_nn(adata, k, max_iterations=20):
         i+=1
 
     if (M>0).sum(1).min() < (k+1):
-        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'
+        raise NeighborsError(f'could not find {k} nearest neighbors in {max_iterations}'
                          'diffusion steps.\n Please increase max_iterations or reduce'
                          ' k.\n')
     
@@ -1692,6 +1696,8 @@ def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
         else:
             opt = np.argmax
         # count opt cell
+        if len(diffmap_min_dpt) == 0:
+            raise RootCellError('No root cell in largest component')
         min_dpt_cell[opt(diffmap_min_dpt)] += 1
     
     # root cell is cell with max vote
