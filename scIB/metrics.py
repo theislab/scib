@@ -753,7 +753,7 @@ Class NeigborsError(Exception):
         self.message = message
     
 ### diffusion for connectivites matrix extension
-def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
+def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     '''
     This function performs graph diffusion on the connectivities matrix until a
     minimum number `min_k` of entries per row are non-zero.
@@ -821,7 +821,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=20):
 
     
 ### diffusion neighbourhood score
-def diffusion_nn(adata, k, max_iterations=20):
+def diffusion_nn(adata, k, max_iterations=26):
     '''
     This function generates a nearest neighbour list from a connectivities matrix
     as supplied by BBKNN or Conos. This allows us to select a consistent number
@@ -1673,22 +1673,28 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
 
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
+    
     n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_post.uns['neighbors']['connectivities'], directed=False, return_labels=True)
     
     start_clust = adata_pre.obs.groupby([ct_key]).mean()['dpt_pseudotime'].idxmin()
-    min_dpt = np.flatnonzero(adata_pre.obs[ct_key] == start_clust)
-    max_neigh = np.flatnonzero(adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().argmax())
+    min_dpt = adata_pre.obs[adata_pre.obs[ct_key] == start_clust].index
+    #print(min_dpt)
+    max_neigh = adata_post.obs[adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().idxmax()].index
     min_dpt = [value for value in min_dpt if value in max_neigh]
     
+    adata_post_sub = adata_post[adata_post.obs['neighborhood']== adata_post.obs['neighborhood'].value_counts().idxmax()]
+    
+    min_dpt = [adata_post_sub.obs_names.get_loc(i) for i in min_dpt]
+    
     # compute Diffmap for adata_post
-    sc.tl.diffmap(adata_post)
+    sc.tl.diffmap(adata_post_sub)
     
     # determine most extreme cell in adata_post Diffmap
     min_dpt_cell = np.zeros(len(min_dpt))
     for dim in np.arange(dpt_dim):
         
-        diffmap_mean = adata_post.obsm["X_diffmap"][:, dim].mean()
-        diffmap_min_dpt = adata_post.obsm["X_diffmap"][min_dpt, dim]
+        diffmap_mean = adata_post_sub.obsm["X_diffmap"][:, dim].mean()
+        diffmap_min_dpt = adata_post_sub.obsm["X_diffmap"][min_dpt, dim]
         
         # choose optimum function
         if diffmap_min_dpt.mean() < diffmap_mean:
@@ -1701,17 +1707,21 @@ def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
         min_dpt_cell[opt(diffmap_min_dpt)] += 1
     
     # root cell is cell with max vote
-    return min_dpt[np.argmax(min_dpt_cell)]
+    return min_dpt[np.argmax(min_dpt_cell)], adata_post_sub
 
 def trajectory_conservation(adata_pre, adata_post, label_key):
     cell_subset = adata_pre.obs.index[adata_pre.obs["dpt_pseudotime"].notnull()]
     adata_pre_sub = adata_pre[cell_subset]
     adata_post_sub = adata_post[cell_subset]
     
-    adata_post_sub.uns['iroot'] = get_root(adata_pre_sub, adata_post_sub, label_key)
+    iroot, adata_post_sub2 = get_root(adata_pre_sub, adata_post_sub, label_key)
+    adata_post_sub2.uns['iroot'] = iroot
     
-    sc.tl.dpt(adata_post_sub)
-    adata_post_sub.obs['dpt_pseudotime'][adata_post_sub.obs['dpt_pseudotime']>1]=0
+    sc.tl.dpt(adata_post_sub2)
+    adata_post_sub2.obs['dpt_pseudotime'][adata_post_sub2.obs['dpt_pseudotime']>1]=0
+    adata_post_sub.obs['dpt_pseudotime'] = 0
+    adata_post_sub.obs['dpt_pseudotime'] = adata_post_sub2.obs['dpt_pseudotime']
+    adata_post_sub.obs['dpt_pseudotime'].fillna(0)
     return (adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')+1)/2
 
 
