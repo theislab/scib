@@ -1671,6 +1671,10 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     
     return kBET_scores
 
+Class RootCellError(Exception):
+    def __init__(self, message):
+        self.message = message
+
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
     
@@ -1872,7 +1876,7 @@ def metrics(adata, adata_int, batch_key, label_key,
             kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
                                         embed = embed, subsample=kBET_sub, 
                                         heuristic=True, verbose=verbose)['kBET'])
-        except ValueError:
+        except NeighborsError:
             print('Not enough neighbours')
             kbet_score = 0
     else: 
@@ -1915,7 +1919,7 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('Trajectory conservation score...')
         try:
             trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
-        except ValueError:
+        except RootCellError:
             print('No cell of root cluster in largest connected component')
             trajectory_score = 0
     else:
