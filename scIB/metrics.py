@@ -25,6 +25,16 @@ import anndata2ri
 
 import gc
 
+# Define Errors
+class RootCellError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+class NeigborsError(Exception):
+    def __init__(self, message):
+        self.message = message
+ 
+
 ### Silhouette score
 def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     """
@@ -748,10 +758,7 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
-class NeigborsError(Exception):
-    def __init__(self, message):
-        self.message = message
-    
+   
 ### diffusion for connectivites matrix extension
 def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     '''
@@ -1670,10 +1677,6 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     kBET_scores = kBET_scores.reset_index(drop=True)
     
     return kBET_scores
-
-class RootCellError(Exception):
-    def __init__(self, message):
-        self.message = message
 
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
