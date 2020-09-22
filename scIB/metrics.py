@@ -1899,8 +1899,8 @@ def metrics(adata, adata_int, batch_key, label_key,
         print('Trajectory conservation score...')
         try:
             trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
-        except scipy.sparse.linalg.eigen.arpack.arpack.ArpackNoConvergence:
-            print('Neighbourhood graph too disconnected')
+        except ValueError:
+            print('No cell of root cluster in largest connected component')
             trajectory_score = 0
     else:
         trajectory_score = np.nan
