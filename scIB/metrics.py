@@ -748,7 +748,7 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
-Class NeigborsError(Exception):
+class NeigborsError(Exception):
     def __init__(self, message):
         self.message = message
     
@@ -1671,7 +1671,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     
     return kBET_scores
 
-Class RootCellError(Exception):
+class RootCellError(Exception):
     def __init__(self, message):
         self.message = message
 
