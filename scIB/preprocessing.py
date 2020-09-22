@@ -164,9 +164,16 @@ def normalize(adata, min_mean = 0.1, log=True):
     sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
     sc.pp.neighbors(adata_pp)
     sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
-    
-    ro.globalenv['data_mat'] = adata.X.T
-    ro.r("if (is(data_mat, 'sparseMatrix')) data_mat <- as(data_mat, 'CsparseMatrix')")
+
+    X = adata.X.T
+    # convert to CSC if possible. See https://github.com/MarioniLab/scran/issues/70
+    if sparse.issparse(X):
+        if X.nnz > 2**31-1:
+            X = X.tocoo()
+        else:
+            X = X.tocsc()
+
+    ro.global_ev['data_mat'] = X
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
     size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
                         'list(counts=data_mat)), clusters = input_groups,'
