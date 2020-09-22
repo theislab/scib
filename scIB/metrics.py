@@ -30,7 +30,7 @@ class RootCellError(Exception):
     def __init__(self, message):
         self.message = message
 
-class NeigborsError(Exception):
+class NeighborsError(Exception):
     def __init__(self, message):
         self.message = message
  
