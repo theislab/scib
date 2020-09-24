@@ -38,6 +38,18 @@ if(opt$method=='seurat'){
 	out = runSeurat(sobj, opt$b, hvg)
 }
 
+if(opt$method=='seurat_rpca'){
+	if(!is.na(opt$hvg)) {
+		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
+	}
+	else {
+		hvg <- rownames(sobj@assays$RNA)
+	}
+
+	out = runSeuratRPCA(sobj, opt$b, hvg)
+}
+
+
 if(opt$method=='conos'){
 	if(!is.na(opt$hvg)) {
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
