@@ -30,6 +30,7 @@ runSeurat = function(data, batch, hvg=2000) {
         	   features = NULL,
         	   features.to.integrate = NULL,
         	   dims = 1:30,
+        	   k.weight = 100,
         	   weight.reduction = NULL,
         	   sd.weight = 1,
         	   sample.tree = NULL,
@@ -44,16 +45,16 @@ runSeuratRPCA = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
 
-          features <- SelectIntegrationFeatures(batch_list)
+          #features <- SelectIntegrationFeatures(batch_list)
           batch_list <- lapply(X = batch_list, FUN = function(x) {
-		  x  <- ScaleData(x, features = features)
-		  x <- RunPCA(x, features = features)
+		  x  <- ScaleData(x, features = hvg)
+		  x <- RunPCA(x, features = hvg)
 		  return(x)
 	  })
 
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
-	          anchor.features = features,
+	          anchor.features = hvg,
  		  scale = T,
 		  l2.norm = T,
 		  dims = 1:30,
