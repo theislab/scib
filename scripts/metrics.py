@@ -248,7 +248,7 @@ if __name__=='__main__':
     results.to_csv(args.output)
 
     # Calculate embedding
-    if key.startswith('conos'):
+    if args.method.startswith('conos'):
         print('Calculating graph embedding...')
         sc.tl.draw_graph(adata_int)
         # May be named differently depending on packages so get the last key
