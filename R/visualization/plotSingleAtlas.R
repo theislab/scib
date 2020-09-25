@@ -75,8 +75,8 @@ plotSingleAtlas <- function(csv_file_path){
     methods_name <- sapply(str_split(methods, "_"), function(x) x[1])
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
-                                    from = c("Seurat", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat"), 
-                                    to = c("Seurat v3", "MNN", "BBKNN", "TrVAE", "scVI", "LIGER", "ComBat"))
+                                    from = c("Seurat", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat", "Saucie", "Fastmnn", "Desc", "Scanvi", "Scgen"), 
+                                    to = c("Seurat v3", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI", "scGen"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
