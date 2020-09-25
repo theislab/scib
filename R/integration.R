@@ -45,14 +45,14 @@ runSeuratRPCA = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
 
-          batch_list <- lapply(X = batch_list, FUN = function(x) {
-		     ScaleData(object = x)
-	  	     RunPCA(x, features = hvg)
+          features <- SelectIntegrationFeatures(batch_list)
+          batch_list <- lapply(X = objects, FUN = function(x) {
+		  x %>% ScaleData(features = features) %>% RunPCA(features = features)
 	  })
 
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
-	          anchor.features = hvg,
+	          anchor.features = features,
  		  scale = T,
 		  l2.norm = T,
 		  dims = 1:30,
