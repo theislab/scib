@@ -252,12 +252,14 @@ if __name__=='__main__':
         print('Calculating graph embedding...')
         sc.tl.draw_graph(adata_int)
         # May be named differently depending on packages so get the last key
-        graph_key = list(adata.obsm.keys())[-1]
+        graph_key = list(adata_int.obsm.keys())[-1]
         basis = graph_key.lstrip('X_')
+        label = basis.replace('draw_graph_', '').upper()
     else:
         print('Calculating UMAP...')
         sc.tl.umap(adata_int)
         basis = 'umap'
+        label = 'UMAP'
 
     # Save embedding plots
     outdir = os.path.join(os.path.dirname(args.output), "figures")
@@ -273,5 +275,12 @@ if __name__=='__main__':
     fig.set_size_inches(10, 8)
     fig.savefig(os.path.join(outdir, f'{args.method}_{args.type}_batch.png'),
                 bbox_inches='tight')
+
+    # Save embedding coordinates
+    print('Saving embedding coordinates...')
+    adata.obs[label + '1'] = adata.obsm['X_' + basis][:, 0]
+    adata.obs[label + '2'] = adata.obsm['X_' + basis][:, 1]
+    coords = adata.obs[[label_key, batch_key, label + '1', label + '2' ]]
+    coords.to_csv(os.path.join(outdir, f'{args.method}_{args.type}_coords.csv'))
 
     print("done")
