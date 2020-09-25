@@ -173,7 +173,7 @@ def normalize(adata, min_mean = 0.1, log=True):
         else:
             X = X.tocsc()
 
-    ro.global_ev['data_mat'] = X
+    ro.globalenv['data_mat'] = X
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
     size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
                         'list(counts=data_mat)), clusters = input_groups,'
