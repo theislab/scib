@@ -25,6 +25,16 @@ import anndata2ri
 
 import gc
 
+# Define Errors
+class RootCellError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+class NeighborsError(Exception):
+    def __init__(self, message):
+        self.message = message
+ 
+
 ### Silhouette score
 def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     """
@@ -748,6 +758,7 @@ def select_hvg(adata, select=True):
     else:
         return adata
 
+   
 ### diffusion for connectivites matrix extension
 def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     '''
@@ -851,7 +862,7 @@ def diffusion_nn(adata, k, max_iterations=26):
         i+=1
 
     if (M>0).sum(1).min() < (k+1):
-        raise ValueError(f'could not find {k} nearest neighbors in {max_iterations}'
+        raise NeighborsError(f'could not find {k} nearest neighbors in {max_iterations}'
                          'diffusion steps.\n Please increase max_iterations or reduce'
                          ' k.\n')
     
@@ -1698,6 +1709,8 @@ def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
         else:
             opt = np.argmax
         # count opt cell
+        if len(diffmap_min_dpt) == 0:
+            raise RootCellError('No root cell in largest component')
         min_dpt_cell[opt(diffmap_min_dpt)] += 1
     
     # root cell is cell with max vote
@@ -1862,9 +1875,13 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if kBET_:
         print('kBET...')
-        kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
-                                       embed = embed, subsample=kBET_sub, 
-                                       heuristic=True, verbose=verbose)['kBET'])
+        try:
+            kbet_score = 1-np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
+                                        embed = embed, subsample=kBET_sub, 
+                                        heuristic=True, verbose=verbose)['kBET'])
+        except NeighborsError:
+            print('Not enough neighbours')
+            kbet_score = 0
     else: 
         kbet_score = np.nan
     results['kBET'] = kbet_score
@@ -1903,7 +1920,11 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if trajectory_:
         print('Trajectory conservation score...')
-        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        try:
+            trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        except RootCellError:
+            print('No cell of root cluster in largest connected component')
+            trajectory_score = 0
     else:
         trajectory_score = np.nan
     results['trajectory'] = trajectory_score
