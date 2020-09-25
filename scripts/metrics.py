@@ -263,6 +263,7 @@ if __name__=='__main__':
 
     # Save embedding plots
     outdir = os.path.join(os.path.dirname(args.output), "figures")
+    os.mkdir(outdir)
     print(f'Saving embedding plot for labels "{label_key}"...')
     fig = sc.pl.embedding(adata_int, basis=basis, color=label_key,
                           return_fig=True)
