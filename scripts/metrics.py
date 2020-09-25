@@ -263,7 +263,8 @@ if __name__=='__main__':
 
     # Save embedding plots
     outdir = os.path.join(os.path.dirname(args.output), "figures")
-    os.mkdir(outdir)
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
     print(f'Saving embedding plot for labels "{label_key}"...')
     fig = sc.pl.embedding(adata_int, basis=basis, color=label_key,
                           return_fig=True)
@@ -279,9 +280,9 @@ if __name__=='__main__':
 
     # Save embedding coordinates
     print('Saving embedding coordinates...')
-    adata.obs[label + '1'] = adata.obsm['X_' + basis][:, 0]
-    adata.obs[label + '2'] = adata.obsm['X_' + basis][:, 1]
-    coords = adata.obs[[label_key, batch_key, label + '1', label + '2' ]]
+    adata_int.obs[label + '1'] = adata_int.obsm['X_' + basis][:, 0]
+    adata_int.obs[label + '2'] = adata_int.obsm['X_' + basis][:, 1]
+    coords = adata_int.obs[[label_key, batch_key, label + '1', label + '2' ]]
     coords.to_csv(os.path.join(outdir, f'{args.method}_{args.type}_coords.csv'))
 
     print("done")
