@@ -247,17 +247,29 @@ if __name__=='__main__':
     # save metrics' results
     results.to_csv(args.output)
 
-    # Save UMAPs
-    outdir = os.path.dirname(args.output)
-    print(f'Calculating UMAP...')
-    sc.tl.umap(adata_int)
-    print(f'Saving UMAP for labels "{label_key}"...')
-    fig = sc.pl.umap(adata_int, color=label_key, return_fig=True)
+    # Calculate embedding
+    if key.startswith('conos'):
+        print('Calculating graph embedding...')
+        sc.tl.draw_graph(adata_int)
+        # May be named differently depending on packages so get the last key
+        graph_key = list(adata.obsm.keys())[-1]
+        basis = graph_key.lstrip('X_')
+    else:
+        print('Calculating UMAP...')
+        sc.tl.umap(adata_int)
+        basis = 'umap'
+
+    # Save embedding plots
+    outdir = os.path.join(os.path.dirname(args.output), "figures")
+    print(f'Saving embedding plot for labels "{label_key}"...')
+    fig = sc.pl.embedding(adata_int, basis=basis, color=label_key,
+                          return_fig=True)
     fig.set_size_inches(10, 8)
     fig.savefig(os.path.join(outdir, f'{args.method}_{args.type}_labels.png'),
                 bbox_inches='tight')
-    print(f'Saving UMAP for batches "{batch_key}"...')
-    fig = sc.pl.umap(adata_int, color=batch_key, return_fig=True)
+    print(f'Saving embedding plot for batches "{batch_key}"...')
+    fig = sc.pl.embedding(adata_int, basis=basis, color=batch_key,
+                          return_fig=True)
     fig.set_size_inches(10, 8)
     fig.savefig(os.path.join(outdir, f'{args.method}_{args.type}_batch.png'),
                 bbox_inches='tight')
