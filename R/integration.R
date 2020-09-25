@@ -45,9 +45,7 @@ runSeuratRPCA = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
 
-	  batch_list <- lapply(X = batch_list, FUN = function(x) {
-	  	     RunPCA(x, features = hvg)
-	  })
+	  batch_list <- lapply(batch_list, preP)
 
 	  anchors = FindIntegrationAnchors(
 	          object.list = batch_list,
