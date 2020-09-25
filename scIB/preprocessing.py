@@ -180,9 +180,18 @@ def normalize(adata, min_mean = 0.1, log=True):
         sc.pp.log1p(adata)
     else:
         print("No log-transformation performed after normalization.")
+
     # convert to sparse, bc operation always converts to dense
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
+
+    # Free memory in R
+    ro.r('rm(list=ls())')
+    ro.r('lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)')
+    ro.r('invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
+         'detach, character.only=TRUE, unload=TRUE))')
+    ro.r('gc()')
+
 
 def scale_batch(adata, batch):
     """
