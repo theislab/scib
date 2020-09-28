@@ -24,6 +24,9 @@ METHODS: # method name : ouput type(s)
   seurat:
     R: true
     output_type: full
+  seurat_rpca:
+    R: true
+    output_type: full
   saucie:
     output_type:
       - full

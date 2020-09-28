@@ -8,6 +8,7 @@ saveSeuratObject = function(sobj, path) {
 	require(Seurat)
 	saveRDS(sobj, file=path)
 }
+
 runSeurat = function(data, batch, hvg=2000) {
 	  require(Seurat)
 	  batch_list = SplitObject(data, split.by = batch)
@@ -39,6 +40,48 @@ runSeurat = function(data, batch, hvg=2000) {
         	   verbose = T)
 	  return(integrated)
 }
+
+runSeuratRPCA = function(data, batch, hvg=2000) {
+	  require(Seurat)
+	  batch_list = SplitObject(data, split.by = batch)
+
+          #features <- SelectIntegrationFeatures(batch_list)
+          batch_list <- lapply(X = batch_list, FUN = function(x) {
+		  x  <- ScaleData(x, features = hvg)
+		  x <- RunPCA(x, features = hvg)
+		  return(x)
+	  })
+
+	  anchors = FindIntegrationAnchors(
+	          object.list = batch_list,
+	          anchor.features = hvg,
+ 		  scale = T,
+		  l2.norm = T,
+		  dims = 1:30,
+        	  k.anchor = 5,
+        	  k.filter = 200,
+        	  k.score = 30,
+		  reduction = "rpca",
+        	  max.features = 200,
+        	  eps = 0)
+	  integrated = IntegrateData(
+        	   anchorset = anchors,
+		   new.assay.name = "integrated",
+        	   features = NULL,
+        	   features.to.integrate = NULL,
+        	   dims = 1:30,
+        	   k.weight = 100,
+        	   weight.reduction = NULL,
+        	   sd.weight = 1,
+        	   sample.tree = NULL,
+        	   preserve.order = F,
+        	   do.cpp = T,
+        	   eps = 0,
+        	   verbose = T)
+	  return(integrated)
+}
+
+
 func_profiler = function(expr, chunksize=20000, filename='timing.out', prof.interval=0.02) {
 	      Rprof(filename, memory.profiling=T, interval=prof.interval)
 	      res = expr

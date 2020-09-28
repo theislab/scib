@@ -164,8 +164,16 @@ def normalize(adata, min_mean = 0.1, log=True):
     sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
     sc.pp.neighbors(adata_pp)
     sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
-    
-    ro.globalenv['data_mat'] = adata.X.T
+
+    X = adata.X.T
+    # convert to CSC if possible. See https://github.com/MarioniLab/scran/issues/70
+    if sparse.issparse(X):
+        if X.nnz > 2**31-1:
+            X = X.tocoo()
+        else:
+            X = X.tocsc()
+
+    ro.globalenv['data_mat'] = X
     ro.globalenv['input_groups'] = adata_pp.obs['groups']
     size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
                         'list(counts=data_mat)), clusters = input_groups,'
@@ -180,9 +188,18 @@ def normalize(adata, min_mean = 0.1, log=True):
         sc.pp.log1p(adata)
     else:
         print("No log-transformation performed after normalization.")
+
     # convert to sparse, bc operation always converts to dense
     adata.X = sparse.csr_matrix(adata.X)
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
+
+    # Free memory in R
+    ro.r('rm(list=ls())')
+    ro.r('lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)')
+    ro.r('invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
+         'detach, character.only=TRUE, unload=TRUE))')
+    ro.r('gc()')
+
 
 def scale_batch(adata, batch):
     """
