@@ -15,11 +15,12 @@ def join_path(*args):
 
 class ParsedConfig:
 
-    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'cc_variance']
-    OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling', 
+    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated',
+                         'cc_variance', 'benchmarks']
+    OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling',
                          'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
-        
+
     def __init__(self, config):
 
         # TODO: define and check schema of config
@@ -134,7 +135,8 @@ class ParsedConfig:
             "prepare"     : "{method}.h5ad",
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
-            "cc_variance" : "{method}_{o_type}.csv"
+            "cc_variance" : "{method}_{o_type}.csv",
+            "benchmarks"  : None
         }
 
         # in case of R, we need a different suffix for the integration part
@@ -144,7 +146,7 @@ class ParsedConfig:
             file_suffixes["integration"] = "R/{method}.h5ad"
 
         suffix = file_suffixes[file_type]
-        
+
         if level == "single":
             return join_path(self.ROOT, "{scenario}", file_type, "{scaling}", "{hvg}", suffix)
         elif level == "directory_by_setting":
@@ -158,7 +160,7 @@ class ParsedConfig:
         #elif level == "scaled_final":
         #    return join_path(self.ROOT, f"{file_type}_scaled.csv")
 
-        
+
 
 
     def get_all_file_patterns(self, file_type, output_types=None):
@@ -182,7 +184,7 @@ class ParsedConfig:
                     raise ValueError(f"{output_types} not a valid output type")
 
         all_files = []
-        
+
         if file_type == 'metrics_unintegrated':
                 # add unintegrated
                 file_pattern = self.get_filename_pattern("metrics", "single")
@@ -229,4 +231,3 @@ class ParsedConfig:
                     all_files.extend(f)
 
         return all_files
-
