@@ -38,7 +38,7 @@ if(opt$method=='seurat'){
 	out = runSeurat(sobj, opt$b, hvg)
 }
 
-if(opt$method=='seurat_rpca'){
+if(opt$method=='seuratrpca'){
 	if(!is.na(opt$hvg)) {
 		hvg<-unlist(readRDS(opt$hvg), use.names=FALSE)
 	}
