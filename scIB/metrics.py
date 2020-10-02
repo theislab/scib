@@ -376,14 +376,16 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
         sub = adata.obs[adata.obs[label_key] == label].copy()
         label_counts = sub[cluster_key].value_counts()
+        print(label_counts)
         if argmax:
+            print(label_counts.argmax())
             return label_counts.index[label_counts.argmax()]
         return label_counts.max()
 
     
     if cluster:
         opt_louvain(adata_tmp, label_key, cluster_key, function=max_label_per_batch,
-                    label=label, verbose=False)
+                    label=label, verbose=False, inplace=True)
     
         largest_cluster = max_label_per_batch(adata_tmp, label_key, 
                                               cluster_key, label, argmax=True)
