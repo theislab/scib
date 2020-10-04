@@ -23,7 +23,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
         res_max: resolution of maximum score
         score_max: maximum score
         score_all: `pd.DataFrame` containing all scores at resolutions. Can be used to plot the score profile.
-        clustering: only if `inplace=False`, return cluster assingment as `pd.Series`
+        clustering: only if `inplace=False`, return cluster assignment as `pd.Series`
         plot: if `plot=True` plot the score profile over resolution
     """
     
@@ -53,7 +53,8 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
     try:
         adata.uns['neighbors']
     except KeyError:
-        print('computing neigbours for opt_cluster')
+        if verbose:
+            print('computing neigbours for opt_cluster')
         sc.pp.neighbors(adata)
 
     for res in resolutions:
@@ -61,7 +62,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
         score = function(adata, label_key, cluster_key, **kwargs)
         score_all.append(score)
         if score_max < score:
-            scor_max = score
+            score_max = score
             res_max = res
             clustering = adata.obs[cluster_key]
         del adata.obs[cluster_key]
