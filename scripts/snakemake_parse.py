@@ -16,7 +16,8 @@ def join_path(*args):
 class ParsedConfig:
 
     OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated',
-                         'embeddings', 'embeddings_unintegrated', 'cc_variance']
+                         'embeddings', 'embeddings_unintegrated', 'cc_variance',
+                         'benchmarks']
     OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling',
                          'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
@@ -136,7 +137,8 @@ class ParsedConfig:
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
             "embeddings"  : "{method}_{o_type}.csv",
-            "cc_variance" : "{method}_{o_type}.csv"
+            "cc_variance" : "{method}_{o_type}.csv",
+            "benchmarks"  : None
         }
 
         # in case of R, we need a different suffix for the integration part

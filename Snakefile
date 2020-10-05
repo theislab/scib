@@ -304,3 +304,20 @@ rule cc_single:
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
         """
+
+# ------------------------------------------------------------------------------
+# Merge benchmark files
+#
+# Run this after the main pipeline using:
+# snakemake --configfile config.yaml --cores 1 benchmarks
+# ------------------------------------------------------------------------------
+
+rule benchmarks:
+    input:
+        script = "scripts/merge_benchmarks.py"
+    output:
+        cfg.get_filename_pattern("benchmarks", "final")
+    message: "Merge all benchmarks"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell: "{params.cmd} {input.script} -o {output} --root {cfg.ROOT}"
