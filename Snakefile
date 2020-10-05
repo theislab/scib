@@ -196,7 +196,7 @@ rule metrics_single:
         i      = get_integrated_for_metrics,
         script = "scripts/metrics.py"
     output: cfg.get_filename_pattern("metrics", "single")
-    message: 
+    message:
         """
         Metrics {wildcards}
         output: {output}
@@ -207,7 +207,7 @@ rule metrics_single:
         organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
         assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
         hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
-        cmd       = f"conda run -n {cfg.py_env} python"	
+        cmd       = f"conda run -n {cfg.py_env} python"
     shell:
         """
         {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} -m {wildcards.method} \
@@ -245,4 +245,21 @@ rule cc_single:
         {params.cmd} {input.script} -u {input.u} -i {input.i} -o {output} \
         -b {params.batch_key} --assay {params.assay} --type {wildcards.o_type} \
         --hvgs {params.hvgs} --organism {params.organism}
-        """    
+        """
+
+# ------------------------------------------------------------------------------
+# Merge benchmark files
+#
+# Run this after the main pipeline using:
+# snakemake --configfile config.yaml --cores 1 benchmarks
+# ------------------------------------------------------------------------------
+
+rule benchmarks:
+    input:
+        script = "scripts/merge_benchmarks.py"
+    output:
+        cfg.get_filename_pattern("benchmarks", "final")
+    message: "Merge all benchmarks"
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell: "{params.cmd} {input.script} -o {output} --root {cfg.ROOT}"
