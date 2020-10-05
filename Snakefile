@@ -216,6 +216,44 @@ rule metrics_single:
         --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v
         """
 
+
+## recomputed metrics
+rule metrics_recomp:
+    input:
+        tables = cfg.get_all_file_patterns("metrics_recomp")
+    message: "Merge all recomputed metrics"
+    output:
+        cfg.get_filename_pattern("metrics_recomp", "final")
+    params:
+        cmd = f"conda run -n {cfg.py_env} python"
+    shell: "{params.cmd} scripts/merge_metrics.py -i {input.tables} -o {output} --root {cfg.ROOT}"
+
+
+rule metrics_recomp_single:
+    input:
+        u      = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="file"),
+        i      = get_integrated_for_metrics
+    output: cfg.get_filename_pattern("metrics_recomp", "single")
+    message:
+        """
+        Recompute cluster-based metrics {wildcards}
+        output: {output}
+        """
+    params:
+        batch_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="batch_key"),
+        label_key = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="label_key"),
+        organism  = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="organism"),
+        assay     = lambda wildcards: cfg.get_from_scenario(wildcards.scenario, key="assay"),
+        hvgs      = lambda wildcards: cfg.get_feature_selection(wildcards.hvg),
+        cmd       = f"conda run -n {cfg.py_env} python"
+    shell:
+        """
+        {params.cmd} scripts/metrics.py -u {input.u} -i {input.i} -o {output} -m {wildcards.method} \
+        -b {params.batch_key} -l {params.label_key} --type {wildcards.o_type} \
+        --hvgs {params.hvgs} --organism {params.organism} --assay {params.assay} -v --recomp_cluster
+        """
+
+
 # ------------------------------------------------------------------------------
 # Save embeddings
 # ------------------------------------------------------------------------------
