@@ -15,7 +15,7 @@ def join_path(*args):
 
 class ParsedConfig:
 
-    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'cc_variance']
+    OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'metrics_recomp', 'cc_variance']
     OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling', 
                          'directory_by_setting']
     OUTPUT_TYPES      = ['full', 'embed', 'knn']
@@ -134,6 +134,7 @@ class ParsedConfig:
             "prepare"     : "{method}.h5ad",
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
+            "metrics_recomp": "{method}_{o_type}.csv",
             "cc_variance" : "{method}_{o_type}.csv"
         }
 
@@ -217,7 +218,7 @@ class ParsedConfig:
 
                     expanded = expand(file_pattern, method=method, scaling=scaling)
 
-                elif file_type in ['metrics', 'cc_variance']:
+                elif file_type in ['metrics', 'cc_variance', 'metrics_recomp']:
                     file_pattern = self.get_filename_pattern(file_type, file_level)
                     expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
                 else:
