@@ -52,11 +52,9 @@ if __name__=='__main__':
     # Calculate embedding
     if args.method.startswith('conos'):
         print('Calculating graph embedding...')
-        sc.tl.draw_graph(adata)
-        # May be named differently depending on packages so get the last key
-        graph_key = list(adata.obsm.keys())[-1]
-        basis = graph_key.lstrip('X_')
-        label = basis.replace('draw_graph_', '').upper()
+        sc.tl.draw_graph(adata, key_added_ext='graph')
+        basis = 'draw_graph_graph'
+        label = 'Graph'
     else:
         print('Calculating UMAP...')
         sc.tl.umap(adata)
