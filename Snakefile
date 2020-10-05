@@ -250,7 +250,10 @@ rule embeddings_single:
     input:
         adata  = get_integrated_for_metrics,
         script = "scripts/save_embeddings.py"
-    output: cfg.get_filename_pattern("embeddings", "single")
+    output:
+        coords = cfg.get_filename_pattern("embeddings", "single"),
+        batch_png = cfg.get_filename_pattern("embeddings", "single").replace(".csv", "_batch.png"),
+        labels_png = cfg.get_filename_pattern("embeddings", "single").replace(".csv", "_labels.png")
     message:
         """
         SAVE EMBEDDING
@@ -265,7 +268,7 @@ rule embeddings_single:
         cmd       = f"conda run -n {cfg.py_env} python"
     shell:
         """
-        {params.cmd} {input.script} --input {input.adata} --outfile {output} \
+        {params.cmd} {input.script} --input {input.adata} --outfile {output.coords} \
             --method {wildcards.method} --batch_key {params.batch_key} \
             --label_key {params.label_key} --result {wildcards.o_type}
         """
