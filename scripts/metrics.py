@@ -237,7 +237,7 @@ if __name__=='__main__':
         print(f'    PCR:\t{pcr_}')
         print(f'    cell cycle:\t{cell_cycle_}')
         print(f'    iso lab F1:\t{isolated_labels_}')
-        print(f'    iso lab ASW:\t{isolated_labels_ & silhouette_}')
+        print(f'    iso lab ASW:\t{isolated_labels_ and silhouette_}')
         print(f'    HVGs:\t{hvg_score_}')
         print(f'    kBET:\t{kBET_}')
         #print(f'    LISI:\t{lisi_}')
