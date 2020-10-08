@@ -45,7 +45,7 @@ def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
-    asw = scm.silhouette_score(adata.obsm[embed], adata.obs[group_key])
+    asw = scm.silhouette_score(adata.obsm[embed], adata.obs[group_key], metric=metric)
     if scale:
         asw = (asw + 1)/2
     return asw
@@ -329,16 +329,15 @@ def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster",
     """
     
     scores = {}
-    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key,
-                                          n=n, verbose=verbose)
+    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n, verbose=verbose)
     for label in isolated_labels:
-        score = score_isolated_label(adata, label_key, batch_key, cluster_key,
-                                     label, cluster=cluster, verbose=verbose)
+        score = score_isolated_label(adata, label_key, cluster_key, label, cluster=cluster, verbose=verbose)
         scores[label] = score
     
     if all_:
         return scores
     return np.mean(list(scores.values()))
+
 
 def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     """
@@ -349,7 +348,6 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     batch_per_lab = tmp.groupby(label_key).agg({batch_key: "count"})
     
     # threshold for determining when label is considered isolated
-    n_batch = adata.obs[batch_key].nunique()
     if n is None:
         n = batch_per_lab.min().tolist()[0]
     
@@ -361,8 +359,8 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
         print(f"no isolated labels with less than {n} batches")
     return labels
 
-def score_isolated_label(adata, label_key, batch_key, cluster_key,
-                         label, cluster=True, verbose=False, **kwargs):
+
+def score_isolated_label(adata, label_key, cluster_key, label, cluster=True, verbose=False, **kwargs):
     """
     compute label score for a single label
     params:
@@ -371,25 +369,36 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
     
     import sklearn.metrics as scm
     adata_tmp = adata.copy()
-    
-    # cluster optimizing over cluster with largest number of isolated label per batch
+
     def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
+        """cluster optimizing over cluster with largest number of isolated label per batch"""
         sub = adata.obs[adata.obs[label_key] == label].copy()
         label_counts = sub[cluster_key].value_counts()
+        print(label_counts)
         if argmax:
+            print(label_counts.argmax())
             return label_counts.index[label_counts.argmax()]
         return label_counts.max()
 
-    
+    def max_f1(adata, label_key, cluster_key, label, argmax=False):
+        """cluster optimizing over largest F1 score of isolated label"""
+        obs = adata.obs
+        max_cluster = None
+        max_f1 = 0
+        for cluster in obs[cluster_key].unique():
+            y_pred = obs[cluster_key] == cluster
+            y_true = obs[label_key] == label
+            f1 = scm.f1_score(y_pred, y_true)
+            if f1 > max_f1:
+                max_f1 = f1
+                max_cluster = cluster
+        if argmax:
+            return max_cluster
+        return max_f1
+
     if cluster:
-        opt_louvain(adata_tmp, label_key, cluster_key, function=max_label_per_batch,
-                    label=label, verbose=False)
-    
-        largest_cluster = max_label_per_batch(adata_tmp, label_key, 
-                                              cluster_key, label, argmax=True)
-        y_pred = adata_tmp.obs[cluster_key] == largest_cluster
-        y_true = adata_tmp.obs[label_key] == label
-        score = scm.f1_score(y_pred, y_true)
+        opt_louvain(adata_tmp, label_key, cluster_key, function=max_f1, label=label, verbose=False, inplace=True)
+        score = max_f1(adata_tmp, label_key, cluster_key, label, argmax=False)
     else:
         adata_tmp.obs['group'] = adata_tmp.obs[label_key] == label
         score = silhouette(adata_tmp, group_key='group', **kwargs)
@@ -400,6 +409,7 @@ def score_isolated_label(adata, label_key, batch_key, cluster_key,
         print(f"{label}: {score}")
     
     return score
+
 
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
     adata_list = splitBatches(adata, batch, hvg=features)
@@ -1825,10 +1835,10 @@ def metrics(adata, adata_int, batch_key, label_key,
     if silhouette_:
         print('silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(adata_int, group_key=label_key, embed=embed)
+        sil_global = silhouette(adata_int, group_key=label_key, embed=embed, metric=si_metric)
         # silhouette coefficient per batch
         _, sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
-                embed=embed, verbose=False)
+                                       embed=embed, metric=si_metric, verbose=False)
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
@@ -1855,11 +1865,8 @@ def metrics(adata, adata_int, batch_key, label_key,
         print("isolated labels...")
         il_score_clus = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
                                 cluster=True, n=n_isolated, verbose=False)
-        if silhouette_:
-            il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
-                                           cluster=False, n=n_isolated, verbose=False)
-        else:
-            il_score_sil = np.nan
+        il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
+                                       cluster=False, n=n_isolated, verbose=False)
     else:
         il_score_clus = np.nan
         il_score_sil  = np.nan
