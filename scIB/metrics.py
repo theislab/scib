@@ -1,30 +1,32 @@
-import numpy as np
-from scipy import sparse
-import scipy.io as scio
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sklearn
-import scanpy as sc
-import anndata
 #import networkx as nx
 from scIB.utils import *
 from scIB.preprocessing import score_cell_cycle
 from scIB.clustering import opt_louvain
+from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
-from os import mkdir, path, remove, stat
+import sklearn
+
 from time import time
+import cProfile
+from pstats import Stats
+import memory_profiler
+import itertools
+import multiprocessing
 import subprocess
+import tempfile
 import pathlib
+from os import mkdir, path, remove, stat
+import gc
 
 import rpy2.rinterface_lib.callbacks
 import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
 import rpy2.robjects as ro
 import anndata2ri
-
-import gc
 
 # Define Errors
 class RootCellError(Exception):
@@ -41,12 +43,10 @@ def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
     """
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
     """
-    import sklearn.metrics as scm
-    
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
-    asw = scm.silhouette_score(adata.obsm[embed], adata.obs[group_key], metric=metric)
+    asw = sklearn.metrics.silhouette_score(adata.obsm[embed], adata.obs[group_key], metric=metric)
     if scale:
         asw = (asw + 1)/2
     return asw
@@ -64,8 +64,6 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
         all scores: absolute silhouette scores per group label
         group means: if `mean=True`
     """
-    import sklearn.metrics as scm
-
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
@@ -76,9 +74,8 @@ def silhouette_batch(adata, batch_key, group_key, metric='euclidean',
         adata_group = adata[adata.obs[group_key] == group]
         if adata_group.obs[batch_key].nunique() == 1:
             continue
-        sil_per_group = scm.silhouette_samples(adata_group.obsm[embed],
-                                               adata_group.obs[batch_key],
-                                               metric=metric)
+        sil_per_group = sklearn.metrics.silhouette_samples(adata_group.obsm[embed], adata_group.obs[batch_key],
+                                                           metric=metric)
         # take only absolute value
         sil_per_group = [abs(i) for i in sil_per_group]
         if scale:
@@ -169,8 +166,7 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     
     # choose method
     if method in ['max', 'min', 'geometric', 'arithmetic']:
-        from sklearn.metrics import normalized_mutual_info_score
-        nmi_value = normalized_mutual_info_score(group1, group2, average_method=method)
+        nmi_value = sklearn.metrics.normalized_mutual_info_score(group1, group2, average_method=method)
     elif method == "Lancichinetti":
         nmi_value = nmi_Lanc(group1, group2, nmi_dir=nmi_dir)
     elif method == "ONMI":
@@ -190,9 +186,6 @@ def onmi(group1, group2, nmi_dir=None, verbose=True):
     
     if nmi_dir is None:
         raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
-    
-    import subprocess
-    import os
     
     group1_file = write_tmp_labels(group1, to_int=False)
     group2_file = write_tmp_labels(group2, to_int=False)
@@ -230,9 +223,6 @@ def nmi_Lanc(group1, group2, nmi_dir="external/mutual3/", verbose=True):
     if nmi_dir is None:
         raise FileNotFoundError("Please provide the directory of the compiled C code from https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz")
     
-    import subprocess
-    import os
-    
     group1_file = write_tmp_labels(group1, to_int=False)
     group2_file = write_tmp_labels(group2, to_int=False)
     
@@ -255,8 +245,6 @@ def write_tmp_labels(group_assignments, to_int=False, delim='\n'):
     params:
         to_int: rename the unique column entries by integers in range(1,len(group_assignments)+1)
     """
-    import tempfile
-    
     if to_int:
         label_map = {}
         i = 1
@@ -308,8 +296,7 @@ def ari(adata, group1, group2):
     if len(group1) != len(group2):
         raise ValueError(f'different lengths in group1 ({len(group1)}) and group2 ({len(group2)})')
     
-    from sklearn.metrics.cluster import adjusted_rand_score
-    return adjusted_rand_score(group1, group2)
+    return sklearn.metrics.cluster.adjusted_rand_score(group1, group2)
 
 ### Isolated label score
 def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster", 
@@ -373,9 +360,7 @@ def score_isolated_label(adata, label_key, cluster_key, label, cluster=True, ver
         """cluster optimizing over cluster with largest number of isolated label per batch"""
         sub = adata.obs[adata.obs[label_key] == label].copy()
         label_counts = sub[cluster_key].value_counts()
-        print(label_counts)
         if argmax:
-            print(label_counts.argmax())
             return label_counts.index[label_counts.argmax()]
         return label_counts.max()
 
@@ -733,12 +718,10 @@ def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack',
     covariate = pd.get_dummies(covariate).to_numpy()
     
     # fit linear model for n_comps PCs
-    from sklearn.linear_model import LinearRegression
-    from sklearn import metrics as scm
     r2 = []
     for i in range(n_comps):
         pc = X_pca[:, [i]]
-        lm = LinearRegression()
+        lm = sklearn.linear_model.LinearRegression()
         lm.fit(pc, covariate)
         r2_score = lm.score(pc, covariate)
         #pred = lm.predict(pc)
@@ -1396,11 +1379,6 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     n_chunks = 1
     
     if multiprocessing is not None:
-        #import tools needed for multiprocessing
-        import itertools
-        from multiprocessing import Pool
-        import multiprocessing
-    
         #set up multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
@@ -1442,7 +1420,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
 
         if verbose:
             print(f"{n_processes} processes started.")
-        pool = Pool(processes=n_processes)
+        pool = multiprocessing.Pool(processes=n_processes)
         count = np.arange(0, n_processes)
         
         #create argument list for each worker
@@ -1769,10 +1747,6 @@ def measureTM(*args, **kwargs):
     returns:
         tuple : (memory (MB), time (s), list of *args function outputs)
     """
-    import cProfile
-    from pstats import Stats
-    import memory_profiler
-    
     prof = cProfile.Profile()
     out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
     mem = np.max(out[0])- out[0][0]
