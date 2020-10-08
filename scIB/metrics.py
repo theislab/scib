@@ -361,7 +361,9 @@ def score_isolated_label(adata, label_key, cluster_key, label, cluster=True, ver
         """cluster optimizing over cluster with largest number of isolated label per batch"""
         sub = adata.obs[adata.obs[label_key] == label].copy()
         label_counts = sub[cluster_key].value_counts()
+        print(label_counts)
         if argmax:
+            print(label_counts.argmax())
             return label_counts.index[label_counts.argmax()]
         return label_counts.max()
 
