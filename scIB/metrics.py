@@ -15,7 +15,7 @@ import cProfile
 from pstats import Stats
 import memory_profiler
 import itertools
-import multiprocessing
+import multiprocessing as multipro
 import subprocess
 import tempfile
 import pathlib
@@ -1387,7 +1387,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         #set up multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
-            n_cpu = multiprocessing.cpu_count()
+            n_cpu = multipro.cpu_count()
             n_processes = np.max([ n_cpu, 
                                np.ceil(n_cpu/2)]).astype('int')
         else:
@@ -1425,7 +1425,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
 
         if verbose:
             print(f"{n_processes} processes started.")
-        pool = multiprocessing.Pool(processes=n_processes)
+        pool = multipro.Pool(processes=n_processes)
         count = np.arange(0, n_processes)
         
         #create argument list for each worker
