@@ -1376,10 +1376,10 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if verbose:
         print("Compute knn on shortest paths") 
     
-    #set connectivities to 2e-305 if they are lower than 1.7e-308 (because cpp can't handle double values smaller than that).
+    #set connectivities to 3e-308 if they are lower than 1.7e-308 (because cpp can't handle double values smaller than that).
     connectivities = adata.uns['neighbors']['connectivities'] #csr matrix format
-    large_enough = connectivities.data>=2e-305
-    connectivities.data[large_enough==False] = 2e-305
+    large_enough = connectivities.data>=1.7e-308
+    connectivities.data[large_enough==False] = 3e-308
     
     #define number of chunks
     n_chunks = 1
