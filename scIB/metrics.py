@@ -1377,13 +1377,13 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if verbose:
         print("Compute knn on shortest paths") 
     
-    #set connectivities to 3e-308 if they are lower than 1.7e-308 (because cpp can't handle double values smaller than that).
+    #set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
     connectivities = adata.uns['neighbors']['connectivities'] #csr matrix format
-    large_enough = connectivities.data>=1.7e-308
+    large_enough = connectivities.data>=3e-308
     if verbose:
         n_too_small = np.sum(large_enough==False)
         if n_too_small:
-            print(f"{n_too_small} connectivities are too small and will be set to 3e-308")
+            print(f"{n_too_small} connectivities are smaller than 3e-308 and will be set to 3e-308")
             print(connectivities.data[large_enough==False])
     connectivities.data[large_enough==False] = 3e-308
     
