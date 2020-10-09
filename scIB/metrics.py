@@ -9,6 +9,7 @@ from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
 import sklearn
+import sklearn.metrics
 
 from time import time
 import cProfile
