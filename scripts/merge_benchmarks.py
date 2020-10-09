@@ -22,6 +22,11 @@ if __name__=='__main__':
 
     res_list = []
     for file in bench_files:
+
+        if os.stat(file).st_size == 0:
+            print(f'{file} is empty and will be skipped')
+            continue
+
         clean_name = file.replace(args.root, "").replace(".benchmark", "")
         res = pd.read_csv(file, sep='\t')
         res.rename(columns={res.columns[1]: 'h_m_s'}, inplace=True)
@@ -31,3 +36,4 @@ if __name__=='__main__':
 
     results = pd.concat(res_list)
     results.to_csv(args.output, index_label='scenario')
+
