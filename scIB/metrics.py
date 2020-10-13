@@ -10,6 +10,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.io import mmwrite
 import sklearn
 import sklearn.metrics
+import sklearn.linear_model
 
 from time import time
 import cProfile
@@ -1383,6 +1384,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     
     if multiprocessing is not None:
         #set up multiprocessing
+        import multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
             n_cpu = multiprocessing.cpu_count()
