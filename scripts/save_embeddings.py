@@ -46,6 +46,7 @@ if __name__=='__main__':
         scIB.pp.reduce_data(adata, n_top_genes=None, neighbors=True,
                             use_rep='X_emb', pca=False, umap=False)
     elif result == 'full':
+        sc.pp.filter_genes(adata, min_cells=1)
         scIB.pp.reduce_data(adata, n_top_genes=2000, neighbors=True,
                             use_rep='X_pca', pca=True, umap=False)
 
