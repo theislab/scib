@@ -143,9 +143,19 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
         plt.show()
 
 ### Normalisation
-def normalize(adata, min_mean = 0.1, log=True):
+def normalize(adata, min_mean = 0.1, log=True, precluster=True):
     
     checkAdata(adata)
+
+    # Check for 0 count cells
+    if np.any(adata.X.min(axis=0) == 0):
+        raise ValueError('found 0 count cells in the AnnData object.'
+                         ' Please filter these from your dataset.')
+
+    # Check for 0 count genes
+    if np.any(adata.X.min(axis=1) == 0):
+        raise ValueError('found 0 count genes in the AnnData object.'
+                         ' Please filter these from your dataset.')
     
     # massive speedup when working with sparse matrix
     if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
@@ -157,14 +167,6 @@ def normalize(adata, min_mean = 0.1, log=True):
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
     
-    # Preliminary clustering for differentiated normalisation
-    adata_pp = adata.copy()
-    sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
-    sc.pp.log1p(adata_pp)
-    sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
-    sc.pp.neighbors(adata_pp)
-    sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
-
     X = adata.X.T
     # convert to CSC if possible. See https://github.com/MarioniLab/scran/issues/70
     if sparse.issparse(X):
@@ -174,12 +176,27 @@ def normalize(adata, min_mean = 0.1, log=True):
             X = X.tocsc()
 
     ro.globalenv['data_mat'] = X
-    ro.globalenv['input_groups'] = adata_pp.obs['groups']
-    size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
-                        'list(counts=data_mat)), clusters = input_groups,'
-                        f' min.mean = {min_mean}))')
-    del adata_pp
-    
+
+    if precluster:
+        # Preliminary clustering for differentiated normalisation
+        adata_pp = adata.copy()
+        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
+        sc.pp.log1p(adata_pp)
+        sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
+        sc.pp.neighbors(adata_pp)
+        sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
+
+        ro.globalenv['input_groups'] = adata_pp.obs['groups']
+        size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
+                            'list(counts=data_mat)), clusters = input_groups,'
+                            f' min.mean = {min_mean}))')
+
+        del adata_pp
+
+    else:
+        size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
+                            'list(counts=data_mat)), min.mean = {min_mean}))')
+        
     # modify adata
     adata.obs['size_factors'] = size_factors
     adata.X /= adata.obs['size_factors'].values[:,None]
