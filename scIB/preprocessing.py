@@ -143,7 +143,7 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
         plt.show()
 
 ### Normalisation
-def normalize(adata, min_mean = 0.1, log=True, precluster=True):
+def normalize(adata, min_mean = 0.1, log=True, precluster=True, sparsify=True):
     
     checkAdata(adata)
 
@@ -156,7 +156,12 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True):
     if np.any(adata.X.sum(axis=0) == 0):
         raise ValueError('found 0 count genes in the AnnData object.'
                          ' Please filter these from your dataset.')
-    
+
+    if sparsify:
+        # massive speedup when working with sparse matrix
+        if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
+            adata.X = sparse.csr_matrix(adata.X)
+
     anndata2ri.activate()
     ro.r('library("scran")')
     
