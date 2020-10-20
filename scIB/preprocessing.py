@@ -167,10 +167,13 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True, sparsify=True):
     
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
-    
+
+    is_sparse=False
     X = adata.X.T
     # convert to CSC if possible. See https://github.com/MarioniLab/scran/issues/70
     if sparse.issparse(X):
+        is_sparse = True
+        
         if X.nnz > 2**31-1:
             X = X.tocoo()
         else:
@@ -207,8 +210,10 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True, sparsify=True):
     else:
         print("No log-transformation performed after normalization.")
 
-    # convert to sparse, bc operation always converts to dense
-    adata.X = sparse.csr_matrix(adata.X)
+    if is_sparse:
+        # convert to sparse, bc operation always converts to dense
+        adata.X = sparse.csr_matrix(adata.X)
+
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
     # Free memory in R
