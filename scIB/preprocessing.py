@@ -148,12 +148,12 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True):
     checkAdata(adata)
 
     # Check for 0 count cells
-    if np.any(adata.X.sum(axis=0) == 0):
+    if np.any(adata.X.sum(axis=1) == 0):
         raise ValueError('found 0 count cells in the AnnData object.'
                          ' Please filter these from your dataset.')
 
     # Check for 0 count genes
-    if np.any(adata.X.sum(axis=1) == 0):
+    if np.any(adata.X.sum(axis=0) == 0):
         raise ValueError('found 0 count genes in the AnnData object.'
                          ' Please filter these from your dataset.')
     
