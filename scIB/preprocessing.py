@@ -191,7 +191,7 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True):
 
     else:
         size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
-                            'list(counts=data_mat)), min.mean = {min_mean}))')
+                            f'list(counts=data_mat)), min.mean = {min_mean}))')
         
     # modify adata
     adata.obs['size_factors'] = size_factors
