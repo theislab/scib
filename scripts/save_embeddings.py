@@ -7,7 +7,6 @@ import argparse
 import os
 import sys
 import warnings
-from pathlib import Path
 
 warnings.filterwarnings('ignore')
 
@@ -50,16 +49,10 @@ if __name__=='__main__':
     if os.stat(args.input).st_size == 0:
         print(f'{args.input} is empty, empty output files will be created')
 
-        # Delete any old output files
-        for file in [labels_png, batches_png, outfile]:
-            if os.path.exists(file):
-                print(f'Deleting existing {file}')
-                os.remove(file)
-
         # Create empty output files
         for file in [labels_png, batches_png, outfile]:
             print(f'Creating empty {file}')
-            Path(file).touch()
+            open(file, "w").close()
 
         # End script
         sys.exit()
