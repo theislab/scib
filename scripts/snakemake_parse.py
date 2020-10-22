@@ -230,7 +230,7 @@ class ParsedConfig:
 
                     expanded = expand(file_pattern, method=method, scaling=scaling)
 
-                elif file_type in ['metrics', 'cc_variance', 'metrics_recomp']:
+                elif file_type in ['metrics', 'cc_variance', 'embeddings', 'metrics_recomp']:
                     file_pattern = self.get_filename_pattern(file_type, file_level)
                     expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
                 else:
