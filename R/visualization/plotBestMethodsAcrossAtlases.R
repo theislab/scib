@@ -13,9 +13,9 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 # - 'csv_scalability_*_path' would be the path of the scalability files
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
-                                         csv_usability_path = "./scIB Usability  - Sheet4.csv", 
-                                         csv_scalability_time_path = "./scalability_score_time1905.csv", 
-                                         csv_scalability_memory_path = "./scalability_score_memory1905.csv", 
+                                         csv_usability_path = "./usability/usability4bestMethods.csv", 
+                                         csv_scalability_time_path = "./usability/scalability_score_time_revision.csv", 
+                                         csv_scalability_memory_path = "./usability/scalability_score_memory_revision.csv", 
                                          n_atlas_RNA = 5, n_simulation = 2){
   
   metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
@@ -28,9 +28,6 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   metrics <- plyr::mapvalues(metrics, from = c("ASW label", "ASW label/batch", "cell cycle conservation", "hvg overlap", "trajectory", "graph conn"), 
                              to = c("Cell type ASW", "Batch ASW", "CC conservation", "HVG conservation", "trajectory conservation", "graph connectivity"))
   
-  # Remove cLISI 
-  #metrics <- metrics[-grep("cLISI", metrics)]
-  #metrics_tab_lab <- metrics_tab_lab[, -grep("cLISI", colnames(metrics_tab_lab))]
   
   # metrics names as they are supposed to be ordered
   group_batch <- c("PCR batch", "Batch ASW", "iLISI", "graph connectivity", "kBET")
@@ -48,20 +45,14 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   methods_info_full  <- as.character(metrics_tab_lab[,1])
   
   # in case methods names start with /
-  if(substring(methods_info_full[1], 1, 1) == "/"){
-    methods_info_full <- sub("/", "", methods_info_full)
-  }
+  methods_info_full <- sub("^/", "", methods_info_full)
   
-  # Remove trvae full
-  ind.trvae_full <- grep("trvae_full", methods_info_full)
-  if(length(ind.trvae_full) >0){
-    methods_info_full <- methods_info_full[-ind.trvae_full]
-    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
-  }
+  
+  
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   # order scenarios 
-  data.scenarios <- c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
+  data.scenarios <- c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
   
   methods.table.list <- list()
   
@@ -162,7 +153,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("pancreas_jointnorm", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
+                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
                                                     to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)", "Sim 1", "Sim 2"))
   
   # Assign unintegrated overall score to methods that did not run over one/more atlases
@@ -190,7 +181,7 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    if(met == "Scanorama"){
+    if(met %in% c("Scanorama", "fastMNN", "SAUCIE")){
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
     } else{
@@ -202,18 +193,11 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   best_methods_tab <- atlas.rank.ord[sort(keep.best),]
   best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
                             all = F, sort = F)
-  # re-rank the best methods
-  best_methods_tab[, rank.cols] <- apply(best_methods_tab[, rank.cols], 2, function(x) rank(-x, na.last = T, ties.method = "average"))
-  avg.ranks <- apply(best_methods_tab[, rank.cols], 1, mean)
   
   
-  # order atlas.rank by average rank
-  best_methods_tab <- best_methods_tab[order(avg.ranks, decreasing = F), ]
-  best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
-                            all = F, sort = F)
   
   # Delete rows that are empty
-  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == 7)
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == (n_atlas_RNA+n_simulation))
   if(length(rowsNA) >0){
     best_methods_tab <- best_methods_tab[-rowsNA, ]
     }
@@ -223,9 +207,16 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   ########## ADD USABILITY TABLE
   usability_mat <- read.csv(csv_usability_path)
-  avg.usability <- rowMeans(usability_mat[,-1])
-  
-  best_methods_tab$Usability <- avg.usability[match(best_methods_tab$Method, usability_mat$Method)]
+  usability_mat <- usability_mat %>%
+    filter(!(methods %in% c("ComBat", "MNN")))
+  usability_mat$methods <- mapvalues(usability_mat$methods, from = c("ComBat (Scanpy)", "MNNpy"), 
+                                     to = c("ComBat", "MNN"))
+  methods_best <- mapvalues(best_methods_tab$Method, from= c("Seurat v3 RPCA", "Seurat v3 CCA"), 
+                            to = c("Seurat v3", "Seurat v3"))
+  best_methods_tab$`Usability Package` <- usability_mat[match(tolower(methods_best), 
+                                                          tolower(usability_mat$methods)), "Package"]
+  best_methods_tab$`Usability Paper` <- usability_mat[match(tolower(methods_best), 
+                                                          tolower(usability_mat$methods)), "Paper"]
   
   ######### ADD SCALABILITY time and memory
   scalability_time <- read.csv(csv_scalability_time_path)
@@ -233,7 +224,8 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # create comparable strings out of best_methods
   hvg_full <- mapvalues(best_methods_tab$Features, from = c("HVG", "FULL"), to = c("hvg", "full_feature"))
-  methods_string <- tolower(mapvalues(best_methods_tab$Method, from = "Seurat v3", to = "seurat"))
+  methods_string <- tolower(mapvalues(best_methods_tab$Method, from = c("Seurat v3 RPCA", "Seurat v3 CCA"),
+                                      to = c("seuratrpca", "seurat")))
   best_method_string <- paste0(best_methods_tab$Scaling, "/", hvg_full, "/", methods_string)
   
   # match best methods with scalability data
@@ -243,7 +235,8 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
   
-  
+  # Adjust scGen and scANVI names
+  best_methods_tab$Method <- mapvalues(best_methods_tab$Method, from = c("scGen", "scANVI"), to = c("scGen*", "scANVI*"))
   
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
@@ -252,10 +245,10 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
                             group = c("Text", "Text", "Image", "Text", "Text",  
                                       rep("RNA", n_atlas_RNA),
                                       rep("Simulation", n_simulation), 
-                                      "Usability", "Scalability", "Scalability"), 
+                                      "Usability","Usability", "Scalability", "Scalability"), 
                             geom = c("text", "text", "image", "text", "text", 
-                                     rep("bar", n_atlas_RNA + n_simulation + 3)),
-                            width = c(1.5,4,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 3)),
+                                     rep("bar", n_atlas_RNA + n_simulation + 4)),
+                            width = c(1.5,8,2.5,2,2.5, rep(2,n_atlas_RNA + n_simulation + 4)),
                             overlay = F)
   
   # defining colors palette

@@ -8,12 +8,10 @@ library(plyr)
 source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 
-plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
+plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
   
-  atac_small <- read.csv(csv_atac_small_path, sep = ",")
-  atac_large <- read.csv(csv_atac_large_path, sep = ",")
+  metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
   
-  metrics_tab_lab <- rbind(atac_small, atac_large)
     
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
@@ -39,25 +37,20 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   methods_info_full  <- as.character(metrics_tab_lab[,1])
   
   # in case methods names start with /
-  if(substring(methods_info_full[1], 1, 1) == "/"){
-    methods_info_full <- sub("/", "", methods_info_full)
-  }
+  methods_info_full <- sub("^/", "", methods_info_full)
   
-  # Remove trvae full
-  ind.trvae_full <- grep("trvae_full", methods_info_full)
-  if(length(ind.trvae_full) >0){
-  methods_info_full <- methods_info_full[-ind.trvae_full]
-  metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
-  }
+  
+  
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
-  
+  # remove part of the string that comes after small or large
+  data.scenarios <- unlist(sapply(str_split(data.scenarios, "_"), function(x) paste(x[1:5], collapse="_")))
   
   methods.table.list <- list()
   
   ###### Get overall score for each data scenario
   for (dt.sc in data.scenarios){
-    ind.scen <- grep(paste0(dt.sc, "/"), methods_info_full)
+    ind.scen <- grep(dt.sc, methods_info_full, fixed = FALSE)
     methods_info <- methods_info_full[ind.scen]
     metrics_tab_sub <- metrics_tab_lab[ind.scen, ]
     
@@ -67,7 +60,7 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
                                     from = c("Seurat", "Seuratrpca", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat", "Saucie", "Fastmnn", "Desc", "Scanvi", "Scgen"), 
-                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI", "scGen"))
+                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI*", "scGen*"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
@@ -136,14 +129,31 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   
   methods.table.merged <- merge(methods.table.list[[1]], methods.table.list[[2]], by = c("Method", "Output"),
                                 all = T)
-  
+  for(i in 3:length(methods.table.list)){
+    methods.table.merged <- merge(methods.table.merged, methods.table.list[[i]], by = c("Method", "Output"),
+                                  all = T)
+  }
   
   # Rename columns
+  
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("mouse_brain_atac_large_3datasets", "mouse_brain_atac_small_3datasets"),
-                                                    to = c("Brain (mou) large", "Brain (mou) small"))
+                                                    from = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large",
+                                                             "mouse_brain_atac_peaks_small", "mouse_brain_atac_peaks_large",
+                                                             "mouse_brain_atac_genes_small", "mouse_brain_atac_genes_large"),
+                                                    to = c("Brain (mou) Windows small", "Brain (mou) Windows large",
+                                                           "Brain (mou) Peaks small", "Brain (mou) Peaks large",
+                                                           "Brain (mou) Genes small", "Brain (mou) Genes large"))
   # columns to be ranked on
-  rank.cols <- c("Brain (mou) large", "Brain (mou) small")
+  if(remove_genes){
+    rank.cols <- c("Brain (mou) Windows small", "Brain (mou) Windows large",
+                   "Brain (mou) Peaks small", "Brain (mou) Peaks large")
+    methods.table.merged <- subset(methods.table.merged, select = -c(`Brain (mou) Genes small`, `Brain (mou) Genes large`))
+  } else{
+    rank.cols <- c("Brain (mou) Windows small", "Brain (mou) Windows large",
+                   "Brain (mou) Peaks small", "Brain (mou) Peaks large",
+                   "Brain (mou) Genes small", "Brain (mou) Genes large")
+  }
+  
   
   # Assign unintegrated overall score to methods that did not run over one/more atlases
   atlas.ranks <- methods.table.merged
@@ -163,11 +173,11 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   
   # order atlas.rank by average rank
   atlas.rank.ord <- atlas.ranks[order(avg.ranks, decreasing = F), ]
-  
+  write.csv(atlas.rank.ord, file = "ATAC_best_methods_ordered_ranks.csv", quote = F, row.names = F)
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    if(met == "Scanorama"){
+    if(met %in% c("Scanorama", "SAUCIE", "fastMNN")){
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
     } else{
@@ -181,34 +191,50 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
                             all = F, sort = F)
   
   # Delete rows that are empty
-  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == 2)
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == length(rank.cols))
   if(length(rowsNA)>0){
     best_methods_tab <- best_methods_tab[-rowsNA, ]
   }
-
+  write.csv(best_methods_tab, file = "ATAC_best_methods_avgOverallscore.csv", quote = F, row.names = F)
   
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
   
-  
+  # check that columns have the right order
+  best_methods_tab <- best_methods_tab[, c("Ranking","Method","Output", rank.cols)]
   
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
   
-  column_info <- data.frame(id = colnames(best_methods_tab),
-                            group = c("Text", "Text", "Image", "ATAC", "ATAC"), 
-                            geom = c("text", "text", "image", "bar", "bar"),
-                            width = c(1.5,4,2.5,2.5,2.5),
-                            overlay = F)
+  if(remove_genes){
+    column_info <- data.frame(id = colnames(best_methods_tab),
+                              group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2)), 
+                              geom = c("text", "text", "image", rep("bar",4)),
+                              width = c(1.5,4,2.5,rep(2.5, 4)),
+                              overlay = F)
+    
+    # defining colors palette
+    palettes <- list("ATAC_windows" = "Purples",
+                     "ATAC_peaks" = "Oranges")
+  } else{
+    column_info <- data.frame(id = colnames(best_methods_tab),
+                              group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2), rep("ATAC_genes",2)), 
+                              geom = c("text", "text", "image", rep("bar",6)),
+                              width = c(1.5,4,2.5,rep(2.5, 6)),
+                              overlay = F)
+    
+    # defining colors palette
+    palettes <- list("ATAC_windows" = "Purples",
+                     "ATAC_peaks" = "Oranges",
+                     "ATAC_genes" = "Greens")
+  }
   
-  # defining colors palette
-  palettes <- list("ATAC" = "Purples")
   
   
-  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T)
+  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T, remove_genes = remove_genes)
   now <- Sys.time()
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 100, height = 150, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 100, height = 150, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 100, height = 150, units = "mm")
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }

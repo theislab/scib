@@ -44,12 +44,7 @@ plotSingleAtlas <- function(csv_file_path){
   methods_info_full <- sub("/", "", methods_info_full)
   }
   
-  # Remove trvae full
-  ind.trvae_full <- grep("trvae_full", methods_info_full)
-  if(length(ind.trvae_full) >0){
-    methods_info_full <- methods_info_full[-ind.trvae_full]
-    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
-  }
+  
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   
@@ -76,7 +71,7 @@ plotSingleAtlas <- function(csv_file_path){
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
                                     from = c("Seurat", "Seuratrpca", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat", "Saucie", "Fastmnn", "Desc", "Scanvi", "Scgen"), 
-                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI", "scGen"))
+                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI*", "scGen*"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
@@ -156,7 +151,7 @@ plotSingleAtlas <- function(csv_file_path){
                                         rep("Cell type label variance", (1 + n_metrics_bio))), 
                               geom = c("text", "image", "text", "text", "bar", "bar", 
                                        rep("circle", n_metrics_batch), "bar", rep("circle", n_metrics_bio)),
-                              width = c(3.5,2.5,2,1.5,2,2, rep(1,n_metrics_batch), 2, rep(1,n_metrics_bio)),
+                              width = c(8,2.5,2,1.5,2,2, rep(1,n_metrics_batch), 2, rep(1,n_metrics_bio)),
                               overlay = F)
     
     # defining colors palette
@@ -167,9 +162,9 @@ plotSingleAtlas <- function(csv_file_path){
     
     g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F)  
     now <- Sys.time()
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = 297, height = 420, units = "mm")
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = 297, height = 420, units = "mm")
+    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = 297, height = 420, units = "mm")
     
     
   }
