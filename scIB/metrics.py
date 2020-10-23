@@ -680,26 +680,26 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
-        covariate: series or list of batch assignemnts
+        variable: series or list of batch assignments
         n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
         pca_var: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     PCA is only computed, if variance contribution is not given (pca_sd).
     """
-    
+
     if isinstance(data, (np.ndarray, sparse.csr_matrix)):
         matrix = data
     else:
         raise TypeError(f'invalid type: {data.__class__} is not a numpy array or sparse matrix')
-    
+
     # perform PCA if no variance contributions are given
     if pca_var is None:
-        
+
         if n_comps is None or n_comps > min(matrix.shape):
             n_comps = min(matrix.shape)
 
         if n_comps == min(matrix.shape):
             svd_solver = 'full'
-    
+
         if verbose:
             print("compute PCA")
         pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
@@ -710,14 +710,24 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
-    
+
     ## PC Regression
     if verbose:
         print("fit regression on PCs")
-    
-    # one-hot encode categorical values
-    variable = pd.get_dummies(variable).to_numpy()
-    
+
+    # handle categorical values
+    try:
+        categorical = variable.dtype.name == 'category'
+    except:
+        categorical = not isinstance(variable[0], (int, float))
+
+    if categorical:
+        if verbose:
+            print("one-hot encode categorical values")
+        variable = pd.get_dummies(variable).to_numpy()
+    else:
+        variable = np.array(variable).reshape(-1, 1)
+
     # fit linear model for n_comps PCs
     r2 = []
     for i in range(n_comps):
@@ -726,10 +736,10 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
         lm.fit(variable, pc)
         r2_score = lm.score(variable, pc)
         r2.append(r2_score)
-    
+
     Var = pca_var / sum(pca_var) * 100
     R2Var = sum(r2*Var)/100
-    
+
     return R2Var
 
 ### lisi score
