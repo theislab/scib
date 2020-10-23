@@ -718,7 +718,7 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
     # handle categorical values
     try:
         categorical = variable.dtype.name == 'category'
-    except:
+    except AttributeError:
         categorical = not isinstance(variable[0], (int, float))
 
     if categorical:
