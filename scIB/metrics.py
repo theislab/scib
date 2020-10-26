@@ -729,7 +729,7 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
         pc = X_pca[:, [i]]
         lm = sklearn.linear_model.LinearRegression()
         lm.fit(variable, pc)
-        r2_score = lm.score(variable, pc)
+        r2_score = np.maximum(0,lm.score(variable, pc))
         r2.append(r2_score)
 
     Var = pca_var / sum(pca_var) * 100
