@@ -716,17 +716,12 @@ def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack',
         print("fit regression on PCs")
 
     # handle categorical values
-    try:
-        categorical = variable.dtype.name == 'category'
-    except AttributeError:
-        categorical = not isinstance(variable[0], (int, float))
-
-    if categorical:
+    if pd.api.types.is_numeric_dtype(variable):
+        variable = np.array(variable).reshape(-1, 1)
+    else:
         if verbose:
             print("one-hot encode categorical values")
-        variable = pd.get_dummies(variable).to_numpy()
-    else:
-        variable = np.array(variable).reshape(-1, 1)
+        variable = pd.get_dummies(variable)
 
     # fit linear model for n_comps PCs
     r2 = []
