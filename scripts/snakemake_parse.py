@@ -136,9 +136,9 @@ class ParsedConfig:
             "prepare"     : "{method}.h5ad",
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
-            "metrics_recomp": "{method}_{o_type}.csv",
             "embeddings"  : "{method}_{o_type}.csv",
             "cc_variance" : "{method}_{o_type}.csv",
+            "metrics_recomp": "{method}_{o_type}.csv",
             "benchmarks"  : None
         }
 

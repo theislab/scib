@@ -143,43 +143,64 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
         plt.show()
 
 ### Normalisation
-def normalize(adata, min_mean = 0.1, log=True):
+def normalize(adata, min_mean = 0.1, log=True, precluster=True, sparsify=True):
     
     checkAdata(adata)
-    
-    # massive speedup when working with sparse matrix
-    if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
-        adata.X = sparse.csr_matrix(adata.X)
-    
+
+    # Check for 0 count cells
+    if np.any(adata.X.sum(axis=1) == 0):
+        raise ValueError('found 0 count cells in the AnnData object.'
+                         ' Please filter these from your dataset.')
+
+    # Check for 0 count genes
+    if np.any(adata.X.sum(axis=0) == 0):
+        raise ValueError('found 0 count genes in the AnnData object.'
+                         ' Please filter these from your dataset.')
+
+    if sparsify:
+        # massive speedup when working with sparse matrix
+        if not sparse.issparse(adata.X): # quick fix: HVG doesn't work on dense matrix
+            adata.X = sparse.csr_matrix(adata.X)
+
     anndata2ri.activate()
     ro.r('library("scran")')
     
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
-    
-    # Preliminary clustering for differentiated normalisation
-    adata_pp = adata.copy()
-    sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
-    sc.pp.log1p(adata_pp)
-    sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
-    sc.pp.neighbors(adata_pp)
-    sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
 
+    is_sparse=False
     X = adata.X.T
     # convert to CSC if possible. See https://github.com/MarioniLab/scran/issues/70
     if sparse.issparse(X):
+        is_sparse = True
+        
         if X.nnz > 2**31-1:
             X = X.tocoo()
         else:
             X = X.tocsc()
 
     ro.globalenv['data_mat'] = X
-    ro.globalenv['input_groups'] = adata_pp.obs['groups']
-    size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
-                        'list(counts=data_mat)), clusters = input_groups,'
-                        f' min.mean = {min_mean}))')
-    del adata_pp
-    
+
+    if precluster:
+        # Preliminary clustering for differentiated normalisation
+        adata_pp = adata.copy()
+        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
+        sc.pp.log1p(adata_pp)
+        sc.pp.pca(adata_pp, n_comps=15, svd_solver='arpack')
+        sc.pp.neighbors(adata_pp)
+        sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
+
+        ro.globalenv['input_groups'] = adata_pp.obs['groups']
+        size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
+                            'list(counts=data_mat)), clusters = input_groups,'
+                            f' min.mean = {min_mean}))')
+
+        del adata_pp
+
+    else:
+        size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
+                            f'list(counts=data_mat)), min.mean = {min_mean}))')
+        
     # modify adata
     adata.obs['size_factors'] = size_factors
     adata.X /= adata.obs['size_factors'].values[:,None]
@@ -189,8 +210,10 @@ def normalize(adata, min_mean = 0.1, log=True):
     else:
         print("No log-transformation performed after normalization.")
 
-    # convert to sparse, bc operation always converts to dense
-    adata.X = sparse.csr_matrix(adata.X)
+    if is_sparse:
+        # convert to sparse, bc operation always converts to dense
+        adata.X = sparse.csr_matrix(adata.X)
+
     adata.raw = adata # Store the full data set in 'raw' as log-normalised data for statistical testing
 
     # Free memory in R
