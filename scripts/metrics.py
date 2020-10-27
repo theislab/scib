@@ -219,7 +219,7 @@ if __name__=='__main__':
         ari_ = False
         pcr_ = True
         cell_cycle_ = True
-        isolated_labels_ = True
+        isolated_labels_ = False
         hvg_score_ = False
         graph_conn_ = False
         kBET_ = False
