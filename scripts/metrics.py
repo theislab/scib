@@ -225,6 +225,10 @@ if __name__=='__main__':
         kBET_ = False
         lisi_graph_ = False
         trajectory_ = False
+        if args.assay == 'atac':
+            cell_cycle_ = False
+        elif args.assay == 'simulation':
+            cell_cycle_ = False
 
     if adata.n_obs > 300000:
         kBET_=False
