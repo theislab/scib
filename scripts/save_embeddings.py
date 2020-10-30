@@ -5,7 +5,9 @@ import scanpy as sc
 import scIB
 import argparse
 import os
+import sys
 import warnings
+
 warnings.filterwarnings('ignore')
 
 RESULT_TYPES = [
@@ -39,6 +41,22 @@ if __name__=='__main__':
     setup = f'{method}_{result}'
     batch_key = args.batch_key
     label_key = args.label_key
+
+    outdir = os.path.dirname(outfile)
+    labels_png = os.path.join(outdir, f'{setup}_labels.png')
+    batches_png = os.path.join(outdir, f'{setup}_batch.png')
+
+    if os.stat(args.input).st_size == 0:
+        print(f'{args.input} is empty, empty output files will be created')
+
+        # Create empty output files
+        for file in [labels_png, batches_png, outfile]:
+            print(f'Creating empty {file}')
+            open(file, "w").close()
+
+        # End script
+        sys.exit()
+
     adata = sc.read_h5ad(args.input)
 
     print('Preparing dataset...')
@@ -63,19 +81,16 @@ if __name__=='__main__':
         label = 'UMAP'
 
     # Save embedding plots
-    outdir = os.path.dirname(outfile)
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     print(f'Saving embedding plot for labels "{label_key}"...')
     fig = sc.pl.embedding(adata, basis=basis, color=label_key, return_fig=True)
     fig.set_size_inches(10, 8)
-    fig.savefig(os.path.join(outdir, f'{setup}_labels.png'),
-                bbox_inches='tight')
+    fig.savefig(labels_png, bbox_inches='tight')
     print(f'Saving embedding plot for batches "{batch_key}"...')
     fig = sc.pl.embedding(adata, basis=basis, color=batch_key, return_fig=True)
     fig.set_size_inches(10, 8)
-    fig.savefig(os.path.join(outdir, f'{setup}_batch.png'),
-                bbox_inches='tight')
+    fig.savefig(batches_png, bbox_inches='tight')
 
     # Save embedding coordinates
     print('Saving embedding coordinates...')

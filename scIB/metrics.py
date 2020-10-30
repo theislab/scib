@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 #import networkx as nx
@@ -17,7 +18,7 @@ import cProfile
 from pstats import Stats
 import memory_profiler
 import itertools
-import multiprocessing
+import multiprocessing as multipro
 import subprocess
 import tempfile
 import pathlib
@@ -1379,6 +1380,16 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if verbose:
         print("Compute knn on shortest paths") 
     
+    #set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
+    connectivities = adata.uns['neighbors']['connectivities'] #csr matrix format
+    large_enough = connectivities.data>=3e-308
+    if verbose:
+        n_too_small = np.sum(large_enough==False)
+        if n_too_small:
+            print(f"{n_too_small} connectivities are smaller than 3e-308 and will be set to 3e-308")
+            print(connectivities.data[large_enough==False])
+    connectivities.data[large_enough==False] = 3e-308
+    
     #define number of chunks
     n_chunks = 1
     
@@ -1387,7 +1398,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         import multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
-            n_cpu = multiprocessing.cpu_count()
+            n_cpu = multipro.cpu_count()
             n_processes = np.max([ n_cpu, 
                                np.ceil(n_cpu/2)]).astype('int')
         else:
@@ -1404,7 +1415,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     #write to temporary directory
     mtx_file_path = dir_path + 'input.mtx'
     mmwrite(mtx_file_path,
-            adata.uns['neighbors']['connectivities'],
+            connectivities,
             symmetry='general')
     # call knn-graph computation in Cpp
     
@@ -1425,7 +1436,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
 
         if verbose:
             print(f"{n_processes} processes started.")
-        pool = multiprocessing.Pool(processes=n_processes)
+        pool = multipro.Pool(processes=n_processes)
         count = np.arange(0, n_processes)
         
         #create argument list for each worker

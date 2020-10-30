@@ -310,7 +310,30 @@ rule embeddings_single:
             --method {wildcards.method} --batch_key {params.batch_key} \
             --label_key {params.label_key} --result {wildcards.o_type}
         """
+	
+# ------------------------------------------------------------------------------
+# Save categoricals
+# ------------------------------------------------------------------------------
 
+rule cat_single:
+    input:
+        adata  = get_integrated_for_metrics,
+        script = "scripts/save_cat.py"
+    output:
+        obs = cfg.get_filename_pattern("embeddings", "single").replace(".csv", "_obs.csv"),
+    message:
+        """
+        SAVE CAT
+        Input: {input.adata}
+        Output: {output}
+        """
+    params:
+        cmd       = f"conda run -n {cfg.py_env} python"
+    shell:
+        """
+        {params.cmd} {input.script} --input {input.adata} --outfile {obs}
+        """
+	
 # ------------------------------------------------------------------------------
 # Cell cycle score sanity check
 # ------------------------------------------------------------------------------
