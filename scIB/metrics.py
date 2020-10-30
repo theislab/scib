@@ -1506,11 +1506,11 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     #if knn - do not compute a new neighbourhood graph (it exists already)
        
     #compute LISI score
-    ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
+    ilisi_score = lisi_graph_py(adata = adata_tmp, batch_key = batch_key, 
                   n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
-    clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
+    clisi_score = lisi_graph_py(adata = adata_tmp, batch_key = label_key, 
                   n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
