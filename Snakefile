@@ -314,13 +314,39 @@ rule embeddings_single:
 # ------------------------------------------------------------------------------
 # Save categoricals
 # ------------------------------------------------------------------------------
+rule cat_unintegrated:
+    input:
+        cfg.get_all_file_patterns("cat_unintegrated")
+    message:
+        "Collect all unintegrated cat"
+
+rule cat_integrated:
+    input: cfg.get_all_file_patterns("cat")
+    message: "Collect all integrated cat"
+
+all_cat = rules.cat_integrated.input
+if cfg.unintegrated_m:
+    all_cat.extend(rules.cat_unintegrated.input)
+
+rule cat:
+    input:
+        csvs = all_cat
+    output:
+        cfg.get_filename_pattern("cat", "final")
+    message:
+        "Completed all embeddings"
+    shell:
+     """
+     echo '{input.csvs}' | tr " " "\n" > {output}
+     """
+
 
 rule cat_single:
     input:
         adata  = get_integrated_for_metrics,
         script = "scripts/save_cat.py"
     output:
-        obs = cfg.get_filename_pattern("embeddings", "single").replace(".csv", "_obs.csv"),
+        obs = cfg.get_filename_pattern("cat", "single")
     message:
         """
         SAVE CAT
@@ -331,7 +357,7 @@ rule cat_single:
         cmd       = f"conda run -n {cfg.py_env} python"
     shell:
         """
-        {params.cmd} {input.script} --input {input.adata} --outfile {obs}
+        {params.cmd} {input.script} --input {input.adata} --outfile {output.obs}
         """
 	
 # ------------------------------------------------------------------------------
