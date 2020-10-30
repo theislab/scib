@@ -8,11 +8,14 @@ def rewrite(file_path, file_path_recomp):
     if isfile(file_path):
         with open(file_path, 'r') as file:
             data = file.readlines()
-        with open(file_path_recomp, 'r') as file:
-            data_recomp = file.readlines()
-        data[1] = data_recomp[1]
-        data[2] = data_recomp[2]
-        data[7] = data_recomp[7]
+        try:    
+            with open(file_path_recomp, 'r') as file:
+                data_recomp = file.readlines()
+                data[1] = data_recomp[1]
+                data[2] = data_recomp[2]
+                data[7] = data_recomp[7]
+        except:
+            print('recomp file not present')
         new_path = file_path.replace("metrics", "metrics_combined", 1)
         print(dirname(new_path))
         Path(dirname(new_path)).mkdir(parents=True, exist_ok=True)

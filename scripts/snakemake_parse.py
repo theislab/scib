@@ -16,7 +16,7 @@ def join_path(*args):
 class ParsedConfig:
 
     OUTPUT_FILE_TYPES = ['prepare', 'integration', 'metrics', 'metrics_unintegrated', 'metrics_recomp',
-                         'embeddings', 'embeddings_unintegrated', 'cc_variance',
+                         'embeddings', 'embeddings_unintegrated', 'cat', 'cat_unintegrated', 'cc_variance',
                          'benchmarks']
     OUTPUT_LEVELS     = ['single', 'final', 'by_method', 'by_method_scaling',
                          'directory_by_setting']
@@ -137,6 +137,7 @@ class ParsedConfig:
             "integration" : "{method}.h5ad",
             "metrics"     : "{method}_{o_type}.csv",
             "embeddings"  : "{method}_{o_type}.csv",
+            "cat"  : "{method}_{o_type}.csv",
             "cc_variance" : "{method}_{o_type}.csv",
             "metrics_recomp": "{method}_{o_type}.csv",
             "benchmarks"  : None
@@ -204,6 +205,14 @@ class ParsedConfig:
                                    hvg="full_feature",
                                    scaling="unscaled",
                                    method="unintegrated", o_type="full")
+        elif file_type == 'cat_unintegrated':
+                # add unintegrated
+                file_pattern = self.get_filename_pattern("cat", "single")
+                all_files = expand(file_pattern,
+                                   scenario=self.get_all_scenarios(),
+                                   hvg="full_feature",
+                                   scaling="unscaled",
+                                   method="unintegrated", o_type="full")
         else:
             for method in self.METHODS:
 
@@ -230,7 +239,7 @@ class ParsedConfig:
 
                     expanded = expand(file_pattern, method=method, scaling=scaling)
 
-                elif file_type in ['metrics', 'cc_variance', 'embeddings', 'metrics_recomp']:
+                elif file_type in ['metrics', 'cc_variance', 'embeddings', 'cat' ,'metrics_recomp']:
                     file_pattern = self.get_filename_pattern(file_type, file_level)
                     expanded = expand(file_pattern, method=method, o_type=ot, scaling=scaling)
                 else:

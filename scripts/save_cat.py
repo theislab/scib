@@ -37,7 +37,7 @@ if __name__=='__main__':
         print(f'{args.input} is empty, empty output files will be created')
 
         # Create empty output files
-        for file in [labels_png, batches_png, outfile]:
+        for file in [outfile]:
             print(f'Creating empty {file}')
             open(file, "w").close()
 
