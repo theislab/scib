@@ -190,7 +190,17 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     
   }
   
-  best_methods_tab <- atlas.rank.ord[sort(keep.best),]
+  atlas.rank.ord <- atlas.rank.ord[sort(keep.best),]
+  atlas.rank.ord[, rank.cols] <- apply(atlas.rank.ord[, rank.cols], 2, function(x) rank(x, na.last = T, ties.method = "average"))
+  avg.ranks2 <- apply(atlas.rank.ord[, rank.cols], 1, mean)
+  
+  
+  # order atlas.rank by average rank
+  best_methods_tab <- atlas.rank.ord[order(avg.ranks2, decreasing = F), ]
+  
+  
+  
+  
   best_methods_tab <- merge(best_methods_tab[, 1:4], methods.table.merged, by = c("Method", "Output", "Features", "Scaling"),
                             all = F, sort = F)
   
