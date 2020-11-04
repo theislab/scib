@@ -19,7 +19,7 @@ makeSummaryScatter <- function(scores_files) {
         paste0(now_str, "_scatter_summary.pdf"),
         summary_plot,
         # device = cairo_pdf,
-        width = 210, height = 297, units = "mm"
+        width = 297, height = 210, units = "mm"
     )
 
     ggsave(
@@ -27,7 +27,7 @@ makeSummaryScatter <- function(scores_files) {
         summary_plot,
         device = "tiff",
         dpi = "retina",
-        width = 210, height = 297, units = "mm"
+        width = 297, height = 210, units = "mm"
     )
 
     ggsave(
@@ -36,7 +36,7 @@ makeSummaryScatter <- function(scores_files) {
         # device = "png",
         # type = "cairo-png",
         dpi = "retina",
-        width = 210, height = 297, units = "mm"
+        width = 297, height = 210, units = "mm"
     )
 }
 
@@ -56,6 +56,26 @@ makeSummaryScatter <- function(scores_files) {
 plotSummaryScatter <- function(scores) {
 
     `%>%` <- magrittr::`%>%`
+
+    methods_pal <- c(
+        "BBKNN"          = "#5A5156",
+        "Conos"          = "#E4E1E3",
+        "trVAE"          = "#F6222E",
+        "scVI"           = "#FE00FA",
+        "ComBat"         = "#16FF32",
+        "Harmony"        = "#3283FE",
+        "LIGER"          = "#FEAF16",
+        "Scanorama"      = "#B00068",
+        "Seurat v3 CCA"  = "#1CFFCE",
+        "Seurat v3 RPCA" = "#90AD1C",
+        "MNN"            = "#2ED9FF",
+        "fastMNN"        = "#DEA0FD",
+        "scGen*"         = "#AA0DFE",
+        "scANVI*"        = "#F8A19F",
+        "DESC"           = "#325A9B",
+        "SAUCIE"         = "#C4451C",
+        "Unintegrated"   = "#66B0FF"
+    )
 
     scores_int <- scores %>%
         dplyr::filter(Method != "Unintegrated") %>%
@@ -129,12 +149,15 @@ plotSummaryScatter <- function(scores) {
             aes(alpha = Scaling),
             shape = 4, size = 1.5
         ) +
-        scale_colour_brewer(palette = "Paired") +
+        scale_colour_manual(values = methods_pal) +
         scale_size_continuous(range = c(0.5, 3)) +
         scale_shape_manual(
             values = c(16, 21, 15, 22, 17, 24),
-            labels = c("embed (FULL)", "embed (HVG)", "gene (FULL)",
-                       "gene (HVG)", "graph (FULL)", "graph (HVG)")
+            labels = c("Embedding (Full)", "Embedding (HVG)", "Features (Full)",
+                       "Features (HVG)", "Graph (Full)", "Graph (HVG)"),
+            breaks = c("embed_FULL", "embed_HVG", "gene_FULL",
+                       "gene_HVG", "graph_FULL", "graph_HVG"),
+            drop = FALSE
         ) +
         scale_alpha_manual(values = c(1, 0)) +
         scale_linetype_manual(values = c(1, 5)) +
@@ -205,15 +228,19 @@ loadScores <- function(scores_files) {
     `%>%` <- magrittr::`%>%`
 
     dataset_key <- c(
-        pancreas_jointnorm               = "Pancreas",
-        lung_atlas                       = "Lung",
-        immune_cell_hum                  = "Immune (human)",
-        immune_cell_hum_mou              = "Immune (human/mouse)",
-        mouse_brain                      = "Mouse brain",
-        simulations_1_1                  = "Sim 1",
-        simulations_2                    = "Sim 2",
-        mouse_brain_atac_small_3datasets = "ATAC small",
-        mouse_brain_atac_large_3datasets = "ATAC large"
+        pancreas                       = "Pancreas",
+        lung_atlas                     = "Lung",
+        immune_cell_hum                = "Immune (human)",
+        immune_cell_hum_mou            = "Immune (human/mouse)",
+        mouse_brain                    = "Mouse brain",
+        simulations_1_1                = "Sim 1",
+        simulations_2                  = "Sim 2",
+        mouse_brain_atac_genes_large   = "ATAC large (genes)",
+        mouse_brain_atac_peaks_large   = "ATAC large (peaks)",
+        mouse_brain_atac_windows_large = "ATAC large (windows)",
+        mouse_brain_atac_genes_small   = "ATAC small (genes)",
+        mouse_brain_atac_peaks_small   = "ATAC small (peaks)",
+        mouse_brain_atac_windows_small = "ATAC small (windows)"
     )
 
     scores_list <- purrr::map(scores_files, function(.file) {

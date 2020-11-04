@@ -3,9 +3,9 @@ library(ggplot2)
 #' Make best summary scatter
 #'
 #' This function loads the performance scores for the top performing methods
-#' (`loadBestsScores()`), makes the summary scatter plot (`plotBestScatter()`)
+#' (`loadBestScores()`), makes the summary scatter plot (`plotBestScatter()`)
 #' and saves the results in various formats. See individual function docs for
-#'  details.
+#' details.
 #'
 #' @param score_files Passed to `loadBestScores()`
 #'
@@ -112,7 +112,7 @@ plotBestScatter <- function(scores) {
             strip.background = element_rect(fill = "black"),
             strip.text       = element_text(size = 10, colour = "white"),
             legend.title     = element_blank(),
-            legend.text      = element_text(size = 16)
+            legend.text      = element_text(size = 14)
         )
 }
 
@@ -134,7 +134,7 @@ loadBestScores <- function(scores_files) {
     `%>%` <- magrittr::`%>%`
 
     dataset_key <- c(
-        pancreas_jointnorm               = "Pancreas",
+        pancreas                         = "Pancreas",
         lung_atlas                       = "Lung",
         immune_cell_hum                  = "Immune (human)",
         immune_cell_hum_mou              = "Immune (human/mouse)",
@@ -146,17 +146,25 @@ loadBestScores <- function(scores_files) {
     )
 
     best_methods <- c(
-        "BBKNN_graph_HVG_unscaled",
         "Scanorama_embed_HVG_scaled",
-        "scVI_embed_HVG_unscaled",
-        "Conos_graph_HVG_unscaled",
+        "scANVI*_embed_HVG_unscaled",
+        "scGen*_gene_HVG_unscaled",
+        "fastMNN_embed_HVG_unscaled",
+        "BBKNN_graph_HVG_unscaled",
         "Scanorama_gene_HVG_scaled",
-        "ComBat_gene_HVG_unscaled",
-        "MNN_gene_HVG_scaled",
+        "scVI_embed_HVG_unscaled",
+        "Seurat v3 RPCA_gene_HVG_unscaled",
         "Harmony_embed_HVG_unscaled",
-        "Seurat v3_gene_HVG_unscaled",
+        "Seurat v3 CCA_gene_HVG_unscaled",
+        "fastMNN_gene_HVG_unscaled",
+        "Conos_graph_FULL_unscaled",
+        "ComBat_gene_HVG_unscaled",
+        "MNN_gene_HVG_unscaled",
         "trVAE_embed_HVG_unscaled",
-        "LIGER_embed_HVG_unscaled"
+        "DESC_embed_FULL_unscaled",
+        "LIGER_embed_HVG_unscaled",
+        "SAUCIE_embed_HVG_scaled",
+        "SAUCIE_gene_HVG_scaled"
         # "Unintegrated_gene_FULL_unscaled"
     )
 
@@ -199,10 +207,12 @@ loadBestScores <- function(scores_files) {
             MethodVersion = paste(Method, Output, Features, Scaling, sep = "_"),
             OutputFeatures = paste(Output, Features, sep = "_")
         ) %>%
-        dplyr::select(Dataset, Datatype, MethodVersion, Method, OutputFeatures,
-                      Output, Features, Scaling, `Overall Score`,
-                      `Batch Correction`, `Bio conservation`, -X1,
-                      dplyr::everything()) %>%
+        dplyr::select(
+            Dataset, Datatype, MethodVersion, Method, OutputFeatures, Output,
+            Features, Scaling, `Overall Score`, `Batch Correction`,
+            `Bio conservation`, -X1,
+            dplyr::everything()
+        ) %>%
         dplyr::filter(
             MethodVersion %in% best_methods,
             stringr::str_detect(Dataset, "ATAC", negate = TRUE),
