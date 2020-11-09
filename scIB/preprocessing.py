@@ -223,6 +223,8 @@ def normalize(adata, min_mean = 0.1, log=True, precluster=True, sparsify=True):
          'detach, character.only=TRUE, unload=TRUE))')
     ro.r('gc()')
 
+    anndata2ri.deactivate()
+
 
 def scale_batch(adata, batch):
     """
