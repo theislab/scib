@@ -26,7 +26,7 @@
 library(dplyr)
 library(scales)
 library(ggimage)
-
+library(cowplot)
 
 scIB_knit_table <- function(
 data,
@@ -124,7 +124,11 @@ remove_genes = FALSE
                               y0 = rep(row_pos$y, ncol(dat_mat)),
                               r = row_height/2*as.vector(sqrt(dat_mat))
                               )
-    circle_data$r <- rescale(circle_data$r, to = c(0.05, 0.55), from = range(circle_data$r, na.rm = T))
+    for(l in unique(circle_data$label)){
+      ind_l <- which(circle_data$label == l)
+      circle_data[ind_l, "r"] <- rescale(circle_data[ind_l, "r"], to = c(0.05, 0.55), from = range(circle_data[ind_l, "r"], na.rm = T))
+    }
+    
     colors <- NULL
     
     
@@ -215,9 +219,11 @@ remove_genes = FALSE
     cols_bar <- as.character(cols_bar[!is.na(cols_bar)])
     for(c in cols_bar){
       rect_tmp <- rect_data[rect_data$label == c,]
-      rect_tmp <- rect_tmp[order(rect_tmp$value, decreasing = T),]
-      rect_tmp <- rect_tmp[1:3, c("xmin", "xmax", "ymin", "ymax")]
-      rect_tmp <- add_column(rect_tmp, "label_value" = c("1", "2", "3"), .before = "xmin")
+      #rect_tmp <- rect_tmp[order(rect_tmp$value, decreasing = T),]
+      #rect_tmp <- rect_tmp[1:3, c("xmin", "xmax", "ymin", "ymax")]
+      #rect_tmp <- add_column(rect_tmp, "label_value" = c("1", "2", "3"), .before = "xmin")
+      rect_tmp <- add_column(rect_tmp, "label_value" = as.character(rank(-rect_tmp$value, ties.method = "min")))
+      rect_tmp <- rect_tmp[rect_tmp$label_value %in% c("1", "2", "3"), c("label_value", "xmin", "xmax", "ymin", "ymax")]
       rect_tmp <- add_column(rect_tmp, "size" = 2.5, .after = "ymax")
       rect_tmp <- add_column(rect_tmp, "colors" = "black", .after = "size")
       rect_tmp <- add_column(rect_tmp, "fontface" = "plain", .after = "colors")
@@ -280,7 +286,8 @@ remove_genes = FALSE
                                                 function(x) rep(x, nrow(dat_mat)))), 
                              y = rep(row_pos$y, ncol(dat_mat)),
                              image = mapvalues(dat_mat, from = c("graph", "embed", "gene"), 
-                                               to = c("./img/graph.png", "./img/embedding.png", "./img/matrix.png"))
+                                               to = c("./img/graph.png", "./img/embedding.png", "./img/matrix.png")),
+                             stringsAsFactors = FALSE
                              )
     
   }
@@ -593,6 +600,14 @@ remove_genes = FALSE
     g <- g + geom_segment(aes(x = x, xend = xend, y = y, yend = yend, size = size, colour = colour, linetype = linetype), arrow_data, arrow = arrow(length = unit(0.1, "cm")), lineend = "round", linejoin = "bevel")
   }
   
+  # PLOT IMAGES
+  if(length(ind_img) > 0){
+    for(r in 1:nrow(image_data)){
+      g <- g + cowplot::draw_image(image = image_data$image[r], x = image_data[r, "x"]-.5, y = image_data[r, "y"]-.5)
+    }
+    
+  }
+  
   # ADD SIZE
   # reserve a bit more room for text that wants to go outside the frame
   minimum_x <- minimum_x - 2
@@ -607,10 +622,7 @@ remove_genes = FALSE
   
   
   
-  # PLOT IMAGES
-  if(length(ind_img) > 0){
-      g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width")
-  }
+  
   
   
   return(g)

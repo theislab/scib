@@ -12,7 +12,7 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 # - 'csv_file_path' would be the path of the csv file 
 
 
-plotSingleAtlas <- function(csv_file_path){
+plotSingleAtlas <- function(csv_file_path, outdir){
   
   metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
  
@@ -44,6 +44,12 @@ plotSingleAtlas <- function(csv_file_path){
   methods_info_full <- sub("/", "", methods_info_full)
   }
   
+  # Remove trvae full
+  ind.trvae_full <- grep("trvae_full", methods_info_full)
+  if(length(ind.trvae_full) > 0){
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+  }
   
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
@@ -132,7 +138,7 @@ plotSingleAtlas <- function(csv_file_path){
     
     # order methods by the overall score
     metrics_tab <- metrics_tab[order(metrics_tab$`Overall Score`,  decreasing = T), ]
-    write.csv(metrics_tab, file = paste0("./", dt.sc, "_summary_scores.csv"), quote = F)
+    write.csv(metrics_tab, file = paste0(outdir, "/", dt.sc, "_summary_scores.csv"), quote = F)
     
     
     # Delete rows that are empty
@@ -162,9 +168,9 @@ plotSingleAtlas <- function(csv_file_path){
     
     g <- scIB_knit_table(data = metrics_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F)  
     now <- Sys.time()
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = 297, height = 420, units = "mm")
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = 297, height = 420, units = "mm")
-    ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.jpeg"), g, device = "jpeg", dpi = "retina", width = 297, height = 420, units = "mm")
+    ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.pdf"), g, device = cairo_pdf, width = 297, height = 420, units = "mm")
+    ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.tiff"), g, device = "tiff", dpi = "retina", width = 297, height = 420, units = "mm")
+    ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), dt.sc, "_summary_metrics.png"), g, device = "png", dpi = "retina", width = 297, height = 420, units = "mm")
     
     
   }

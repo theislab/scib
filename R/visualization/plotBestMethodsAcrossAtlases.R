@@ -13,6 +13,7 @@ source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to
 # - 'csv_scalability_*_path' would be the path of the scalability files
 
 plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
+                                         outdir,
                                          csv_usability_path = "./usability/usability4bestMethods.csv", 
                                          csv_scalability_time_path = "./usability/scalability_score_time_revision.csv", 
                                          csv_scalability_memory_path = "./usability/scalability_score_memory_revision.csv", 
@@ -47,7 +48,12 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # in case methods names start with /
   methods_info_full <- sub("^/", "", methods_info_full)
   
-  
+  # Remove trvae full
+  ind.trvae_full <- grep("trvae_full", methods_info_full)
+  if(length(ind.trvae_full) > 0){
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+  }
   
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
@@ -270,8 +276,8 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = T)
   now <- Sys.time()
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "BestMethods_summary.png"), g, device = "png", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }

@@ -8,7 +8,7 @@ library(plyr)
 source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
 
 
-plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
+plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag = ""){
   
   metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
   
@@ -39,6 +39,12 @@ plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
   # in case methods names start with /
   methods_info_full <- sub("^/", "", methods_info_full)
   
+  # Remove trvae full
+  ind.trvae_full <- grep("trvae_full", methods_info_full)
+  if(length(ind.trvae_full) >0){
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+  }
   
   
   # data scenarios to be saved in file name
@@ -173,7 +179,7 @@ plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
   
   # order atlas.rank by average rank
   atlas.rank.ord <- atlas.ranks[order(avg.ranks, decreasing = F), ]
-  write.csv(atlas.rank.ord, file = "ATAC_best_methods_ordered_ranks.csv", quote = F, row.names = F)
+  #write.csv(atlas.rank.ord, file = "ATAC_best_methods_ordered_ranks.csv", quote = F, row.names = F)
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
@@ -195,7 +201,8 @@ plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
   if(length(rowsNA)>0){
     best_methods_tab <- best_methods_tab[-rowsNA, ]
   }
-  write.csv(best_methods_tab, file = "ATAC_best_methods_avgOverallscore.csv", quote = F, row.names = F)
+  
+  #write.csv(best_methods_tab, file = "ATAC_best_methods_avgOverallscore.csv", quote = F, row.names = F)
   
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
@@ -233,8 +240,8 @@ plotBestMethodsATAC<- function(csv_file_path, remove_genes = FALSE){
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T, remove_genes = remove_genes)
   now <- Sys.time()
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.png"), g, device = "png", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }
