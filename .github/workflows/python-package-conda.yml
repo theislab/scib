@@ -10,10 +10,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python 3.7
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.7
     - name: Install dependencies
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
@@ -28,4 +28,5 @@ jobs:
     - name: Test with pytest
       run: |
         conda install pytest
+        $CONDA/bin/pip install -r tests/requirements.txt
         $CONDA/bin/pytest
