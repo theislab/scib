@@ -6,6 +6,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+
 def test_silhouette(adata_batch):
     #adata = adata_factory(pca=True, n_top_genes=2000)
     score = scIB.me.silhouette(adata_batch, group_key='celltype', embed='X_pca', scale=True)
@@ -65,7 +66,7 @@ def test_pcr_comparison(adata_batch, embed_factory, verbose=True):
 
     score = scIB.me.pcr_comparison(
         adata, adata_int,
-        covariate='batch', n_comps=50,
+        variable='batch', n_comps=50,
         scale=True, verbose=verbose
     )
     LOGGER.info(f"no PCA precomputed: {score}")
@@ -76,7 +77,7 @@ def test_pcr_comparison(adata_batch, embed_factory, verbose=True):
     adata_int = embed_factory(adata_batch, type_='full')
     score = scIB.me.pcr_comparison(
         adata_batch, adata_int,
-        covariate='batch',
+        variable='batch',
         embed='X_emb', n_comps=50,
         scale=True, verbose=verbose
     )
@@ -88,24 +89,37 @@ def test_pcr_comparison(adata_batch, embed_factory, verbose=True):
     # precomputed PCA
     #adata = adata_factory(pca=True, n_top_genes=2000)
     adata_int = adata_batch.copy()
-    score = scIB.me.pcr_comparison(adata, adata_int, covariate='batch', scale=True, verbose=verbose)
+    score = scIB.me.pcr_comparison(adata, adata_int, variable='batch', scale=True, verbose=verbose)
     LOGGER.info(f"precomputed PCA: {score}")
     assert score == 0  # same PCA values -> difference should be 0
 
 
-def test_cell_cycle(adata_batch):
-    #adata = adata_factory()
-    adata_int = adata_batch.copy()
+def test_cell_cycle(adata_factory):
+    adata = adata_factory()
+    adata_int = adata.copy()
 
     # only final score implementation
-    score = scIB.me.cell_cycle(adata_batch, adata_int, batch_key='batch', organism='mouse',
-                          agg_func=np.mean, verbose=True)
+    score = scIB.me.cell_cycle(
+        adata,
+        adata_int,
+        batch_key='batch',
+        organism='mouse',
+        recompute_cc=True,
+        verbose=True
+    )
     LOGGER.info(f"score: {score}")
     assert score == 1
 
     # get all intermediate scores
-    scores_df = scIB.me.cell_cycle(adata_batch, adata_int, batch_key='batch', organism='mouse',
-                              agg_func=None, verbose=True)
+    scores_df = scIB.me.cell_cycle(
+        adata,
+        adata_int,
+        batch_key='batch',
+        organism='mouse',
+        recompute_cc=True,
+        agg_func=None,
+        verbose=True
+    )
     LOGGER.info(f"score: {scores_df}")
     assert isinstance(scores_df, pd.DataFrame)
     for i in scores_df['score']:
