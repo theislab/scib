@@ -4,6 +4,7 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
+  - r-optparse
   - _libgcc_mutex=0.1=main
   - _r-mutex=1.0.0=anacondar_1
   - anndata2ri=1.0.2=py_0

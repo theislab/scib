@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
  
 CFLAGS=$CFLAGS_OLD
 export CFLAGS
@@ -9,5 +9,5 @@ export LDFLAGS
 unset LDFLAGS_OLD
 
 R_LIBS=$R_LIBS_OLD
-export $R_LIBS
+export R_LIBS
 unset R_LIBS_OLD
