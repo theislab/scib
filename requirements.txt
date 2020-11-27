@@ -2,7 +2,7 @@ numpy
 pandas
 seaborn
 matplotlib
-numba>=0.47
+numba<=0.46
 scanpy==1.4.6
 anndata==0.7.1
 rpy2>=3
@@ -10,16 +10,17 @@ anndata2ri
 scipy
 scikit-learn
 scikit-misc
-keras
-tensorflow
+keras==2.1
+tensorflow==1.15
 loompy==3.0.6
 louvain==0.6.1
+umap-learn==0.3.10
 GraphViz
 icu
 networkx>=2.3
 pydot
 python-igraph
-llvmlite<=0.32.1
+llvmlite==0.30
 memory_profiler
 
 # integration tools
