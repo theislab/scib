@@ -26,8 +26,8 @@ memory_profiler
 bbknn==1.3.9
 scanorama @ git+https://github.com/danielStrobl/scanorama@patch-1#egg=scanorama
 mnnpy==0.1.9.5
-scgen
-trvae==1.1.2
-trvaep==0.1.0
-desc==2.0.3
+#scgen
+#trvae==1.1.2
+#trvaep==0.1.0
+#desc==2.0.3
 
