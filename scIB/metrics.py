@@ -319,7 +319,7 @@ def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster",
     """
     
     scores = {}
-    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n, verbose=verbose)
+    isolated_labels = get_isolated_labels(adata, label_key, batch_key, n=n, verbose=verbose)
     for label in isolated_labels:
         score = score_isolated_label(adata, label_key, cluster_key, label, cluster=cluster, verbose=verbose)
         scores[label] = score
@@ -329,7 +329,7 @@ def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster",
     return np.mean(list(scores.values()))
 
 
-def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
+def get_isolated_labels(adata, label_key, batch_key, n, verbose=False):
     """
     get labels that are considered isolated by the number of batches
     """
