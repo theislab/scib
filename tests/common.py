@@ -2,6 +2,7 @@ import pytest
 import scIB
 import scanpy as sc
 import numpy as np
+import pandas as pd
 import os
 import warnings
 warnings.filterwarnings('ignore')
