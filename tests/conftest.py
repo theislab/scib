@@ -24,7 +24,12 @@ def adata_factory():
 
 @pytest.fixture(scope="module")
 def adata_batch():
-    adata_ref = sc.datasets.pbmc3k_processed()
+    #adata_ref = sc.datasets.pbmc3k_processed()
+    # quick fix for broken dataset paths, should be removed with scanpy>=1.6.0
+    adata_ref = sc.read(
+        "pbmc3k_processed.h5ad",
+        backup_url="https://raw.githubusercontent.com/chanzuckerberg/cellxgene/main/example-dataset/pbmc3k.h5ad"
+    )
     adata = sc.datasets.pbmc68k_reduced()
 
     var_names = adata_ref.var_names.intersection(adata.var_names)
