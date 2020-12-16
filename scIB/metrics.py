@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 #import networkx as nx
@@ -16,7 +17,7 @@ import cProfile
 from pstats import Stats
 import memory_profiler
 import itertools
-import multiprocessing
+import multiprocessing as multipro
 import subprocess
 import tempfile
 import pathlib
@@ -470,7 +471,7 @@ def precompute_cc_score(adata, batch_key, organism='mouse',
             
         covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+        before = pc_regression(raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
         scores_before.update({batch : before})
     
     if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
@@ -533,7 +534,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                 print("score cell cycle")
             
             covariate = raw_sub[['S_score', 'G2M_score']]
-            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            after =  pc_regression(int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
             scores_after.append(after)
             #get score before from list of pre-computed scores
             before = scores_precomp[batch[1]]
@@ -573,10 +574,10 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
                 
             covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-            before = pc_regression(raw_sub.X, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            before = pc_regression(raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
             scores_before.append(before)
         
-            after =  pc_regression(int_sub, covariate, pca_sd=None, n_comps=n_comps, verbose=verbose)
+            after =  pc_regression(int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
             scores_after.append(after)
         
             score = 1 - abs(after - before)/before # scaled result
@@ -668,7 +669,7 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
     elif (recompute_pca == False) and ('X_pca' in adata.obsm) and ('pca' in adata.uns):
         if verbose:
             print("using existing PCA")
-        return pc_regression(adata.obsm['X_pca'], batch, pca_sd=adata.uns['pca']['variance'])
+        return pc_regression(adata.obsm['X_pca'], batch, pca_var=adata.uns['pca']['variance'])
     
     # recompute PCA
     else:
@@ -676,65 +677,65 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
             print(f"compute PCA n_comps: {n_comps}")
         return pc_regression(adata.X, batch, n_comps=n_comps)
 
-def pc_regression(data, covariate, pca_sd=None, n_comps=50, svd_solver='arpack', verbose=False):
+def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack', verbose=False):
     """
     params:
         data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
-        covariate: series or list of batch assignemnts
+        variable: series or list of batch assignments
         n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
-        pca_sd: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
+        pca_var: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
     PCA is only computed, if variance contribution is not given (pca_sd).
     """
-    
+
     if isinstance(data, (np.ndarray, sparse.csr_matrix)):
         matrix = data
     else:
         raise TypeError(f'invalid type: {data.__class__} is not a numpy array or sparse matrix')
-    
+
     # perform PCA if no variance contributions are given
-    if pca_sd is None:
-        
+    if pca_var is None:
+
         if n_comps is None or n_comps > min(matrix.shape):
             n_comps = min(matrix.shape)
 
         if n_comps == min(matrix.shape):
             svd_solver = 'full'
-    
+
         if verbose:
             print("compute PCA")
         pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
                         return_info=True, svd_solver=svd_solver, copy=True)
         X_pca = pca[0].copy()
-        pca_sd = pca[3].copy()
+        pca_var = pca[3].copy()
         del pca
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
-    
+
     ## PC Regression
     if verbose:
         print("fit regression on PCs")
-    
-    # one-hot encode categorical values
-    covariate = pd.get_dummies(covariate).to_numpy()
-    
+
+    # handle categorical values
+    if pd.api.types.is_numeric_dtype(variable):
+        variable = np.array(variable).reshape(-1, 1)
+    else:
+        if verbose:
+            print("one-hot encode categorical values")
+        variable = pd.get_dummies(variable)
+
     # fit linear model for n_comps PCs
     r2 = []
     for i in range(n_comps):
         pc = X_pca[:, [i]]
         lm = sklearn.linear_model.LinearRegression()
-        lm.fit(pc, covariate)
-        r2_score = lm.score(pc, covariate)
-        #pred = lm.predict(pc)
-        #r2_score = scm.r2_score(pred, covariate, multioutput='uniform_average')
-        #print(r2_score)
-        #print(pred)
-        #print(covariate)
+        lm.fit(variable, pc)
+        r2_score = np.maximum(0,lm.score(variable, pc))
         r2.append(r2_score)
-    
-    Var = pca_sd**2 / sum(pca_sd**2) * 100
+
+    Var = pca_var / sum(pca_var) * 100
     R2Var = sum(r2*Var)/100
-    
+
     return R2Var
 
 ### lisi score
@@ -1376,6 +1377,16 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     if verbose:
         print("Compute knn on shortest paths") 
     
+    #set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
+    connectivities = adata.uns['neighbors']['connectivities'] #csr matrix format
+    large_enough = connectivities.data>=3e-308
+    if verbose:
+        n_too_small = np.sum(large_enough==False)
+        if n_too_small:
+            print(f"{n_too_small} connectivities are smaller than 3e-308 and will be set to 3e-308")
+            print(connectivities.data[large_enough==False])
+    connectivities.data[large_enough==False] = 3e-308
+    
     #define number of chunks
     n_chunks = 1
     
@@ -1383,7 +1394,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         #set up multiprocessing
         if nodes is None:
             #take all but one CPU and 1 CPU, if there's only 1 CPU.
-            n_cpu = multiprocessing.cpu_count()
+            n_cpu = multipro.cpu_count()
             n_processes = np.max([ n_cpu, 
                                np.ceil(n_cpu/2)]).astype('int')
         else:
@@ -1400,7 +1411,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
     #write to temporary directory
     mtx_file_path = dir_path + 'input.mtx'
     mmwrite(mtx_file_path,
-            adata.uns['neighbors']['connectivities'],
+            connectivities,
             symmetry='general')
     # call knn-graph computation in Cpp
     
@@ -1421,7 +1432,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
 
         if verbose:
             print(f"{n_processes} processes started.")
-        pool = multiprocessing.Pool(processes=n_processes)
+        pool = multipro.Pool(processes=n_processes)
         count = np.arange(0, n_processes)
         
         #create argument list for each worker
@@ -1495,11 +1506,11 @@ def lisi_graph(adata, batch_key=None, label_key=None, k0=90, type_= None,
     #if knn - do not compute a new neighbourhood graph (it exists already)
        
     #compute LISI score
-    ilisi_score = lisi_graph_py(adata = adata, batch_key = batch_key, 
+    ilisi_score = lisi_graph_py(adata = adata_tmp, batch_key = batch_key, 
                   n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
-    clisi_score = lisi_graph_py(adata = adata, batch_key = label_key, 
+    clisi_score = lisi_graph_py(adata = adata_tmp, batch_key = label_key, 
                   n_neighbors = k0, perplexity=None, subsample = subsample, 
                   multiprocessing = multiprocessing, nodes = nodes, verbose=verbose)
     
@@ -1749,7 +1760,7 @@ def measureTM(*args, **kwargs):
         tuple : (memory (MB), time (s), list of *args function outputs)
     """
     prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True) 
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
     mem = np.max(out[0])- out[0][0]
     print(f'memory usage:{round(mem,0) } MB')
     print(f'runtime: {round(Stats(prof).total_tt,0)} s')
