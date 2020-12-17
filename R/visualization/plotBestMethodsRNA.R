@@ -1,3 +1,37 @@
+#' Plotting scib-metrics result of the integration across multiple RNA scenarios in an
+#'  overview plot that shows the best-performing combination of pre-processing choices for 
+#'  each integration method.
+#'
+#' \code{plotBestMethodsRNA} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
+#'
+#' @param csv_metrics_path path to a .csv file output of scib pipeline that contains the metrics calculated 
+#' across multiple scenarios. All scenarios will be considered for ranking best methods, except simulations.
+#' @param outdir output directory where the plots will be saved.
+#' @param csv_usability_path path to a .csv file containing the results of the usability analysis. 
+#' Default to "/data/usability4bestMethods.csv". 
+#' These scores will NOT be used for ranking best methods.
+#' @param csv_scalability_time_path path to a .csv file containing the results of the scalability analysis, 
+#' regarding run time. Default to "/data/scalability_score_time.csv". 
+#' These scores will NOT be used for ranking best methods.
+#' @param csv_scalability_memory_path path to a .csv file containing the results of the scalability analysis, 
+#' regarding memory consumption. Default to "/data/scalability_score_memory.csv". 
+#' These scores will NOT be used for ranking best methods.
+#' @param ids_RNA character vector of ids for RNA scenarios, as they are named in `csv_metrics_path`.
+#' @param ids_simulation character vector of ids for simulated scenarios, as they are named in `csv_metrics_path`.
+#' @param labels_RNA character vector of label names for RNA scenarios, to rename ids.These names will be plotted in the summary table.
+#' @param labels_simulation character vector of label names for simulated scenarios, to rename ids.These names will be plotted in the summary table.
+#' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
+#' bio conservation is calculated as 1-weight_batch
+#' 
+#' @example 
+#' plotBestMethodsRNA(csv_metrics_path = "./data/metrics_RNA_allTasks.csv", 
+#' ids_RNA = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain"),
+#' ids_simulation = c("simulations_1_1", "simulations_2"),
+#' labels_RNA = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)"),
+#' labels_simulation = c("Sim 1", "Sim 2"))
+#' 
+#' 
+#' 
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
@@ -5,22 +39,20 @@ library(stringr)
 library(Hmisc)
 library(plyr)
 
-source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
+source("knit_table.R") # Please put knit_table.R in your working dir
 
-# parameters: 
-# - 'csv_atlases_path' would be the full path of the csv file with metrics over simulation + real atlases 
-# - 'csv_usability_path' would be the path of the usability sheet (which does not change)
-# - 'csv_scalability_*_path' would be the path of the scalability files
-
-plotBestMethodsAcrossAtlases <- function(csv_atlases_path, 
-                                         outdir,
-                                         csv_usability_path = "./usability/usability4bestMethods.csv", 
-                                         csv_scalability_time_path = "./usability/scalability_score_time_revision.csv", 
-                                         csv_scalability_memory_path = "./usability/scalability_score_memory_revision.csv", 
-                                         n_atlas_RNA = 5, n_simulation = 2){
+plotBestMethodsRNA <- function(csv_metrics_path,
+                               outdir = ".",
+                               csv_usability_path = "./data/usability4bestMethods.csv", 
+                               csv_scalability_time_path = "./data/scalability_score_time.csv", 
+                               csv_scalability_memory_path = "./data/scalability_score_memory.csv", 
+                               ids_RNA, ids_simulation,
+                               labels_RNA, labels_simulation,
+                               weight_batch = 0.4){
   
-  metrics_tab_lab <- read.csv(csv_atlases_path, sep = ",")
-  
+  metrics_tab_lab <- read.csv(csv_metrics_path, sep = ",")
+  n_atlas_RNA <- length(ids_RNA)
+  n_simulation <- length(ids_simulation)
   
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
@@ -58,8 +90,8 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
   # order scenarios 
-  data.scenarios <- c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2")
-  
+  data.scenarios <- data.scenarios[match(c(ids_RNA, ids_simulation), data.scenarios)]
+
   methods.table.list <- list()
   
   ###### Get overall score for each data scenario
@@ -104,6 +136,10 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     col.ordered <- c("Method", metrics.ord)
     metrics_tab <- metrics_tab[, col.ordered]
     
+    #####----- Set cLISI scores to NA for BBKNN
+    #metrics_tab[metrics_tab$Method == "BBKNN", "cLISI"] <- NA
+    
+    
     ## Remove columns that are full NAs
     na.col <- apply(metrics_tab, 2, function(x) sum(is.na(x)) == nrow(metrics_tab))
     # redefine numbers of metrics per group
@@ -127,15 +163,15 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
     scaled_metrics_tab <- apply(scaled_metrics_tab, 2, function(x) scale_minmax(x))
     
     # calculate average score by group and overall
-    score_group1 <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
-    score_group2 <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
+    score_group_batch <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
+    score_group_bio <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
                              na.rm = T)
     
-    score_all <- (0.4*score_group1 + 0.6*score_group2)
+    score_all <- (weight_batch*score_group_batch + (1-weight_batch)*score_group_bio)
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
-    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
-    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = 3+n_metrics_batch)
+    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group_batch, .after = "Overall Score")
+    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group_bio, .after = 3+n_metrics_batch)
     
     metrics_tab <- add_column(metrics_tab, "Output" = method_groups, .after = "Method")
     metrics_tab <- add_column(metrics_tab, "Features" = hvg, .after = "Output")
@@ -159,14 +195,14 @@ plotBestMethodsAcrossAtlases <- function(csv_atlases_path,
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain", "simulations_1_1", "simulations_2"),
-                                                    to = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)", "Sim 1", "Sim 2"))
+                                                    from = c(ids_RNA, ids_simulation),
+                                                    to = c(labels_RNA, labels_simulation))
   
   # Assign unintegrated overall score to methods that did not run over one/more atlases
   
   atlas.ranks <- methods.table.merged
   # columns to be ranked on
-  rank.cols <- c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)")
+  rank.cols <- labels_RNA
   
   for(c in rank.cols){
     na.idx <- is.na(atlas.ranks[,c])

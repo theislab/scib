@@ -20,8 +20,7 @@
 #' @importFrom ggforce geom_arc_bar geom_circle geom_arc
 #' @importFrom cowplot theme_nothing
 #'
-#' @export
-#' 
+
 
 library(dplyr)
 library(scales)
@@ -29,14 +28,14 @@ library(ggimage)
 library(cowplot)
 
 scIB_knit_table <- function(
-data,
-column_info,
-row_info,
-palettes,
-usability = FALSE,
-atac = FALSE,
-atac_best = FALSE,
-remove_genes = FALSE
+  data,
+  column_info,
+  row_info,
+  palettes,
+  usability = FALSE,
+  atac = FALSE,
+  atac_best = FALSE,
+  remove_genes = FALSE
 ) {
   # no point in making these into parameters
   row_height <- 1.1
@@ -219,9 +218,6 @@ remove_genes = FALSE
     cols_bar <- as.character(cols_bar[!is.na(cols_bar)])
     for(c in cols_bar){
       rect_tmp <- rect_data[rect_data$label == c,]
-      #rect_tmp <- rect_tmp[order(rect_tmp$value, decreasing = T),]
-      #rect_tmp <- rect_tmp[1:3, c("xmin", "xmax", "ymin", "ymax")]
-      #rect_tmp <- add_column(rect_tmp, "label_value" = c("1", "2", "3"), .before = "xmin")
       rect_tmp <- add_column(rect_tmp, "label_value" = as.character(rank(-rect_tmp$value, ties.method = "min")))
       rect_tmp <- rect_tmp[rect_tmp$label_value %in% c("1", "2", "3"), c("label_value", "xmin", "xmax", "ymin", "ymax")]
       rect_tmp <- add_column(rect_tmp, "size" = 2.5, .after = "ymax")
@@ -312,7 +308,6 @@ remove_genes = FALSE
   x_min_ranking <- ifelse(atac, minimum_x + 5.5, minimum_x + 10.5)
   x_min_score <-  ifelse(atac, minimum_x + 11, minimum_x + 17)
   
-  #middle_pos_x <- (maximum_x + minimum_x) /2
   leg_max_y <- minimum_y - .5
   
   # Create legend for Output
