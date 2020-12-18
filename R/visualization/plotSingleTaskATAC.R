@@ -1,3 +1,22 @@
+#' Plotting scib-metrics result of the integration for each single ATAC task in an overview table.
+#' Integration methods are ranked from top to bottom based on an 'Overall Score', calculated as weighted
+#' sum of 'Batch correction' (default w:0.4) and 'Bio conservation' (default w:0.6).
+#'
+#' \code{plotSingleTaskATAC} saves in `outdir` one overview table for each task in three formats (.pdf/.tiff/.png)
+#' and a .csv file for each task containing the ranked summary table scores. 
+#'
+#' @param csv_metrics_path path to a .csv file output of scib that contains the metrics calculated 
+#' across one or multiple ATAC tasks. 
+#' @param outdir output directory where the plots and .csv will be saved.
+#' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
+#' bio conservation is calculated as 1-weight_batch
+#' @examples
+#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_atac_large_3batches_gene.csv")
+#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_large3.csv")
+#' 
+
+
+
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
@@ -5,15 +24,13 @@ library(stringr)
 library(Hmisc)
 library(plyr)
 
-source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
-
-# parameter: 
-# 'csv_file_path' would be the full path of the csv file (or not if you have it in the same folder 
+source("knit_table.R") # Please put knit_table.R in your working dir
 
 
-plotSingleAtlasATAC <- function(csv_file_path, outdir){
+
+plotSingleTaskATAC <- function(csv_metrics_path, outdir = ".", weight_batch = 0.4){
   
-  metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
+  metrics_tab_lab <- read.csv(csv_metrics_path, sep = ",")
   
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
@@ -112,15 +129,15 @@ plotSingleAtlasATAC <- function(csv_file_path, outdir){
     scaled_metrics_tab <- apply(scaled_metrics_tab, 2, function(x) scale_minmax(x))
     
     # calculate average score by group and overall
-    score_group1 <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
-    score_group2 <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
+    score_group_batch <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
+    score_group_bio <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
                              na.rm = T)
     
-    score_all <- (0.4*score_group1 + 0.6*score_group2)
+    score_all <- (weight_batch*score_group_batch + (1-weight_batch)*score_group_bio)
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
-    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
-    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = "kBET")
+    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group_batch, .after = "Overall Score")
+    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group_bio, .after = "kBET")
     
     metrics_tab <- add_column(metrics_tab, "Output" = method_groups, .after = "Method")
 
