@@ -11,8 +11,8 @@
 #' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
 #' bio conservation is calculated as 1-weight_batch
 #' @examples
-#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_atac_large_3batches_gene.csv")
-#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_large3.csv")
+#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_atac_large_11batches_gene")
+#' plotSingleTaskATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_large11.csv")
 #' 
 
 

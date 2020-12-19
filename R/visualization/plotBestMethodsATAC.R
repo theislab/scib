@@ -1,3 +1,26 @@
+#' Plotting scib-metrics result of the integration across multiple ATAC tasks in an
+#'  overview plot that shows the best-performing combination of pre-processing choices for 
+#'  each integration method.
+#'
+#' \code{plotBestMethodsATAC} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
+#'
+#' @param csv_metrics_path path to a .csv file output of scib pipeline that contains the metrics calculated 
+#' across multiple tasks. All tasks will be considered for ranking best methods.
+#' @param outdir output directory where the plots will be saved.
+#' @param ids_ATAC character vector of ids for ATAC tasks, as they are named in `csv_metrics_path`.
+#' @param labels_ATAC character vector of label names for ATAC tasks, to rename ids. These names will be plotted in the summary table.
+#' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
+#' bio conservation is calculated as 1-weight_batch.
+#' 
+#' @example 
+#' plotBestMethodsATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_small3_large11.csv", 
+#' ids_ATAC = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large", "mouse_brain_atac_peaks_small", 
+#' "mouse_brain_atac_peaks_large", "mouse_brain_atac_genes_small", "mouse_brain_atac_genes_large"),
+#' labels_ATAC = c("Brain (mou) Windows small", "Brain (mou) Windows large", "Brain (mou) Peaks small", 
+#' "Brain (mou) Peaks large", "Brain (mou) Genes small", "Brain (mou) Genes large"))
+#' 
+#' 
+#' 
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
@@ -5,12 +28,14 @@ library(stringr)
 library(Hmisc)
 library(plyr)
 
-source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
+source("knit_table.R") # Please put knit_table.R in your working dir
 
 
-plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag = ""){
+plotBestMethodsATAC<- function(csv_metrics_path, outdir = ".", 
+                               ids_ATAC, labels_ATAC, 
+                               weight_batch = 0.4){
   
-  metrics_tab_lab <- read.csv(csv_file_path, sep = ",")
+  metrics_tab_lab <- read.csv(csv_metrics_path, sep = ",")
   
     
   # get metrics names from columns
@@ -111,15 +136,15 @@ plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag 
     scaled_metrics_tab <- apply(scaled_metrics_tab, 2, function(x) scale_minmax(x))
     
     # calculate average score by group and overall
-    score_group1 <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
-    score_group2 <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
+    score_group_batch <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
+    score_group_bio <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
                              na.rm = T)
     
-    score_all <- (0.4*score_group1 + 0.6*score_group2)
+    score_all <- (weight_batch*score_group_batch + (1-weight_batch)*score_group_bio)
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
-    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
-    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = "kBET")
+    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group_batch, .after = "Overall Score")
+    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group_bio, .after = "kBET")
     
     metrics_tab <- add_column(metrics_tab, "Output" = method_groups, .after = "Method")
     
@@ -141,24 +166,12 @@ plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag 
   }
   
   # Rename columns
-  
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large",
-                                                             "mouse_brain_atac_peaks_small", "mouse_brain_atac_peaks_large",
-                                                             "mouse_brain_atac_genes_small", "mouse_brain_atac_genes_large"),
-                                                    to = c("Brain (mou) Windows small", "Brain (mou) Windows large",
-                                                           "Brain (mou) Peaks small", "Brain (mou) Peaks large",
-                                                           "Brain (mou) Genes small", "Brain (mou) Genes large"))
+                                                    from = ids_ATAC,
+                                                    to = labels_ATAC)
   # columns to be ranked on
-  if(remove_genes){
-    rank.cols <- c("Brain (mou) Windows small", "Brain (mou) Windows large",
-                   "Brain (mou) Peaks small", "Brain (mou) Peaks large")
-    methods.table.merged <- subset(methods.table.merged, select = -c(`Brain (mou) Genes small`, `Brain (mou) Genes large`))
-  } else{
-    rank.cols <- c("Brain (mou) Windows small", "Brain (mou) Windows large",
-                   "Brain (mou) Peaks small", "Brain (mou) Peaks large",
-                   "Brain (mou) Genes small", "Brain (mou) Genes large")
-  }
+  rank.cols <- labels_ATAC
+
   
   
   # Assign unintegrated overall score to methods that did not run over one/more atlases
@@ -179,7 +192,6 @@ plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag 
   
   # order atlas.rank by average rank
   atlas.rank.ord <- atlas.ranks[order(avg.ranks, decreasing = F), ]
-  #write.csv(atlas.rank.ord, file = "ATAC_best_methods_ordered_ranks.csv", quote = F, row.names = F)
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
@@ -202,8 +214,7 @@ plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag 
     best_methods_tab <- best_methods_tab[-rowsNA, ]
   }
   
-  #write.csv(best_methods_tab, file = "ATAC_best_methods_avgOverallscore.csv", quote = F, row.names = F)
-  
+
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
   
@@ -213,35 +224,25 @@ plotBestMethodsATAC<- function(csv_file_path, outdir, remove_genes = FALSE, tag 
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
   
-  if(remove_genes){
-    column_info <- data.frame(id = colnames(best_methods_tab),
-                              group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2)), 
-                              geom = c("text", "text", "image", rep("bar",4)),
-                              width = c(1.5,4,2.5,rep(2.5, 4)),
-                              overlay = F)
-    
-    # defining colors palette
-    palettes <- list("ATAC_windows" = "Purples",
-                     "ATAC_peaks" = "Oranges")
-  } else{
-    column_info <- data.frame(id = colnames(best_methods_tab),
-                              group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2), rep("ATAC_genes",2)), 
-                              geom = c("text", "text", "image", rep("bar",6)),
-                              width = c(1.5,4,2.5,rep(2.5, 6)),
-                              overlay = F)
-    
-    # defining colors palette
-    palettes <- list("ATAC_windows" = "Purples",
-                     "ATAC_peaks" = "Oranges",
-                     "ATAC_genes" = "Greens")
-  }
+  
+  column_info <- data.frame(id = colnames(best_methods_tab),
+                            group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2), rep("ATAC_genes",2)), 
+                            geom = c("text", "text", "image", rep("bar",6)),
+                            width = c(1.5,4,2.5,rep(2.5, 6)),
+                            overlay = F)
+  
+  # defining colors palette
+  palettes <- list("ATAC_windows" = "Purples",
+                   "ATAC_peaks" = "Oranges",
+                   "ATAC_genes" = "Greens")
   
   
   
-  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T, remove_genes = remove_genes)
+  
+  g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T)
   now <- Sys.time()
-  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
-  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
-  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_", tag,"_summary.png"), g, device = "png", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.png"), g, device = "png", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }

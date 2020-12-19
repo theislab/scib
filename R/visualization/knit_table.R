@@ -34,8 +34,7 @@ scIB_knit_table <- function(
   palettes,
   usability = FALSE,
   atac = FALSE,
-  atac_best = FALSE,
-  remove_genes = FALSE
+  atac_best = FALSE
 ) {
   # no point in making these into parameters
   row_height <- 1.1
@@ -382,15 +381,11 @@ scIB_knit_table <- function(
                            "Usability" = leg_min_x+2,
                            "Scalability" = leg_min_x+3)
     leg_max_x <- leg_min_x+3
-  } else if(atac_best & !remove_genes){
+  } else if(atac_best){
     rank_minimum_x <- list("ATAC_windows" = leg_min_x, 
                            "ATAC_peaks" = leg_min_x+1, 
                            "ATAC_genes" = leg_min_x+2)
     leg_max_x <- leg_min_x+2
-  } else if(atac_best & remove_genes){
-    rank_minimum_x <- list("ATAC_windows" = leg_min_x, 
-                           "ATAC_peaks" = leg_min_x+1)
-    leg_max_x <- leg_min_x+1
   } else{
     rank_minimum_x <- list("Score overall" = leg_min_x, 
                            "Removal of batch effects" = leg_min_x+1, 

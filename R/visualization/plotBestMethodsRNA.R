@@ -1,11 +1,11 @@
-#' Plotting scib-metrics result of the integration across multiple RNA scenarios in an
+#' Plotting scib-metrics result of the integration across multiple RNA tasks in an
 #'  overview plot that shows the best-performing combination of pre-processing choices for 
 #'  each integration method.
 #'
 #' \code{plotBestMethodsRNA} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
 #'
 #' @param csv_metrics_path path to a .csv file output of scib pipeline that contains the metrics calculated 
-#' across multiple scenarios. All scenarios will be considered for ranking best methods, except simulations.
+#' across multiple tasks. All tasks will be considered for ranking best methods, except simulations.
 #' @param outdir output directory where the plots will be saved.
 #' @param csv_usability_path path to a .csv file containing the results of the usability analysis. 
 #' Default to "/data/usability4bestMethods.csv". 
@@ -16,10 +16,10 @@
 #' @param csv_scalability_memory_path path to a .csv file containing the results of the scalability analysis, 
 #' regarding memory consumption. Default to "/data/scalability_score_memory.csv". 
 #' These scores will NOT be used for ranking best methods.
-#' @param ids_RNA character vector of ids for RNA scenarios, as they are named in `csv_metrics_path`.
-#' @param ids_simulation character vector of ids for simulated scenarios, as they are named in `csv_metrics_path`.
-#' @param labels_RNA character vector of label names for RNA scenarios, to rename ids.These names will be plotted in the summary table.
-#' @param labels_simulation character vector of label names for simulated scenarios, to rename ids.These names will be plotted in the summary table.
+#' @param ids_RNA character vector of ids for RNA tasks, as they are named in `csv_metrics_path`.
+#' @param ids_simulation character vector of ids for simulated tasks, as they are named in `csv_metrics_path`.
+#' @param labels_RNA character vector of label names for RNA tasks, to rename ids.These names will be plotted in the summary table.
+#' @param labels_simulation character vector of label names for simulated tasks, to rename ids.These names will be plotted in the summary table.
 #' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
 #' bio conservation is calculated as 1-weight_batch
 #' 
