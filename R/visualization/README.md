@@ -45,3 +45,56 @@ To generate this figure you will need to:
    * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
 
 Exemplary call to the function: `plotBestMethodsRNA(csv_metrics_path = "./data/metrics_RNA_allTasks.csv", outdir = ".", csv_usability_path = "./data/usability4bestMethods.csv", csv_scalability_time_path = "./data/scalability_score_time.csv", csv_scalability_memory_path = "./data/scalability_score_memory.csv", ids_RNA = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain"), ids_simulation = c("simulations_1_1", "simulations_2"), labels_RNA = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)"), labels_simulation = c("Sim 1", "Sim 2"), weight_batch = 0.4)` 
+
+## ATAC
+### Single-Task, single-feature space Summary Tables
+Here we are interested in plotting one summary table for each ATAC task, considering different feature spaces separately. This summary table shows all integration methods ranked by **Overall Score**, which is calculated as weighted sum of **Batch Correction** and **Bio Conservation**. **Batch Correction** and **Bio Conservation** are average scores calculated over all respective metrics, which are shown in the columns of the summary table. Please refer to **Supplementary Figure 25** of the paper for an example.
+
+To generate this figure you will need to:
+1. have a .csv file computed by scib over one (or multiple) ATAC task, containing metrics scores. Exemplary .csv can be found in _data/ATAC_metrics_ folder:
+   * _metrics_ATAC_large11.csv_ contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
+   * _metrics_atac_large_11batches_gene.csv_ contains results of the Mouse Brain Large scenario (11 batches), specific to only one feature space (gene). 
+2. download and place in your _working_dir_ the script _plotSingleTaskATAC.R_;
+3. run `source('plotSingleTaskRNA.R')`;
+4. call **plotSingleTaskATAC**, with the following parameters:
+   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one or multiple ATAC tasks. 
+   * _outdir_: output directory where the plots and a .csv for each task containing the ranked summary table scores will be saved.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+
+Exemplary call to the function: `plotSingleTaskATAC(csv_metrics_path = "./data/metrics_ATAC_large11.csv", outdir = ".", weight_batch = 0.4)`
+
+### Single-Task, all features Summary Tables
+Another way to plot a summary table for ATAC tasks is by considering all feature spaces. This summary table shows, as before, all integration methods ranked by **Overall Score**, but adds one column (_Feature Space_) for genes/windows/peaks. Please refer to **Supplementary Figure 23** of the paper for an example.
+
+To generate this figure you will need to:
+1. have a .csv file computed by scib over one ATAC task, containing metrics scores over multiple feature spaces. Exemplary .csv can be found in _data/ATAC_metrics_ folder:
+   * _metrics_ATAC_large11.csv_ contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
+2. download and place in your _working_dir_ the script _plotSingleATAC_withFeat.R_;
+3. run `source('plotSingleATAC_withFeat.R')`;
+4. call **plotSingleATAC_withFeat**, with the following parameters:
+   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one ATAC task, over multiple feature spaces. 
+   * _outdir_: output directory where the plots and a .csv containing the ranked summary table scores will be saved.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+
+Exemplary call to the function: `plotSingleATAC_withFeat(csv_metrics_path = "./data/metrics_ATAC_large11.csv", outdir = ".", weight_batch = 0.4)`
+
+### Best Methods Summary Table
+Also for ATAC, it is possible to plot a summary table where only the best-performing combinations of pre-processing choices (here only influenced by Output) for each integration method are kept. The methods are then ranked based on their overall performances across ATAC tasks. Please refer to **Figure 4b** of the paper for an example.
+
+To generate this figure you will need to:
+1. have a .csv file computed by scib over multiple ATAC tasks, containing metrics scores. Exemplary .csv can be found in _data_ folder:
+   * _metrics_ATAC_small3_large11.csv_ contains results shown in the paper, for all six ATAC tasks.
+2. download and place in your _working_dir_ the script _plotBestMethodsATAC.R_;
+3. run `source('plotBestMethodsATAC.R')`;
+4. call **plotBestMethodsATAC**, with the following parameters:
+   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across multiple ATAC tasks. 
+   * _outdir_: output directory where the summary table (in three formats: .pdf/.tiff/.png) will be saved.
+   * _ids_ATAC_: character vector of ids for ATAC tasks, as they are named in _csv_metrics_path_.
+   * _labels_ATAC_: character vector of label names for ATAC tasks, to rename ids. These names will be plotted in the summary table.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+
+Exemplary call to the function: `plotBestMethodsATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_small3_large11.csv", 
+ids_ATAC = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large", "mouse_brain_atac_peaks_small", 
+"mouse_brain_atac_peaks_large", "mouse_brain_atac_genes_small", "mouse_brain_atac_genes_large"),
+labels_ATAC = c("Brain (mou) Windows small", "Brain (mou) Windows large", "Brain (mou) Peaks small", 
+"Brain (mou) Peaks large", "Brain (mou) Genes small", "Brain (mou) Genes large"))` 
