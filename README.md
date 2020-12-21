@@ -1,8 +1,10 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
-This repository contains code and analysis for the benchmarking study for data integration tools.
-In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
-60 batches of gene expression and chromatin accessibility data.
+This repository contains the code for our benchmarking study for data integration tools.
+In this study, we benchmark 16 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 68 
+methods combinations on 85 batches of gene expression and chromatin accessibility data.
+This code is used in the  [`scIB pipeline`](https://github.com/theislab/scib-pipeline.git), which allows for reproducible and automated
+analysis of the different steps and combinations of preprocesssing and integration methods.
 
 ![Workflow](./figure.png)
 
