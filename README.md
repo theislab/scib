@@ -91,7 +91,7 @@ Tools that are compared include:
 - [scVI](https://github.com/YosefLab/scVI)
 - [Seurat v3 (CCA and RPCA)](https://github.com/satijalab/seurat)
 - [Harmony](https://github.com/immunogenomics/harmony)
-- [Conos](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
+- [Conos](https://github.com/hms-dbmi/conos)
 - [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [TrVae](https://github.com/theislab/trvae)
