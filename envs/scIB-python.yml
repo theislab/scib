@@ -34,6 +34,7 @@ dependencies:
   - GraphViz
   - igraph
   - openblas
+  - r-essentials
   - r-globals==0.12.5
   - r-listenv==0.8.0
   - r-rlang
@@ -48,10 +49,13 @@ dependencies:
   - r-vctrs
   - xlrd
   - umap-learn==0.3.10
+  - louvain==0.6.1
+  - scvi
   - pip:
     - anndata==0.7.1
     - trvae==1.1.2
     - trvaep==0.1.0
+    - scgen==1.1.5
     - git+git://github.com/danielStrobl/scanorama@patch-1
     - mnnpy==0.1.9.5
     - git+git://github.com/theislab/scib.git  
@@ -60,4 +64,4 @@ dependencies:
     - loompy==3.0.6
     - scikit-misc
     - keras==2.1
-    - louvain==0.6.1
+      #    - louvain==0.6.1
