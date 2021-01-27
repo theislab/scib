@@ -54,10 +54,9 @@ dependencies:
   - umap-learn==0.3.10
   - louvain==0.6.1
   - scvi==0.6.7
-  # - scanorama==1.7
+  - scanorama==1.7.0
   - pip:
     - git+git://github.com/theislab/scib.git
-    - git+git://github.com/danielStrobl/scanorama@patch-1
     - trvae==1.1.2
     - trvaep==0.1.0
     - mnnpy==0.1.9.5
