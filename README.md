@@ -36,7 +36,7 @@ conda env create -f FILENAME.yml
 ``` 
 To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
 and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
-As `Saucie` is not available as a proper python package for the scIB-python env, it needs to be installed manually from [here](https://github.com/KrishnaswamyLab/SAUCIE).
+As `Saucie` is not available as a python package for the scIB-python env, it needs to be installed manually from [here](https://github.com/KrishnaswamyLab/SAUCIE).
 Furthermore, you need to install `kBET` in the `scIB-python` env with `r-devtools` as described [here](https://github.com/theislab/kBET).
 
 In the `scIB-R-integration` environment, R packages need to be installed manually.
