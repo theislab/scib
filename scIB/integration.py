@@ -30,9 +30,6 @@ def runScanorama(adata, batch, hvg = None):
     split = splitBatches(adata.copy(), batch)
     corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = corrected[0].concatenate(corrected[1:])
-    print(corrected.obs)
-    print(corrected.obsm)
-    print(corrected.var)
     corrected.obsm['X_emb'] = corrected.obsm['X_scanorama']
     #corrected.uns['emb']=True
 
