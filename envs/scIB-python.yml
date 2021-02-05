@@ -57,10 +57,10 @@ dependencies:
   - scanorama==1.7.0
   - pip:
     - git+git://github.com/theislab/scib.git
-    - trvae==1.1.2
+    #- trvae==1.1.2
     - trvaep==0.1.0
     - mnnpy==0.1.9.5
-      # - scgen==1.1.5
+    - scgen==1.1.5
       # - desc==2.0.3
       # - keras==2.2.4
     - pydot
