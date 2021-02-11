@@ -81,7 +81,8 @@ def silhouette_batch(adata, batch_key, group_key, embed, metric='euclidean',
     
     for group in adata.obs[group_key].unique():
         adata_group = adata[adata.obs[group_key] == group]
-        if adata_group.obs[batch_key].nunique() == 1:
+        n_batches = adata_group.obs[batch_key].nunique()
+        if (n_batches == 1) or (n_batches == adata_group.shape[0]):
             continue
         sil_per_group = sklearn.metrics.silhouette_samples(adata_group.obsm[embed], adata_group.obs[batch_key],
                                                            metric=metric)
