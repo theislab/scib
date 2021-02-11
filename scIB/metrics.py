@@ -41,27 +41,34 @@ class NeighborsError(Exception):
  
 
 ### Silhouette score
-def silhouette(adata, group_key, metric='euclidean', embed='X_pca', scale=True):
+def silhouette(adata, group_key, embed, metric='euclidean', scale=True):
     """
-    wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating overlapping clusters and -1 indicating misclassified cells
+    wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating
+    overlapping clusters and -1 indicating misclassified cells
+    :param group_key: key in adata.obs of cell labels
+    :param embed: embedding key in adata.obsm, usually 'X_pca'
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f'{embed} not in obsm')
-    asw = sklearn.metrics.silhouette_score(adata.obsm[embed], adata.obs[group_key], metric=metric)
+    asw = sklearn.metrics.silhouette_score(
+        X=adata.obsm[embed],
+        labels=adata.obs[group_key],
+        metric=metric
+    )
     if scale:
         asw = (asw + 1)/2
     return asw
 
-def silhouette_batch(adata, batch_key, group_key, metric='euclidean', 
-                     embed='X_pca', verbose=True, scale=True):
+def silhouette_batch(adata, batch_key, group_key, embed, metric='euclidean',
+                     verbose=True, scale=True):
     """
     Silhouette score of batch labels subsetted for each group.
     params:
         batch_key: batches to be compared against
         group_key: group labels to be subsetted by e.g. cell type
-        metric: see sklearn silhouette score
         embed: name of column in adata.obsm
+        metric: see sklearn silhouette score
     returns:
         all scores: absolute silhouette scores per group label
         group means: if `mean=True`
@@ -301,14 +308,24 @@ def ari(adata, group1, group2):
     return sklearn.metrics.cluster.adjusted_rand_score(group1, group2)
 
 ### Isolated label score
-def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster", 
-                    cluster=True, n=None, all_=False, verbose=True):
+def isolated_labels(
+        adata,
+        label_key,
+        batch_key,
+        embed,
+        cluster=True,
+        n=None,
+        all_=False,
+        verbose=True
+):
     """
     score how well labels of isolated labels are distiguished in the dataset by
         1. clustering-based approach
         2. silhouette score
     params:
         cluster: if True, use clustering approach, otherwise use silhouette score approach
+        embed: key in adata.obsm used for silhouette score if cluster=True or
+            as representation for clustering (if neigbors missing in adata)
         n: max number of batches per label for label to be considered as isolated.
             if n is integer, consider labels that are present for n batches as isolated
             if n=None, consider minimum number of batches that labels are present in
@@ -317,19 +334,32 @@ def isolated_labels(adata, label_key, batch_key, cluster_key="iso_cluster",
         by default, mean of scores for each isolated label
         retrieve dictionary of scores for each label if `all_` is specified
     """
-    
+
     scores = {}
-    isolated_labels = get_isolated_labels(adata, label_key, batch_key, cluster_key, n=n, verbose=verbose)
+    isolated_labels = get_isolated_labels(
+        adata,
+        label_key,
+        batch_key,
+        n,
+        verbose
+    )
     for label in isolated_labels:
-        score = score_isolated_label(adata, label_key, cluster_key, label, cluster=cluster, verbose=verbose)
+        score = score_isolated_label(
+            adata,
+            label_key,
+            label,
+            embed,
+            cluster,
+            verbose=verbose
+        )
         scores[label] = score
-    
+
     if all_:
         return scores
     return np.mean(list(scores.values()))
 
 
-def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
+def get_isolated_labels(adata, label_key, batch_key, n, verbose):
     """
     get labels that are considered isolated by the number of batches
     """
@@ -350,21 +380,22 @@ def get_isolated_labels(adata, label_key, batch_key, cluster_key, n, verbose):
     return labels
 
 
-def score_isolated_label(adata, label_key, cluster_key, label, cluster=True, verbose=False, **kwargs):
+def score_isolated_label(
+        adata,
+        label_key,
+        label,
+        embed,
+        cluster=True,
+        cluster_key='iso_cluster',
+        verbose=False
+):
     """
     compute label score for a single label
     params:
         cluster: if True, use clustering approach, otherwise use silhouette score approach
+        kwargs:
     """
     adata_tmp = adata.copy()
-
-    def max_label_per_batch(adata, label_key, cluster_key, label, argmax=False):
-        """cluster optimizing over cluster with largest number of isolated label per batch"""
-        sub = adata.obs[adata.obs[label_key] == label].copy()
-        label_counts = sub[cluster_key].value_counts()
-        if argmax:
-            return label_counts.index[label_counts.argmax()]
-        return label_counts.max()
 
     def max_f1(adata, label_key, cluster_key, label, argmax=False):
         """cluster optimizing over largest F1 score of isolated label"""
@@ -383,11 +414,20 @@ def score_isolated_label(adata, label_key, cluster_key, label, cluster=True, ver
         return max_f1
 
     if cluster:
-        opt_louvain(adata_tmp, label_key, cluster_key, function=max_f1, label=label, verbose=False, inplace=True)
+        opt_louvain(
+            adata_tmp,
+            label_key,
+            cluster_key,
+            use_rep=embed,
+            function=max_f1,
+            label=label,
+            verbose=False,
+            inplace=True
+        )
         score = max_f1(adata_tmp, label_key, cluster_key, label, argmax=False)
     else:
         adata_tmp.obs['group'] = adata_tmp.obs[label_key] == label
-        score = silhouette(adata_tmp, group_key='group', **kwargs)
+        score = silhouette(adata_tmp, 'group', embed)
     
     del adata_tmp
     
@@ -1848,10 +1888,24 @@ def metrics(adata, adata_int, batch_key, label_key,
     
     if isolated_labels_:
         print("isolated labels...")
-        il_score_clus = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
-                                cluster=True, n=n_isolated, verbose=False)
-        il_score_sil = isolated_labels(adata_int, label_key=label_key, batch_key=batch_key,
-                                       cluster=False, n=n_isolated, verbose=False) if silhouette_ else np.nan
+        il_score_clus = isolated_labels(
+            adata_int,
+            label_key=label_key,
+            batch_key=batch_key,
+            embed=embed,
+            cluster=True,
+            n=n_isolated,
+            verbose=False
+        )
+        il_score_sil = isolated_labels(
+            adata_int,
+            label_key=label_key,
+            batch_key=batch_key,
+            embed=embed,
+            cluster=False,
+            n=n_isolated,
+            verbose=False
+        ) if silhouette_ else np.nan
     else:
         il_score_clus = np.nan
         il_score_sil  = np.nan

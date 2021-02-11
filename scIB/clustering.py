@@ -8,6 +8,7 @@ from scIB import metrics
 
 
 def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
+                use_rep=None,
                 inplace=True, plot=False, force=True, verbose=True, **kwargs):
     """
     params:
@@ -55,7 +56,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
     except KeyError:
         if verbose:
             print('computing neigbours for opt_cluster')
-        sc.pp.neighbors(adata)
+        sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
