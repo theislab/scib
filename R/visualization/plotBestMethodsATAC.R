@@ -1,3 +1,27 @@
+#' Plot scib best methods - ATAC
+#' @description Plotting scib-metrics result of the integration across multiple ATAC tasks in an
+#'  overview plot that shows the best-performing combination of pre-processing choices for 
+#'  each integration method.
+#'
+#' @return \code{plotBestMethodsATAC} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
+#'
+#' @param csv_metrics_path path to a .csv file output of scib pipeline that contains the metrics calculated 
+#' across multiple tasks. All tasks will be considered for ranking best methods.
+#' @param outdir output directory where the plots will be saved.
+#' @param ids_ATAC character vector of ids for ATAC tasks, as they are named in `csv_metrics_path`.
+#' @param labels_ATAC character vector of label names for ATAC tasks, to rename ids. These names will be plotted in the summary table.
+#' @param weight_batch number in [0,1] to use as weight for the batch correction metrics. Weight for
+#' bio conservation is calculated as 1-weight_batch.
+#' 
+#' @example 
+#' plotBestMethodsATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_small3_large11.csv", 
+#' ids_ATAC = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large", "mouse_brain_atac_peaks_small", 
+#' "mouse_brain_atac_peaks_large", "mouse_brain_atac_genes_small", "mouse_brain_atac_genes_large"),
+#' labels_ATAC = c("Brain (mou) Windows small", "Brain (mou) Windows large", "Brain (mou) Peaks small", 
+#' "Brain (mou) Peaks large", "Brain (mou) Genes small", "Brain (mou) Genes large"))
+#' 
+#' 
+#' 
 library(tibble)
 library(RColorBrewer)
 library(dynutils)
@@ -5,15 +29,15 @@ library(stringr)
 library(Hmisc)
 library(plyr)
 
-source("/home/python_scRNA/Munich/visualization/knit_table.R")# You will need to have in the same folder knit_table.R and this plotSingleAtlas.R
+source("knit_table.R") # Please put knit_table.R in your working dir
 
 
-plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
+plotBestMethodsATAC<- function(csv_metrics_path, outdir = ".", 
+                               ids_ATAC, labels_ATAC, 
+                               weight_batch = 0.4){
   
-  atac_small <- read.csv(csv_atac_small_path, sep = ",")
-  atac_large <- read.csv(csv_atac_large_path, sep = ",")
+  metrics_tab_lab <- read.csv(csv_metrics_path, sep = ",")
   
-  metrics_tab_lab <- rbind(atac_small, atac_large)
     
   # get metrics names from columns
   metrics <- colnames(metrics_tab_lab)[-1]
@@ -39,25 +63,26 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   methods_info_full  <- as.character(metrics_tab_lab[,1])
   
   # in case methods names start with /
-  if(substring(methods_info_full[1], 1, 1) == "/"){
-    methods_info_full <- sub("/", "", methods_info_full)
-  }
+  methods_info_full <- sub("^/", "", methods_info_full)
   
   # Remove trvae full
   ind.trvae_full <- grep("trvae_full", methods_info_full)
   if(length(ind.trvae_full) >0){
-  methods_info_full <- methods_info_full[-ind.trvae_full]
-  metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
+    methods_info_full <- methods_info_full[-ind.trvae_full]
+    metrics_tab_lab <- metrics_tab_lab[-ind.trvae_full,]
   }
+  
+  
   # data scenarios to be saved in file name
   data.scenarios <- unique(unlist(sapply(str_split(methods_info_full, "/"), function(x) x[1])))
-  
+  # remove part of the string that comes after small or large
+  data.scenarios <- unlist(sapply(str_split(data.scenarios, "_"), function(x) paste(x[1:5], collapse="_")))
   
   methods.table.list <- list()
   
   ###### Get overall score for each data scenario
   for (dt.sc in data.scenarios){
-    ind.scen <- grep(paste0(dt.sc, "/"), methods_info_full)
+    ind.scen <- grep(dt.sc, methods_info_full, fixed = FALSE)
     methods_info <- methods_info_full[ind.scen]
     metrics_tab_sub <- metrics_tab_lab[ind.scen, ]
     
@@ -67,7 +92,7 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
     methods_name <- capitalize(methods_name)
     methods_name <- plyr::mapvalues(methods_name, 
                                     from = c("Seurat", "Seuratrpca", "Mnn", "Bbknn", "Trvae", "Scvi", "Liger", "Combat", "Saucie", "Fastmnn", "Desc", "Scanvi", "Scgen"), 
-                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI", "scGen"))
+                                    to = c("Seurat v3 CCA", "Seurat v3 RPCA", "MNN", "BBKNN", "trVAE", "scVI", "LIGER", "ComBat", "SAUCIE", "fastMNN", "DESC", "scANVI*", "scGen*"))
     
     
     method_groups <- sapply(str_split(methods, "_"), function(x) x[2])
@@ -112,15 +137,15 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
     scaled_metrics_tab <- apply(scaled_metrics_tab, 2, function(x) scale_minmax(x))
     
     # calculate average score by group and overall
-    score_group1 <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
-    score_group2 <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
+    score_group_batch <- rowMeans(scaled_metrics_tab[, 1:n_metrics_batch], na.rm = T)
+    score_group_bio <- rowMeans(scaled_metrics_tab[, (1+n_metrics_batch):ncol(scaled_metrics_tab)], 
                              na.rm = T)
     
-    score_all <- (0.4*score_group1 + 0.6*score_group2)
+    score_all <- (weight_batch*score_group_batch + (1-weight_batch)*score_group_bio)
     
     metrics_tab <- add_column(metrics_tab, "Overall Score" = score_all, .after = "Method")
-    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group1, .after = "Overall Score")
-    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group2, .after = "kBET")
+    metrics_tab <- add_column(metrics_tab, "Batch Correction" = score_group_batch, .after = "Overall Score")
+    metrics_tab <- add_column(metrics_tab, "Bio conservation" = score_group_bio, .after = "kBET")
     
     metrics_tab <- add_column(metrics_tab, "Output" = method_groups, .after = "Method")
     
@@ -136,14 +161,19 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   
   methods.table.merged <- merge(methods.table.list[[1]], methods.table.list[[2]], by = c("Method", "Output"),
                                 all = T)
-  
+  for(i in 3:length(methods.table.list)){
+    methods.table.merged <- merge(methods.table.merged, methods.table.list[[i]], by = c("Method", "Output"),
+                                  all = T)
+  }
   
   # Rename columns
   colnames(methods.table.merged) <- plyr::mapvalues(colnames(methods.table.merged), 
-                                                    from = c("mouse_brain_atac_large_3datasets", "mouse_brain_atac_small_3datasets"),
-                                                    to = c("Brain (mou) large", "Brain (mou) small"))
+                                                    from = ids_ATAC,
+                                                    to = labels_ATAC)
   # columns to be ranked on
-  rank.cols <- c("Brain (mou) large", "Brain (mou) small")
+  rank.cols <- labels_ATAC
+
+  
   
   # Assign unintegrated overall score to methods that did not run over one/more atlases
   atlas.ranks <- methods.table.merged
@@ -163,11 +193,10 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
   
   # order atlas.rank by average rank
   atlas.rank.ord <- atlas.ranks[order(avg.ranks, decreasing = F), ]
-  
   # Keep best performing solution for each method
   keep.best <- NULL
   for(met in unique(atlas.ranks$Method)){
-    if(met == "Scanorama"){
+    if(met %in% c("Scanorama", "SAUCIE", "fastMNN")){
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "gene")[1])
       keep.best <- c(keep.best, which(atlas.rank.ord$Method == met & atlas.rank.ord$Output == "embed")[1])
     } else{
@@ -181,34 +210,40 @@ plotBestMethodsATAC<- function(csv_atac_small_path, csv_atac_large_path){
                             all = F, sort = F)
   
   # Delete rows that are empty
-  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == 2)
+  rowsNA <- which(rowSums(is.na(best_methods_tab[, rank.cols])) == length(rank.cols))
   if(length(rowsNA)>0){
     best_methods_tab <- best_methods_tab[-rowsNA, ]
   }
-
   
+
   ############## add first column = ranking
   best_methods_tab <- add_column(best_methods_tab, "Ranking" = 1:nrow(best_methods_tab), .before = "Method")
   
-  
+  # check that columns have the right order
+  best_methods_tab <- best_methods_tab[, c("Ranking","Method","Output", rank.cols)]
   
   # Defining column_info, row_info and palettes
   row_info <- data.frame(id = best_methods_tab$Method)
   
+  
   column_info <- data.frame(id = colnames(best_methods_tab),
-                            group = c("Text", "Text", "Image", "ATAC", "ATAC"), 
-                            geom = c("text", "text", "image", "bar", "bar"),
-                            width = c(1.5,4,2.5,2.5,2.5),
+                            group = c("Text", "Text", "Image", rep("ATAC_windows",2), rep("ATAC_peaks",2), rep("ATAC_genes",2)), 
+                            geom = c("text", "text", "image", rep("bar",6)),
+                            width = c(1.5,4,2.5,rep(2.5, 6)),
                             overlay = F)
   
   # defining colors palette
-  palettes <- list("ATAC" = "Purples")
+  palettes <- list("ATAC_windows" = "Purples",
+                   "ATAC_peaks" = "Oranges",
+                   "ATAC_genes" = "Greens")
+  
+  
   
   
   g <- scIB_knit_table(data = best_methods_tab, column_info = column_info, row_info = row_info, palettes = palettes, usability = F, atac_best = T)
   now <- Sys.time()
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 100, height = 150, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 100, height = 150, units = "mm")
-  ggsave(paste0(format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.jpeg"), g, device = "jpeg", dpi = "retina", width = 100, height = 150, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.pdf"), g, device = cairo_pdf, width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.tiff"), g, device = "tiff", dpi = "retina", width = 210, height = 297, units = "mm")
+  ggsave(paste0(outdir, "/", format(now, "%Y%m%d_%H%M%S_"), "ATAC_BestMethods_summary.png"), g, device = "png", dpi = "retina", width = 210, height = 297, units = "mm")
   
 }
