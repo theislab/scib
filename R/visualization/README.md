@@ -12,37 +12,37 @@ Depending on the data type of interest (RNA/ATAC) different functions will be ca
 Here we are interested in plotting one summary table for each RNA task. This summary table shows all integration methods ranked by **Overall Score**, which is calculated as weighted sum of **Batch Correction** and **Bio Conservation**. **Batch Correction** and **Bio Conservation** are average scores calculated over all respective metrics, which are shown in the columns of the summary table. Please refer to **Supplementary Figure 4** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over one (or multiple) RNA task, containing metrics scores. Exemplary .csv can be found in _data_ folder:
+1. have a .csv file computed by scib over one (or multiple) RNA task(s), containing metrics scores. Example csv files can be found in _data_ folder:
    * `metrics_RNA_allTasks.csv` contains results shown in the paper, for all five RNA tasks and two simulations.
    * `metrics_RNA_immune_human.csv` contains results specific to only one task: Immune (human). 
-2. download and place in your _working_dir_ the script _plotSingleTaskRNA.R_;
+2. download and place the script _plotSingleTaskRNA.R_ in your _working_dir_;
 3. run `source('plotSingleTaskRNA.R')`;
 4. call **plotSingleTaskRNA**, with the following parameters:
-   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one or multiple RNA tasks. 
-   * _outdir_: output directory where the plots and a .csv for each task containing the ranked summary table scores will be saved.
-   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+   * _csv_metrics_path_: path to a csv file output of scib that contains the metrics calculated across one or multiple RNA tasks. 
+   * _outdir_: output directory where the plots and a csv file for each task containing the ranked summary table scores will be saved.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch. Default value used in scib manuscript is 0.4.
 
 Exemplary call to the function: `plotSingleTaskRNA(csv_metrics_path = "./data/metrics_RNA_allTasks.csv", outdir = ".", weight_batch = 0.4)`
 
 ### Best Methods Summary Table
-A second visualization output shows a summary table where only the best-performing combinations of pre-processing choices for each integration method are kept. The methods are then ranked based on their overall performances across RNA tasks. Scores related to simulation tasks, usability and scalability are also shown. Please refer to **Figure 3b** of the paper for an example.
+A second visualization output shows a summary table where only the best-performing combinations of pre-processing choices for each integration method are reported. The methods are then ranked based on their overall performances across RNA tasks. Scores related to simulation tasks, usability and scalability are also shown. Please refer to **Figure 3b** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over multiple RNA tasks, containing metrics scores. Exemplary .csv can be found in _data_ folder:
+1. have a csv file computed by scib over multiple RNA tasks, containing metrics scores. An example csv file can be found in _data_ folder:
    * `metrics_RNA_allTasks.csv` contains results shown in the paper, for all five RNA tasks and two simulations.
-2. download and place in your _working_dir_ the script `plotBestMethodsRNA.R`;
+2. download and place the script `plotBestMethodsRNA.R` in your _working_dir_;
 3. run `source('plotBestMethodsRNA.R')`;
 4. call **plotBestMethodsRNA**, with the following parameters:
-   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across multiple RNA tasks. 
-   * _outdir_: output directory where the summary table (in three formats: .pdf/.tiff/.png) will be saved.
-   * _csv_usability_path_: path to a .csv file containing the results of the usability analysis. Default to `"/data/usability4bestMethods.csv"`. These scores will NOT be used for ranking best methods.
-   * _csv_scalability_time_path_: path to a .csv file containing the results of the scalability analysis, regarding run time. Default to `"/data/scalability_score_time.csv"`. These scores will NOT be used for ranking best methods.
-   * _csv_scalability_memory_path_: path to a .csv file containing the results of the scalability analysis, regarding memory consumption. Default to `"/data/scalability_score_memory.csv"`. These scores will NOT be used for ranking best methods.
+   * _csv_metrics_path_: path to a csv file output of scib that contains the metrics calculated across multiple RNA tasks. 
+   * _outdir_: output directory where the summary table (in three formats: pdf/tiff/png) will be saved.
+   * _csv_usability_path_: path to a csv file containing the results of the usability analysis. Default to `"/data/usability4bestMethods.csv"`. These scores will NOT be used for ranking best methods.
+   * _csv_scalability_time_path_: path to a csv file containing the results of the scalability analysis, regarding run time. Default to `"/data/scalability_score_time.csv"`. These scores will NOT be used for ranking best methods.
+   * _csv_scalability_memory_path_: path to a csv file containing the results of the scalability analysis, regarding memory consumption. Default to `"/data/scalability_score_memory.csv"`. These scores will NOT be used for ranking best methods.
    * _ids_RNA_: character vector of ids for RNA tasks, as they are named in _csv_metrics_path_.
    * _ids_simulation_: character vector of ids for simulated tasks, as they are named in _csv_metrics_path_.
    * _labels_RNA_: character vector of label names for RNA tasks, to rename ids. These names will be plotted in the summary table.
    * _labels_simulation_: character vector of label names for simulated tasks, to rename ids. These names will be plotted in the summary table.
-   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch. Default value used in scib manuscript is 0.4.
 
 Exemplary call to the function: `plotBestMethodsRNA(csv_metrics_path = "./data/metrics_RNA_allTasks.csv", outdir = ".", csv_usability_path = "./data/usability4bestMethods.csv", csv_scalability_time_path = "./data/scalability_score_time.csv", csv_scalability_memory_path = "./data/scalability_score_memory.csv", ids_RNA = c("pancreas", "lung_atlas", "immune_cell_hum", "immune_cell_hum_mou", "mouse_brain"), ids_simulation = c("simulations_1_1", "simulations_2"), labels_RNA = c("Pancreas", "Lung", "Immune (hum)", "Immune (hum & mou)", "Brain (mou)"), labels_simulation = c("Sim 1", "Sim 2"), weight_batch = 0.4)` 
 
@@ -51,15 +51,15 @@ Exemplary call to the function: `plotBestMethodsRNA(csv_metrics_path = "./data/m
 Here we are interested in plotting one summary table for each ATAC task, considering different feature spaces separately. This summary table shows all integration methods ranked by **Overall Score**, which is calculated as weighted sum of **Batch Correction** and **Bio Conservation**. **Batch Correction** and **Bio Conservation** are average scores calculated over all respective metrics, which are shown in the columns of the summary table. Please refer to **Supplementary Figure 25** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over one (or multiple) ATAC task, containing metrics scores. Exemplary .csv can be found in _data/ATAC_metrics_ folder:
+1. have a csv file computed by scib over one (or multiple) ATAC task, containing metrics scores. Example csv files can be found in _data/ATAC_metrics_ folder:
    * `metrics_ATAC_large11.csv` contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
    * `metrics_atac_large_11batches_gene.csv` contains results of the Mouse Brain Large scenario (11 batches), specific to only one feature space (gene). 
-2. download and place in your _working_dir_ the script `plotSingleTaskATAC.R`;
+2. download and place the script `plotSingleTaskATAC.R` in your _working_dir_;
 3. run `source('plotSingleTaskRNA.R')`;
 4. call **plotSingleTaskATAC**, with the following parameters:
-   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one or multiple ATAC tasks. 
-   * _outdir_: output directory where the plots and a .csv for each task containing the ranked summary table scores will be saved.
-   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+   * _csv_metrics_path_: path to a csv file output of scib that contains the metrics calculated across one or multiple ATAC tasks. 
+   * _outdir_: output directory where the plots and a csv file for each task containing the ranked summary table scores will be saved.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch. Default value used in scib manuscript is 0.4.
 
 Exemplary call to the function: `plotSingleTaskATAC(csv_metrics_path = "./data/metrics_ATAC_large11.csv", outdir = ".", weight_batch = 0.4)`
 
@@ -67,31 +67,31 @@ Exemplary call to the function: `plotSingleTaskATAC(csv_metrics_path = "./data/m
 Another way to plot a summary table for ATAC tasks is by considering all feature spaces. This summary table shows, as before, all integration methods ranked by **Overall Score**, but adds one column (_Feature Space_) for genes/windows/peaks. Please refer to **Supplementary Figure 23** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over one ATAC task, containing metrics scores over multiple feature spaces. Exemplary .csv can be found in `data/ATAC_metrics` folder:
+1. have a csv file computed by scib over one ATAC task, containing metrics scores over multiple feature spaces. Example csv files can be found in `data/ATAC_metrics` folder:
    * `metrics_ATAC_large11.csv` contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
-2. download and place in your _working_dir_ the script `plotSingleATAC_withFeat.R`;
+2. download and place the script `plotSingleATAC_withFeat.R` in your _working_dir_;
 3. run `source('plotSingleATAC_withFeat.R')`;
 4. call **plotSingleATAC_withFeat**, with the following parameters:
-   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one ATAC task, over multiple feature spaces. 
-   * _outdir_: output directory where the plots and a .csv containing the ranked summary table scores will be saved.
-   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+   * _csv_metrics_path_: path to a csv file output of scib that contains the metrics calculated across one ATAC task, over multiple feature spaces. 
+   * _outdir_: output directory where the plots and a csv file containing the ranked summary table scores will be saved.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch. Default value used in scib manuscript is 0.4.
 
 Exemplary call to the function: `plotSingleATAC_withFeat(csv_metrics_path = "./data/metrics_ATAC_large11.csv", outdir = ".", weight_batch = 0.4)`
 
 ### Best Methods Summary Table
-Also for ATAC, it is possible to plot a summary table where only the best-performing combinations of pre-processing choices (here only influenced by Output) for each integration method are kept. The methods are then ranked based on their overall performances across ATAC tasks. Please refer to **Figure 4b** of the paper for an example.
+Also for ATAC, it is possible to plot a summary table where only the best-performing combinations of pre-processing choices (here only influenced by Output) for each integration method are reported. The methods are then ranked based on their overall performances across ATAC tasks. Please refer to **Figure 4b** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over multiple ATAC tasks, containing metrics scores. Exemplary .csv can be found in `data` folder:
+1. have a csv file computed by scib over multiple ATAC tasks, containing metrics scores. Example csv files can be found in `data` folder:
    * `metrics_ATAC_small3_large11.csv` contains results shown in the paper, for all six ATAC tasks.
-2. download and place in your _working_dir_ the script `plotBestMethodsATAC.R`;
+2. download and place the script `plotBestMethodsATAC.R` in your _working_dir_;
 3. run `source('plotBestMethodsATAC.R')`;
 4. call **plotBestMethodsATAC**, with the following parameters:
-   * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across multiple ATAC tasks. 
-   * _outdir_: output directory where the summary table (in three formats: .pdf/.tiff/.png) will be saved.
+   * _csv_metrics_path_: path to a csv file output of scib that contains the metrics calculated across multiple ATAC tasks. 
+   * _outdir_: output directory where the summary table (in three formats: pdf/tiff/png) will be saved.
    * _ids_ATAC_: character vector of ids for ATAC tasks, as they are named in _csv_metrics_path_.
    * _labels_ATAC_: character vector of label names for ATAC tasks, to rename ids. These names will be plotted in the summary table.
-   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch.
+   * _weight_batch_: number in [0,1] to use as weight for the batch correction metrics. Weight for bio conservation is calculated as 1-weight_batch. Default value used in scib manuscript is 0.4.
 
 Exemplary call to the function: `plotBestMethodsATAC(csv_metrics_path = "./data/ATAC_metrics/metrics_ATAC_small3_large11.csv", 
 ids_ATAC = c("mouse_brain_atac_windows_small", "mouse_brain_atac_windows_large", "mouse_brain_atac_peaks_small", 
