@@ -1,9 +1,10 @@
-#' Plotting scib-metrics result of the integration for each single ATAC task in an overview table. Multiple feature 
+#' Plot scib single methods - ATAC with features
+#' @description Plotting scib-metrics result of the integration for each single ATAC task in an overview table. Multiple feature 
 #' spaces are considered simultaneously (genes/windows/peaks).
 #' Integration methods are ranked from top to bottom based on an 'Overall Score', calculated as weighted
 #' sum of 'Batch correction' (default w:0.4) and 'Bio conservation' (default w:0.6).
 #'
-#' \code{plotSingleATAC_withFeat} saves in `outdir` one overview table for each task in three formats (.pdf/.tiff/.png)
+#' @return \code{plotSingleATAC_withFeat} saves in `outdir` one overview table for each task in three formats (.pdf/.tiff/.png)
 #' and a .csv file for each task containing the ranked summary table scores. 
 #'
 #' @param csv_metrics_path path to a .csv file output of scib that contains the metrics calculated 
