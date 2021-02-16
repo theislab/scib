@@ -1,8 +1,9 @@
-#' Plotting scib-metrics result of the integration across multiple ATAC tasks in an
+#' Plot scib best methods - ATAC
+#' @description Plotting scib-metrics result of the integration across multiple ATAC tasks in an
 #'  overview plot that shows the best-performing combination of pre-processing choices for 
 #'  each integration method.
 #'
-#' \code{plotBestMethodsATAC} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
+#' @return \code{plotBestMethodsATAC} saves in `outdir` the overview table in three formats (.pdf/.tiff/.png)
 #'
 #' @param csv_metrics_path path to a .csv file output of scib pipeline that contains the metrics calculated 
 #' across multiple tasks. All tasks will be considered for ranking best methods.
