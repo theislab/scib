@@ -1,4 +1,4 @@
-#' Plot scib single methods - RNA
+#' Plot scib single methods - ATAC
 #' @description Plotting scib-metrics result of the integration for each single ATAC task in an overview table.
 #' Integration methods are ranked from top to bottom based on an 'Overall Score', calculated as weighted
 #' sum of 'Batch correction' (default w:0.4) and 'Bio conservation' (default w:0.6).
