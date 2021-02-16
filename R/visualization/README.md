@@ -1,9 +1,9 @@
 # Plotting Summary Tables - how to
 
 In order to generate different types of summary tables three simple steps are necessary. Please download and place in your working directory:
-1. the basic script _scib/R/visualization/knit_table.R_, which will be used by all plotting functions;
-2. the folder _scib/R/visualization/img_, containing icons used by _knit_table.R_;
-3. the folder _scib/R/visualization/data_, which contains examplary metrics files, result files from the paper as well as usability/scalability metrics.
+1. the basic script `scib/R/visualization/knit_table.R`, which will be used by all plotting functions;
+2. the folder `scib/R/visualization/img`, containing icons used by `knit_table.R`;
+3. the folder `scib/R/visualization/data`, which contains examplary metrics files, result files from the paper as well as usability/scalability metrics.
 
 Depending on the data type of interest (RNA/ATAC) different functions will be called to generate the plots. It would be then necessary to download each specific script and place it in the same _working_dir_.
 
@@ -13,8 +13,8 @@ Here we are interested in plotting one summary table for each RNA task. This sum
 
 To generate this figure you will need to:
 1. have a .csv file computed by scib over one (or multiple) RNA task, containing metrics scores. Exemplary .csv can be found in _data_ folder:
-   * _metrics_RNA_allTasks.csv_ contains results shown in the paper, for all five RNA tasks and two simulations.
-   * _metrics_RNA_immune_human.csv_ contains results specific to only one task: Immune (human). 
+   * `metrics_RNA_allTasks.csv` contains results shown in the paper, for all five RNA tasks and two simulations.
+   * `metrics_RNA_immune_human.csv` contains results specific to only one task: Immune (human). 
 2. download and place in your _working_dir_ the script _plotSingleTaskRNA.R_;
 3. run `source('plotSingleTaskRNA.R')`;
 4. call **plotSingleTaskRNA**, with the following parameters:
@@ -29,15 +29,15 @@ A second visualization output shows a summary table where only the best-performi
 
 To generate this figure you will need to:
 1. have a .csv file computed by scib over multiple RNA tasks, containing metrics scores. Exemplary .csv can be found in _data_ folder:
-   * _metrics_RNA_allTasks.csv_ contains results shown in the paper, for all five RNA tasks and two simulations.
-2. download and place in your _working_dir_ the script _plotBestMethodsRNA.R_;
+   * `metrics_RNA_allTasks.csv` contains results shown in the paper, for all five RNA tasks and two simulations.
+2. download and place in your _working_dir_ the script `plotBestMethodsRNA.R`;
 3. run `source('plotBestMethodsRNA.R')`;
 4. call **plotBestMethodsRNA**, with the following parameters:
    * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across multiple RNA tasks. 
    * _outdir_: output directory where the summary table (in three formats: .pdf/.tiff/.png) will be saved.
-   * _csv_usability_path_: path to a .csv file containing the results of the usability analysis. Default to "/data/usability4bestMethods.csv". These scores will NOT be used for ranking best methods.
-   * _csv_scalability_time_path_: path to a .csv file containing the results of the scalability analysis, regarding run time. Default to "/data/scalability_score_time.csv". These scores will NOT be used for ranking best methods.
-   * _csv_scalability_memory_path_: path to a .csv file containing the results of the scalability analysis, regarding memory consumption. Default to "/data/scalability_score_memory.csv". These scores will NOT be used for ranking best methods.
+   * _csv_usability_path_: path to a .csv file containing the results of the usability analysis. Default to `"/data/usability4bestMethods.csv"`. These scores will NOT be used for ranking best methods.
+   * _csv_scalability_time_path_: path to a .csv file containing the results of the scalability analysis, regarding run time. Default to `"/data/scalability_score_time.csv"`. These scores will NOT be used for ranking best methods.
+   * _csv_scalability_memory_path_: path to a .csv file containing the results of the scalability analysis, regarding memory consumption. Default to `"/data/scalability_score_memory.csv"`. These scores will NOT be used for ranking best methods.
    * _ids_RNA_: character vector of ids for RNA tasks, as they are named in _csv_metrics_path_.
    * _ids_simulation_: character vector of ids for simulated tasks, as they are named in _csv_metrics_path_.
    * _labels_RNA_: character vector of label names for RNA tasks, to rename ids. These names will be plotted in the summary table.
@@ -52,9 +52,9 @@ Here we are interested in plotting one summary table for each ATAC task, conside
 
 To generate this figure you will need to:
 1. have a .csv file computed by scib over one (or multiple) ATAC task, containing metrics scores. Exemplary .csv can be found in _data/ATAC_metrics_ folder:
-   * _metrics_ATAC_large11.csv_ contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
-   * _metrics_atac_large_11batches_gene.csv_ contains results of the Mouse Brain Large scenario (11 batches), specific to only one feature space (gene). 
-2. download and place in your _working_dir_ the script _plotSingleTaskATAC.R_;
+   * `metrics_ATAC_large11.csv` contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
+   * `metrics_atac_large_11batches_gene.csv` contains results of the Mouse Brain Large scenario (11 batches), specific to only one feature space (gene). 
+2. download and place in your _working_dir_ the script `plotSingleTaskATAC.R`;
 3. run `source('plotSingleTaskRNA.R')`;
 4. call **plotSingleTaskATAC**, with the following parameters:
    * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one or multiple ATAC tasks. 
@@ -67,9 +67,9 @@ Exemplary call to the function: `plotSingleTaskATAC(csv_metrics_path = "./data/m
 Another way to plot a summary table for ATAC tasks is by considering all feature spaces. This summary table shows, as before, all integration methods ranked by **Overall Score**, but adds one column (_Feature Space_) for genes/windows/peaks. Please refer to **Supplementary Figure 23** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over one ATAC task, containing metrics scores over multiple feature spaces. Exemplary .csv can be found in _data/ATAC_metrics_ folder:
-   * _metrics_ATAC_large11.csv_ contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
-2. download and place in your _working_dir_ the script _plotSingleATAC_withFeat.R_;
+1. have a .csv file computed by scib over one ATAC task, containing metrics scores over multiple feature spaces. Exemplary .csv can be found in `data/ATAC_metrics` folder:
+   * `metrics_ATAC_large11.csv` contains results of the Mouse Brain Large scenario (11 batches) over all feature spaces (genes/windows/peaks).
+2. download and place in your _working_dir_ the script `plotSingleATAC_withFeat.R`;
 3. run `source('plotSingleATAC_withFeat.R')`;
 4. call **plotSingleATAC_withFeat**, with the following parameters:
    * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across one ATAC task, over multiple feature spaces. 
@@ -82,9 +82,9 @@ Exemplary call to the function: `plotSingleATAC_withFeat(csv_metrics_path = "./d
 Also for ATAC, it is possible to plot a summary table where only the best-performing combinations of pre-processing choices (here only influenced by Output) for each integration method are kept. The methods are then ranked based on their overall performances across ATAC tasks. Please refer to **Figure 4b** of the paper for an example.
 
 To generate this figure you will need to:
-1. have a .csv file computed by scib over multiple ATAC tasks, containing metrics scores. Exemplary .csv can be found in _data_ folder:
-   * _metrics_ATAC_small3_large11.csv_ contains results shown in the paper, for all six ATAC tasks.
-2. download and place in your _working_dir_ the script _plotBestMethodsATAC.R_;
+1. have a .csv file computed by scib over multiple ATAC tasks, containing metrics scores. Exemplary .csv can be found in `data` folder:
+   * `metrics_ATAC_small3_large11.csv` contains results shown in the paper, for all six ATAC tasks.
+2. download and place in your _working_dir_ the script `plotBestMethodsATAC.R`;
 3. run `source('plotBestMethodsATAC.R')`;
 4. call **plotBestMethodsATAC**, with the following parameters:
    * _csv_metrics_path_: path to a .csv file output of scib that contains the metrics calculated across multiple ATAC tasks. 
