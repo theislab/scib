@@ -1,8 +1,9 @@
-#' Plotting scib-metrics result of the integration for each single RNA task in an overview table.
+#' Plot scib single methods - RNA
+#' @description Plotting scib-metrics result of the integration for each single RNA task in an overview table.
 #' Integration methods are ranked from top to bottom based on an 'Overall Score', calculated as weighted
 #' sum of 'Batch correction' (default w:0.4) and 'Bio conservation' (default w:0.6).
 #'
-#' \code{plotSingleTaskRNA} saves in `outdir` one overview table for each task in three formats (.pdf/.tiff/.png)
+#' @return \code{plotSingleTaskRNA} saves in `outdir` one overview table for each task in three formats (.pdf/.tiff/.png)
 #' and a .csv file for each task containing the ranked summary table scores. 
 #'
 #' @param csv_metrics_path path to a .csv file output of scib that contains the metrics calculated 
