@@ -195,4 +195,72 @@ plotBestMethodsATAC(
                     "Brain (mou) Peaks small", "Brain (mou) Peaks large",
                     "Brain (mou) Genes small", "Brain (mou) Genes large")
 )
-``` 
+```
+
+## Scatter plots
+
+An alternative, higher-level way to summarize integration performance is by plotting the overall batch correction score against the overall bio-conservation score.
+These scatter can be made either individually for each dataset or averaged over datasets.
+
+### Summary scatter
+
+The the `makeSummaryScatter()` function produces a faceted scatter plot where each facet is a dataset.
+It calls the `loadScores()` function to load the metrics data followed by the `plotSummaryScatter()` function to produce the plot.
+The figure is then saved to disk in various formats.
+
+**Parameters**
+
+* `scores_files`: A vector of paths to `_summary_scores.csv` files produced by `plotSingleTaskRNA()` or `plotSingleTaskATAC()`
+* `dataset_key`: Named character vector giving names for datasets
+* `out_dir`: Path to output directory
+
+**Example usage:**
+
+_Assuming `summaries/` is a directory containing `_summary_score.csv` files_
+
+```r
+source("plotSummaryScatter.R")
+source("exampleKeys.R")
+
+scores_files <- fs::dir_ls("summaries")
+dataset_key <- getDatasetKey()
+
+makeSummaryScatter(
+    scores_files = scores_files,
+    dataset_key = dataset_key,
+    out_dir = "."
+)
+```
+
+### Best methods scatter
+
+The the `makeBestScatter()` function produces a plot showing the performance of a selection of methods across several datasets.
+It calls the `loadBestScores()` function to load the metrics data followed by the `plotBestScatter()` function to produce the plot.
+The figure is then saved to disk in various formats.
+
+**Parameters**
+
+* `scores_files`: A vector of paths to `_summary_scores.csv` files produced by `plotSingleTaskRNA()` or `plotSingleTaskATAC()`
+* `best_methods`: Character vector giving the names of methods to plot
+* `type`: Either `"RNA"` or `"ATAC"`.
+  Used to select datasets when reading `scores_files` if both are present.
+* `out_dir`: Path to output directory
+
+**Example usage:**
+
+_Assuming `summaries/` is a directory containing `_summary_score.csv` files_
+
+```r
+source("plotBestScatter.R")
+source("exampleKeys.R")
+
+scores_files <- fs::dir_ls("summaries")
+best_methods <- getBestMethods()
+
+makeBestScatter(
+    scores_files = scores_files,
+    best_methods = best_methods,
+    type = "RNA",
+    out_dir = "."
+)
+```

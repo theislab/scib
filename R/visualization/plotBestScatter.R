@@ -9,12 +9,12 @@ library(ggplot2)
 #'
 #' @param score_files Passed to `loadBestScores()`
 #' @param best_methods Passed to `loadBestScores()`
-#' @param out_dir Path to output directory
 #' @param type Whether to plot RNA or ATAC results
+#' @param out_dir Path to output directory
 #'
 #' @author Luke Zappia
-makeBestScatter <- function(scores_files, best_methods, out_dir = ".",
-                            type = c("RNA", "ATAC")) {
+makeBestScatter <- function(scores_files, best_methods, type = c("RNA", "ATAC"),
+                            out_dir = ".") {
 
     type <- match.arg(type)
 
@@ -116,7 +116,7 @@ plotBestScatter <- function(scores) {
 #' `data/` this vector can be created using
 #' `fs::dir_ls("data", glob = "*_summary_scores.csv")`.
 #' @param best_methods Vector of names giving the best methods to plot. See the
-#' output of `getKeys()` for an example
+#' output of `getBestMethods()` for an example
 #' @param type Whether to load RNA or ATAC results
 #'
 #' @return A tibble

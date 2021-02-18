@@ -187,11 +187,11 @@ plotSummaryScatter <- function(scores, methods_pal) {
 #' Read a set of scores files and return a single tibble.
 #'
 #' @param scores_files Vector of paths to CSV files containing scores for each
-#' dataset. These files are produced by the `plotSingleAtlas()` function. If
-#' they are store in a directory named `data/` this vector can be created using
-#' `fs::dir_ls("data")`.
+#' dataset. These files are produced by the `plotSingleTaskRNA()` or
+#' `plotSingleTaskATAC()` functions. If they are store in a directory named
+#' `data/` this vector can be created using `fs::dir_ls("data")`.
 #' @param dataset_key Named vector giving names for datasets. See
-#' `getKeys()` for an example.
+#' `getDatasetKey()` for an example.
 #'
 #' @return A tibble
 #'
