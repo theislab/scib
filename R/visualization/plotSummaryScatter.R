@@ -7,75 +7,46 @@ library(ggplot2)
 #' various formats. See individual function docs for details.
 #'
 #' @param score_files Passed to `loadScores()`
+#' @param dataset_key Passed to `loadScores()`
+#' @param out_dir Path to output directory
 #'
 #' @author Luke Zappia
-makeSummaryScatter <- function(scores_files) {
-    scores <- loadScores(scores_files)
+makeSummaryScatter <- function(scores_files, dataset_key, out_dir = ".") {
+    scores <- loadScores(scores_files, dataset_key)
     summary_plot <- plotSummaryScatter(scores)
 
     now_str <- format(lubridate::now(), "%Y%m%d_%H%M%S")
 
-    ggsave(
-        paste0(now_str, "_scatter_summary.pdf"),
-        summary_plot,
-        # device = cairo_pdf,
-        width = 297, height = 210, units = "mm"
-    )
+    for (extension in c("pdf", "tiff", "png")) {
+        ggsave(
+            as.character(glue::glue(
+                "{out_dir}/{now_str}_scatter_summary.{extension}"
+            )),
+            summary_plot,
+            width = 210, height = 297, units = "mm"
+        )
+    }
 
-    ggsave(
-        paste0(now_str, "_scatter_summary.tiff"),
-        summary_plot,
-        device = "tiff",
-        dpi = "retina",
-        width = 297, height = 210, units = "mm"
-    )
-
-    ggsave(
-        paste0(now_str, "_scatter_summary.png"),
-        summary_plot,
-        # device = "png",
-        # type = "cairo-png",
-        dpi = "retina",
-        width = 297, height = 210, units = "mm"
-    )
 }
 
 #' Plot summary scatter
 #'
-#' Produces a plot showing a summary of the performace of integration methods
+#' Produces a plot showing a summary of the performance of integration methods
 #' on a set of test datasets. The overall batch correction score is shown on the
-#' x-axis and the overall bio conservation score on the y-axis. Points show
+#' x-axis and the overall bio-conservation score on the y-axis. Points show
 #' individual (versions of) methods.
 #'
 #' @param scores A tibble containing the scores for various methods on different
 #' datasets. Created by `loadScores()`.
+#' @param methods_pal Named vector of colours for methods. See `getMethodsPal()`
+#' for an example.
 #'
 #' @return A ggplot2 object
 #'
 #' @author Luke Zappia
-plotSummaryScatter <- function(scores) {
+plotSummaryScatter <- function(scores, methods_pal) {
 
     `%>%` <- magrittr::`%>%`
-
-    methods_pal <- c(
-        "BBKNN"          = "#5A5156",
-        "Conos"          = "#E4E1E3",
-        "trVAE"          = "#F6222E",
-        "scVI"           = "#FE00FA",
-        "ComBat"         = "#16FF32",
-        "Harmony"        = "#3283FE",
-        "LIGER"          = "#FEAF16",
-        "Scanorama"      = "#B00068",
-        "Seurat v3 CCA"  = "#1CFFCE",
-        "Seurat v3 RPCA" = "#90AD1C",
-        "MNN"            = "#2ED9FF",
-        "fastMNN"        = "#DEA0FD",
-        "scGen*"         = "#AA0DFE",
-        "scANVI*"        = "#F8A19F",
-        "DESC"           = "#325A9B",
-        "SAUCIE"         = "#C4451C",
-        "Unintegrated"   = "#66B0FF"
-    )
 
     scores_int <- scores %>%
         dplyr::filter(Method != "Unintegrated") %>%
@@ -219,29 +190,15 @@ plotSummaryScatter <- function(scores) {
 #' dataset. These files are produced by the `plotSingleAtlas()` function. If
 #' they are store in a directory named `data/` this vector can be created using
 #' `fs::dir_ls("data")`.
+#' @param dataset_key Named vector giving names for datasets. See
+#' `getKeys()` for an example.
 #'
 #' @return A tibble
 #'
 #' @author Luke Zappia
-loadScores <- function(scores_files) {
+loadScores <- function(scores_files, dataset_key) {
 
     `%>%` <- magrittr::`%>%`
-
-    dataset_key <- c(
-        pancreas                       = "Pancreas",
-        lung_atlas                     = "Lung",
-        immune_cell_hum                = "Immune (human)",
-        immune_cell_hum_mou            = "Immune (human/mouse)",
-        mouse_brain                    = "Mouse brain",
-        simulations_1_1                = "Sim 1",
-        simulations_2                  = "Sim 2",
-        mouse_brain_atac_genes_large   = "ATAC large (genes)",
-        mouse_brain_atac_peaks_large   = "ATAC large (peaks)",
-        mouse_brain_atac_windows_large = "ATAC large (windows)",
-        mouse_brain_atac_genes_small   = "ATAC small (genes)",
-        mouse_brain_atac_peaks_small   = "ATAC small (peaks)",
-        mouse_brain_atac_windows_small = "ATAC small (windows)"
-    )
 
     scores_list <- purrr::map(scores_files, function(.file) {
 

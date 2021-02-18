@@ -8,14 +8,17 @@ library(ggplot2)
 #' details.
 #'
 #' @param score_files Passed to `loadBestScores()`
+#' @param best_methods Passed to `loadBestScores()`
+#' @param out_dir Path to output directory
 #' @param type Whether to plot RNA or ATAC results
 #'
 #' @author Luke Zappia
-makeBestScatter <- function(scores_files, type = c("RNA", "ATAC")) {
+makeBestScatter <- function(scores_files, best_methods, out_dir = ".",
+                            type = c("RNA", "ATAC")) {
 
     type <- match.arg(type)
 
-    scores <- loadBestScores(scores_files, type)
+    scores <- loadBestScores(scores_files, best_methods, type)
     summary_plot <- plotBestScatter(scores)
 
     now_str <- format(lubridate::now(), "%Y%m%d_%H%M%S")
@@ -23,7 +26,7 @@ makeBestScatter <- function(scores_files, type = c("RNA", "ATAC")) {
     for (extension in c("pdf", "tiff", "png")) {
         ggsave(
             as.character(glue::glue(
-                "{now_str}_best_scatter_{type}.{extension}"
+                "{out_dir}/{now_str}_best_scatter_{type}.{extension}"
             )),
             summary_plot,
             width = 210, height = 297, units = "mm"
@@ -33,10 +36,10 @@ makeBestScatter <- function(scores_files, type = c("RNA", "ATAC")) {
 
 #' Plot best summary scatter
 #'
-#' Produces a plot showing a summary of the performance of top ranked integration
-#' methods summarized over a set of test datasets. The overall batch correction
-#' score is shown on the x-axis and the overall bio conservation score on the
-#' y-axis. Points show individual (versions of) methods.
+#' Produces a plot showing a summary of the performance of top ranked
+#' integration methods summarized over a set of test datasets. The overall batch
+#' correction score is shown on the x-axis and the overall bio conservation
+#' score on the y-axis. Points show individual (versions of) methods.
 #'
 #' @param scores A tibble containing the scores for various methods on different
 #' datasets. Created by `loadBestScores()`.
@@ -63,7 +66,7 @@ plotBestScatter <- function(scores) {
         aes(
             x      = BatchMean,
             y      = BioMean,
-            colour = `MethodVersion`
+            colour = MethodVersion
         ) +
         geom_errorbarh(
             aes(xmin = BatchMean - BatchSD, xmax = BatchMean + BatchSD)
@@ -108,15 +111,18 @@ plotBestScatter <- function(scores) {
 #' selected best methods.
 #'
 #' @param scores_files Vector of paths to CSV files containing scores for each
-#' dataset. These files are produced by the `plotSingleAtlas()` function. If
-#' they are store in a directory named `data/` this vector can be created using
+#' dataset. These files are produced by the `plotSingleTaskRNA()` or
+#' `plotSingleTaskATAC()` functions. If they are stored in a directory named
+#' `data/` this vector can be created using
 #' `fs::dir_ls("data", glob = "*_summary_scores.csv")`.
+#' @param best_methods Vector of names giving the best methods to plot. See the
+#' output of `getKeys()` for an example
 #' @param type Whether to load RNA or ATAC results
 #'
 #' @return A tibble
 #'
 #' @author Luke Zappia
-loadBestScores <- function(scores_files, type = c("RNA", "ATAC")) {
+loadBestScores <- function(scores_files, best_methods, type = c("RNA", "ATAC")) {
 
     type <- match.arg(type)
 
@@ -125,10 +131,6 @@ loadBestScores <- function(scores_files, type = c("RNA", "ATAC")) {
     is_rna <- type == "RNA"
     files_keep <- stringr::str_detect(scores_files, "atac", negate = is_rna)
     scores_files <- scores_files[files_keep]
-
-    keys <- getBestKeys(type)
-    dataset_key <- keys$dataset_key
-    best_methods <- keys$best_methods
 
     scores_cols_types <- switch (type,
         RNA = readr::cols(
@@ -219,85 +221,4 @@ loadBestScores <- function(scores_files, type = c("RNA", "ATAC")) {
         )
 
     return(best_scores)
-}
-
-getBestKeys <- function(type = c("RNA", "ATAC")) {
-
-    type <- match.arg(type)
-
-    dataset_key <- list(
-        RNA  = c(
-            pancreas                       = "Pancreas",
-            lung_atlas                     = "Lung",
-            immune_cell_hum                = "Immune (human)",
-            immune_cell_hum_mou            = "Immune (human/mouse)",
-            mouse_brain                    = "Mouse brain",
-            simulations_1_1                = "Sim 1",
-            simulations_2                  = "Sim 2"
-        ),
-        ATAC = c(
-            mouse_brain_atac_genes_large   = "ATAC large (genes)",
-            mouse_brain_atac_peaks_large   = "ATAC large (peaks)",
-            mouse_brain_atac_windows_large = "ATAC large (windows)",
-            mouse_brain_atac_genes_small   = "ATAC small (genes)",
-            mouse_brain_atac_peaks_small   = "ATAC small (peaks)",
-            mouse_brain_atac_windows_small = "ATAC small (windows)"
-        )
-    )
-
-    best_methods <- list(
-        RNA = c(
-            "Scanorama_embed_HVG_scaled",
-            "scANVI*_embed_HVG_unscaled",
-            "scGen*_gene_HVG_unscaled",
-            "fastMNN_embed_HVG_unscaled",
-            "BBKNN_graph_HVG_unscaled",
-            "Scanorama_gene_HVG_scaled",
-            "scVI_embed_HVG_unscaled",
-            "Seurat v3 RPCA_gene_HVG_unscaled",
-            "Harmony_embed_HVG_unscaled",
-            "Seurat v3 CCA_gene_HVG_unscaled",
-            "fastMNN_gene_HVG_unscaled",
-            "Conos_graph_FULL_unscaled",
-            "ComBat_gene_HVG_unscaled",
-            "MNN_gene_HVG_unscaled",
-            "trVAE_embed_HVG_unscaled",
-            "DESC_embed_FULL_unscaled",
-            "LIGER_embed_HVG_unscaled",
-            "SAUCIE_embed_HVG_scaled",
-            "SAUCIE_gene_HVG_scaled"
-        ),
-        ATAC = c(
-            "Harmony_embed",
-            "scANVI*_embed",
-            "LIGER_embed",
-            "scVI_embed",
-            "ComBat_gene",
-            "scGen*_gene",
-            "Seurat v3 RPCA_gene",
-            "Seurat v3 CCA_gene",
-            "Scanorama_embed",
-            "MNN_gene",
-            "trVAE_embed",
-            "fastMNN_embed",
-            "BBKNN_graph",
-            "Scanorama_gene",
-            "fastMNN_gene",
-            "DESC_embed",
-            "SAUCIE_embed",
-            "SAUCIE_gene",
-            "Conos_graph"
-        )
-    )
-
-    switch (type,
-        RNA = list(
-            dataset_key  = dataset_key$RNA,
-            best_methods = best_methods$RNA
-        ),
-        ATAC = list(
-            dataset_key  = dataset_key$ATAC,
-            best_methods = best_methods$ATAC
-        )
-    )
 }
