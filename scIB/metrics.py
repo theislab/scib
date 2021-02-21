@@ -46,7 +46,7 @@ def silhouette(adata, group_key, embed, metric='euclidean', scale=True):
     wrapper for sklearn silhouette function values range from [-1, 1] with 1 being an ideal fit, 0 indicating
     overlapping clusters and -1 indicating misclassified cells
     :param group_key: key in adata.obs of cell labels
-    :param embed: embedding key in adata.obsm, usually 'X_pca'
+    :param embed: embedding key in adata.obsm, default: 'X_pca'
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
@@ -321,12 +321,12 @@ def isolated_labels(
 ):
     """
     score how well labels of isolated labels are distiguished in the dataset by
-        1. clustering-based approach
-        2. silhouette score
+        1. clustering-based approach F1 score
+        2. average-width silhouette score on isolated-vs-rest label assignment
     params:
         cluster: if True, use clustering approach, otherwise use silhouette score approach
-        embed: key in adata.obsm used for silhouette score if cluster=True or
-            as representation for clustering (if neigbors missing in adata)
+        embed: key in adata.obsm used for silhouette score if cluster=False, or
+            as representation for clustering (if neighbors missing in adata)
         n: max number of batches per label for label to be considered as isolated.
             if n is integer, consider labels that are present for n batches as isolated
             if n=None, consider minimum number of batches that labels are present in
@@ -387,14 +387,20 @@ def score_isolated_label(
         label,
         embed,
         cluster=True,
-        cluster_key='iso_cluster',
+        iso_label_key='iso_label',
         verbose=False
 ):
     """
     compute label score for a single label
     params:
-        cluster: if True, use clustering approach, otherwise use silhouette score approach
-        kwargs:
+        adata: anndata object
+        label_key: key in adata.obs of isolated label type (usually cell label)
+        label: value of specific isolated label e.g. cell type/identity annotation
+        embed: embedding to be passed to opt_louvain, if adata.uns['neighbors'] is missing
+        cluster: if True, compute clustering-based F1 score, otherwise compute
+            silhouette score on grouping of isolated label vs all other remaining labels
+        iso_label_key: name of key to use for cluster assignment for F1 score or
+            isolated-vs-rest assignment for silhouette score
     """
     adata_tmp = adata.copy()
 
@@ -415,20 +421,22 @@ def score_isolated_label(
         return max_f1
 
     if cluster:
+        # F1-score on clustering
         opt_louvain(
             adata_tmp,
             label_key,
-            cluster_key,
+            cluster_key=iso_label_key,
+            label=label,
             use_rep=embed,
             function=max_f1,
-            label=label,
             verbose=False,
             inplace=True
         )
-        score = max_f1(adata_tmp, label_key, cluster_key, label, argmax=False)
+        score = max_f1(adata_tmp, label_key, iso_label_key, label, argmax=False)
     else:
-        adata_tmp.obs['group'] = adata_tmp.obs[label_key] == label
-        score = silhouette(adata_tmp, 'group', embed)
+        # AWS score between label
+        adata_tmp.obs[iso_label_key] = adata_tmp.obs[label_key] == label
+        score = silhouette(adata_tmp, iso_label_key, embed)
     
     del adata_tmp
     
