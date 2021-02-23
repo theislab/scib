@@ -8,12 +8,15 @@ library(ggplot2)
 #'
 #' @param score_files Passed to `loadScores()`
 #' @param dataset_key Passed to `loadScores()`
+#' @param methods_pal Passed to `loadScores()`
 #' @param out_dir Path to output directory
 #'
 #' @author Luke Zappia
-makeSummaryScatter <- function(scores_files, dataset_key, out_dir = ".") {
+makeSummaryScatter <- function(scores_files, dataset_key, methods_pal,
+                               out_dir = ".") {
+
     scores <- loadScores(scores_files, dataset_key)
-    summary_plot <- plotSummaryScatter(scores)
+    summary_plot <- plotSummaryScatter(scores, methods_pal)
 
     now_str <- format(lubridate::now(), "%Y%m%d_%H%M%S")
 

@@ -224,10 +224,12 @@ source("exampleKeys.R")
 
 scores_files <- fs::dir_ls("summaries")
 dataset_key <- getDatasetKey()
+methods_pal <- getMethodsPal()
 
 makeSummaryScatter(
     scores_files = scores_files,
     dataset_key = dataset_key,
+    methods_pal = methods_pal,
     out_dir = "."
 )
 ```
