@@ -204,7 +204,7 @@ These scatter can be made either individually for each dataset or averaged over 
 
 ### Summary scatter
 
-The the `makeSummaryScatter()` function produces a faceted scatter plot where each facet is a dataset.
+The `makeSummaryScatter()` function produces a faceted scatter plot where each facet is a dataset.
 It calls the `loadScores()` function to load the metrics data followed by the `plotSummaryScatter()` function to produce the plot.
 The figure is then saved to disk in various formats.
 
@@ -234,7 +234,7 @@ makeSummaryScatter(
 
 ### Best methods scatter
 
-The the `makeBestScatter()` function produces a plot showing the performance of a selection of methods across several datasets.
+The `makeBestScatter()` function produces a plot showing the performance of a selection of methods across several datasets.
 It calls the `loadBestScores()` function to load the metrics data followed by the `plotBestScatter()` function to produce the plot.
 The figure is then saved to disk in various formats.
 
