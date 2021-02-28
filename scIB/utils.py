@@ -28,12 +28,15 @@ def checkSanity(adata, batch, hvg):
         checkHVG(hvg, adata.var)
 
 
-def splitBatches(adata, batch, hvg= None):
+def splitBatches(adata, batch, hvg= None, return_categories=False):
     split = []
+    batch_categories = adata.obs[batch].unique()
     if hvg is not None:
         adata = adata[:, hvg]
-    for i in adata.obs[batch].unique():
+    for i in batch_categories:
         split.append(adata[adata.obs[batch]==i].copy())
+    if return_categories:
+        return split, batch_categories
     return split
 
 def merge_adata(adata_list, sep='-'):
