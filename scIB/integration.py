@@ -24,7 +24,7 @@ def runScanorama(adata, batch, hvg = None):
     split, categories = splitBatches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = anndata.AnnData.concatenate(
-        *corrected, batch_key=batch, batch_categories=categories
+        *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
     corrected.obsm['X_emb'] = corrected.obsm['X_scanorama']
     #corrected.uns['emb']=True
@@ -277,7 +277,7 @@ def runMNN(adata, batch, hvg = None):
     split, categories = splitBatches(adata, batch, return_categories=True)
 
     corrected, _, _ = mnnpy.mnn_correct(
-        *split, var_subset=hvg, batch_key=batch, batch_categories=categories
+        *split, var_subset=hvg, batch_key=batch, batch_categories=categories, index_unique=None
     )
 
     return corrected
