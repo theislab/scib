@@ -457,7 +457,7 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
             print('Number of genes: '+str(i.n_vars))
         hvg = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
         hvg_dir[i.obs[batch][0]] = i.var.index[hvg['highly_variable']]
-    adata_list=None
+
     if save_hvg:    
         adata.uns['hvg_before']=hvg_dir
     else:
@@ -611,7 +611,7 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         
             if raw_sub.shape[0] != int_sub.shape[0]:
                 message = f'batch "{batch}" of batch_key "{batch_key}" '
-                message += 'has unequal number of entries before and after integration.'
+                message += 'has unequal number of observations before and after integration.'
                 message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
                 raise ValueError(message)
         
