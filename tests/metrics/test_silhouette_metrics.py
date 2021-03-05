@@ -28,6 +28,7 @@ def test_isolated_labels_silhouette(adata, adata_pca):
         adata_pca(adata),
         label_key='celltype',
         batch_key='batch',
+        embed='X_pca',
         cluster=False,
         verbose=True
     )

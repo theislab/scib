@@ -35,6 +35,7 @@ def test_isolated_labels_F1(adata, adata_neighbors):
         adata_neighbors(adata),
         label_key='celltype',
         batch_key='batch',
+        embed='X_pca',
         cluster=True,
         verbose=True
     )
