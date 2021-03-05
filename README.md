@@ -1,8 +1,10 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
-This repository contains code and analysis for the benchmarking study for data integration tools.
-In this study, we benchmark 10 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 40 methods combinations on
-60 batches of gene expression and chromatin accessibility data.
+This repository contains the code for our benchmarking study for data integration tools.
+In this study, we benchmark 16 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 68 
+methods combinations on 85 batches of gene expression and chromatin accessibility data.
+This code is used in the  [`scIB pipeline`](https://github.com/theislab/scib-pipeline.git), which allows for reproducible and automated
+analysis of the different steps and combinations of preprocesssing and integration methods.
 
 ![Workflow](./figure.png)
 
@@ -36,6 +38,9 @@ conda env create -f FILENAME.yml
 ``` 
 To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
 and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
+As `Saucie` is not available as a python package for the scIB-python env, it needs to be installed manually from [here](https://github.com/KrishnaswamyLab/SAUCIE).
+Furthermore, you need to install `kBET` in the `scIB-python` env with `r-devtools` as described [here](https://github.com/theislab/kBET).
+
 In the `scIB-R-integration` environment, R packages need to be installed manually.
 Activate the environment and install the packages `scran`, `Seurat` and `Conos` in R. `Conos` needs to be installed using R devtools.
 See [here](https://github.com/hms-dbmi/conos).
@@ -80,18 +85,19 @@ Biological conservation metrics include:
 - Graph cLISI (`lisi_graph()`)
 
 ## Tools
-Tools to be compared include:
-- [Seurat v3](https://github.com/satijalab/seurat)
-- [TrVae](https://github.com/theislab/trvae)
-- [scVI](https://github.com/YosefLab/scVI)
-- [CONOS](https://github.com/hms-dbmi/conos) [tutorial](https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html)
-- [MNN](https://github.com/chriscainx/mnnpy)
+Tools that are compared include:
 - [Scanorama](https://github.com/brianhie/scanorama)
-- [LIGER](https://github.com/MacoskoLab/liger)
+- [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
+- [FastMNN](https://bioconductor.org/packages/batchelor/)
+- [scGen](https://github.com/theislab/scgen)
 - [BBKNN](https://github.com/Teichlab/bbknn)
+- [scVI](https://github.com/YosefLab/scVI)
+- [Seurat v3 (CCA and RPCA)](https://github.com/satijalab/seurat)
 - [Harmony](https://github.com/immunogenomics/harmony)
+- [Conos](https://github.com/hms-dbmi/conos)
 - [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
-<!--- - [scMerge](https://github.com/SydneyBioX/scMerge)
-- [scAlign](https://github.com/quon-titative-biology/scAlign) -->
-<!--- - BBKNN + [scAEspy](https://gitlab.com/cvejic-group/scaespy)? -->
-<!--- - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) -->
+- [MNN](https://github.com/chriscainx/mnnpy)
+- [TrVae](https://github.com/theislab/trvae)
+- [DESC](https://github.com/eleozzr/desc)
+- [LIGER](https://github.com/MacoskoLab/liger)
+- [SAUCIE](https://github.com/KrishnaswamyLab/SAUCIE)

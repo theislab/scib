@@ -20,22 +20,21 @@
 #' @importFrom ggforce geom_arc_bar geom_circle geom_arc
 #' @importFrom cowplot theme_nothing
 #'
-#' @export
-#' 
+
 
 library(dplyr)
 library(scales)
 library(ggimage)
-
+library(cowplot)
 
 scIB_knit_table <- function(
-data,
-column_info,
-row_info,
-palettes,
-usability = FALSE,
-atac = FALSE,
-atac_best = FALSE
+  data,
+  column_info,
+  row_info,
+  palettes,
+  usability = FALSE,
+  atac = FALSE,
+  atac_best = FALSE
 ) {
   # no point in making these into parameters
   row_height <- 1.1
@@ -123,7 +122,11 @@ atac_best = FALSE
                               y0 = rep(row_pos$y, ncol(dat_mat)),
                               r = row_height/2*as.vector(sqrt(dat_mat))
                               )
-    circle_data$r <- rescale(circle_data$r, to = c(0.05, 0.55), from = range(circle_data$r, na.rm = T))
+    for(l in unique(circle_data$label)){
+      ind_l <- which(circle_data$label == l)
+      circle_data[ind_l, "r"] <- rescale(circle_data[ind_l, "r"], to = c(0.05, 0.55), from = range(circle_data[ind_l, "r"], na.rm = T))
+    }
+    
     colors <- NULL
     
     
@@ -181,7 +184,7 @@ atac_best = FALSE
   dat_mat <- as.matrix(data[, ind_text])
   
   if(atac){
-    colnames(dat_mat) <- "Method"
+    colnames(dat_mat)[1] <- "Method"
   }
   
   text_data <- data.frame(label_value = as.vector(dat_mat), 
@@ -205,15 +208,17 @@ atac_best = FALSE
   text_data[text_data$label_value == "+" | text_data$label_value == "-", "size"] <- 5
   text_data[text_data$label_value == "+" | text_data$label_value == "-", "fontface"] <- "bold"
   
+  text_data[text_data$label_value == "genes" | text_data$label_value == "peaks" | text_data$label_value == "windows", "size"] <- 3
+  
+  
   # ADD top3 ranking for each bar column
   if(usability || atac_best){
     cols_bar <- unique(rect_data$label)
     cols_bar <- as.character(cols_bar[!is.na(cols_bar)])
     for(c in cols_bar){
       rect_tmp <- rect_data[rect_data$label == c,]
-      rect_tmp <- rect_tmp[order(rect_tmp$value, decreasing = T),]
-      rect_tmp <- rect_tmp[1:3, c("xmin", "xmax", "ymin", "ymax")]
-      rect_tmp <- add_column(rect_tmp, "label_value" = c("1", "2", "3"), .before = "xmin")
+      rect_tmp <- add_column(rect_tmp, "label_value" = as.character(rank(-rect_tmp$value, ties.method = "min")))
+      rect_tmp <- rect_tmp[rect_tmp$label_value %in% c("1", "2", "3"), c("label_value", "xmin", "xmax", "ymin", "ymax")]
       rect_tmp <- add_column(rect_tmp, "size" = 2.5, .after = "ymax")
       rect_tmp <- add_column(rect_tmp, "colors" = "black", .after = "size")
       rect_tmp <- add_column(rect_tmp, "fontface" = "plain", .after = "colors")
@@ -276,7 +281,8 @@ atac_best = FALSE
                                                 function(x) rep(x, nrow(dat_mat)))), 
                              y = rep(row_pos$y, ncol(dat_mat)),
                              image = mapvalues(dat_mat, from = c("graph", "embed", "gene"), 
-                                               to = c("./img/graph.png", "./img/embedding.png", "./img/matrix.png"))
+                                               to = c("./img/graph.png", "./img/embedding.png", "./img/matrix.png")),
+                             stringsAsFactors = FALSE
                              )
     
   }
@@ -301,7 +307,6 @@ atac_best = FALSE
   x_min_ranking <- ifelse(atac, minimum_x + 5.5, minimum_x + 10.5)
   x_min_score <-  ifelse(atac, minimum_x + 11, minimum_x + 17)
   
-  #middle_pos_x <- (maximum_x + minimum_x) /2
   leg_max_y <- minimum_y - .5
   
   # Create legend for Output
@@ -324,7 +329,7 @@ atac_best = FALSE
                               xmax = leg_min_x+3, 
                               ymin = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
                               ymax = c(leg_max_y-2.2, leg_max_y-3.4,leg_max_y-4.6), 
-                              label_value = c("window", "embed", "graph"), 
+                              label_value = c("feature", "embed", "graph"), 
                               hjust = 0, vjust = 0, 
                               fontface = "plain",
                               size = 3)
@@ -377,8 +382,10 @@ atac_best = FALSE
                            "Scalability" = leg_min_x+3)
     leg_max_x <- leg_min_x+3
   } else if(atac_best){
-    rank_minimum_x <- list("ATAC" = leg_min_x)
-    leg_max_x <- leg_min_x
+    rank_minimum_x <- list("ATAC_windows" = leg_min_x, 
+                           "ATAC_peaks" = leg_min_x+1, 
+                           "ATAC_genes" = leg_min_x+2)
+    leg_max_x <- leg_min_x+2
   } else{
     rank_minimum_x <- list("Score overall" = leg_min_x, 
                            "Removal of batch effects" = leg_min_x+1, 
@@ -557,9 +564,10 @@ atac_best = FALSE
 
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = hjust, vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data)
     
-    text_data_left[text_data_left$group == "Method", "x"] <- text_data_left[text_data_left$group == "Method", "x"] - 1.75
+    text_data_left[text_data_left$group == "Method", "x"] <- text_data_left[text_data_left$group == "Method", "x"] - 3
     if(usability || atac_best){
     text_data_left[text_data_left$group == "top3", "x"] <- text_data_left[text_data_left$group == "top3", "xmin"] + .3
+    text_data_left[text_data_left$group == "Method", "x"] <- text_data_left[text_data_left$group == "Method", "x"] + .5
     }
     g <- g + geom_text(aes(x = x, y = y, label = label_value, colour = colors, hjust = "left", vjust = vjust, size = size, fontface = fontface, angle = angle), data = text_data_left)
   }
@@ -582,6 +590,14 @@ atac_best = FALSE
     g <- g + geom_segment(aes(x = x, xend = xend, y = y, yend = yend, size = size, colour = colour, linetype = linetype), arrow_data, arrow = arrow(length = unit(0.1, "cm")), lineend = "round", linejoin = "bevel")
   }
   
+  # PLOT IMAGES
+  if(length(ind_img) > 0){
+    for(r in 1:nrow(image_data)){
+      g <- g + cowplot::draw_image(image = image_data$image[r], x = image_data[r, "x"]-.5, y = image_data[r, "y"]-.5)
+    }
+    
+  }
+  
   # ADD SIZE
   # reserve a bit more room for text that wants to go outside the frame
   minimum_x <- minimum_x - 2
@@ -596,10 +612,7 @@ atac_best = FALSE
   
   
   
-  # PLOT IMAGES
-  if(length(ind_img) > 0){
-      g <- g + geom_image(aes(x = x, y = y, image = image), image_data, size = 0.02, by = "width")
-  }
+  
   
   
   return(g)

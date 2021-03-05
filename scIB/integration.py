@@ -6,20 +6,14 @@
     as well as tools and metrics to benchmark them.
 """
 
-import scanpy as sc
 import scipy as sp
-#import numpy as np
 from scIB.utils import *
-from memory_profiler import profile
 import os
-import pandas as pd
 import anndata
 
 import rpy2.rinterface_lib.callbacks
 import logging
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
-import rpy2.robjects as ro
-import anndata2ri
 from scipy.sparse import issparse
 
 # functions for running the methods
@@ -27,11 +21,12 @@ from scipy.sparse import issparse
 def runScanorama(adata, batch, hvg = None):
     import scanorama
     checkSanity(adata, batch, hvg)
-    split = splitBatches(adata.copy(), batch)
-    emb, corrected = scanorama.correct_scanpy(split, return_dimred=True)
-    corrected = corrected[0].concatenate(corrected[1:])
-    emb = np.concatenate(emb, axis=0)
-    corrected.obsm['X_emb']= emb
+    split, categories = splitBatches(adata.copy(), batch, return_categories=True)
+    corrected = scanorama.correct_scanpy(split, return_dimred=True)
+    corrected = anndata.AnnData.concatenate(
+        *corrected, batch_key=batch, batch_categories=categories, index_unique=None
+    )
+    corrected.obsm['X_emb'] = corrected.obsm['X_scanorama']
     #corrected.uns['emb']=True
 
     return corrected
@@ -279,11 +274,13 @@ def runScanvi(adata, batch, labels):
 def runMNN(adata, batch, hvg = None):
     import mnnpy
     checkSanity(adata, batch, hvg)
-    split = splitBatches(adata, batch)
+    split, categories = splitBatches(adata, batch, return_categories=True)
 
-    corrected = mnnpy.mnn_correct(*split, var_subset=hvg)
+    corrected, _, _ = mnnpy.mnn_correct(
+        *split, var_subset=hvg, batch_key=batch, batch_categories=categories, index_unique=None
+    )
 
-    return corrected[0]
+    return corrected
 
 def runBBKNN(adata, batch, hvg=None):
     import bbknn

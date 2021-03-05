@@ -8,6 +8,7 @@ from scIB import metrics
 
 
 def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
+                use_rep=None,
                 inplace=True, plot=False, force=True, verbose=True, **kwargs):
     """
     params:
@@ -19,6 +20,8 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
             arguments (adata, group1, group2, **kwargs) and returns a number for maximising
         resolutions: list if resolutions to be optimised over. If `resolutions=None`,
             default resolutions of 20 values ranging between 0.1 and 2 will be used
+        use_rep: key of embedding to use only if adata.uns['neighbors'] is not defined,
+            otherwise will be ignored
     returns:
         res_max: resolution of maximum score
         score_max: maximum score
@@ -48,14 +51,13 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
     res_max = resolutions[0]
     clustering = None
     score_all = []
-    
-    #maren's edit - recompute neighbors if not existing
+
     try:
         adata.uns['neighbors']
     except KeyError:
         if verbose:
             print('computing neigbours for opt_cluster')
-        sc.pp.neighbors(adata)
+        sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)

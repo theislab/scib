@@ -7,53 +7,47 @@ library(ggplot2)
 #' various formats. See individual function docs for details.
 #'
 #' @param score_files Passed to `loadScores()`
+#' @param dataset_key Passed to `loadScores()`
+#' @param methods_pal Passed to `loadScores()`
+#' @param out_dir Path to output directory
 #'
 #' @author Luke Zappia
-makeSummaryScatter <- function(scores_files) {
-    scores <- loadScores(scores_files)
-    summary_plot <- plotSummaryScatter(scores)
+makeSummaryScatter <- function(scores_files, dataset_key, methods_pal,
+                               out_dir = ".") {
+
+    scores <- loadScores(scores_files, dataset_key)
+    summary_plot <- plotSummaryScatter(scores, methods_pal)
 
     now_str <- format(lubridate::now(), "%Y%m%d_%H%M%S")
 
-    ggsave(
-        paste0(now_str, "_scatter_summary.pdf"),
-        summary_plot,
-        # device = cairo_pdf,
-        width = 210, height = 297, units = "mm"
-    )
+    for (extension in c("pdf", "tiff", "png")) {
+        ggsave(
+            as.character(glue::glue(
+                "{out_dir}/{now_str}_scatter_summary.{extension}"
+            )),
+            summary_plot,
+            width = 210, height = 297, units = "mm"
+        )
+    }
 
-    ggsave(
-        paste0(now_str, "_scatter_summary.tiff"),
-        summary_plot,
-        device = "tiff",
-        dpi = "retina",
-        width = 210, height = 297, units = "mm"
-    )
-
-    ggsave(
-        paste0(now_str, "_scatter_summary.png"),
-        summary_plot,
-        # device = "png",
-        # type = "cairo-png",
-        dpi = "retina",
-        width = 210, height = 297, units = "mm"
-    )
 }
 
 #' Plot summary scatter
 #'
-#' Produces a plot showing a summary of the performace of integration methods
+#' Produces a plot showing a summary of the performance of integration methods
 #' on a set of test datasets. The overall batch correction score is shown on the
-#' x-axis and the overall bio conservation score on the y-axis. Points show
+#' x-axis and the overall bio-conservation score on the y-axis. Points show
 #' individual (versions of) methods.
 #'
 #' @param scores A tibble containing the scores for various methods on different
 #' datasets. Created by `loadScores()`.
+#' @param methods_pal Named vector of colours for methods. See `getMethodsPal()`
+#' for an example.
 #'
 #' @return A ggplot2 object
 #'
 #' @author Luke Zappia
-plotSummaryScatter <- function(scores) {
+plotSummaryScatter <- function(scores, methods_pal) {
 
     `%>%` <- magrittr::`%>%`
 
@@ -129,12 +123,15 @@ plotSummaryScatter <- function(scores) {
             aes(alpha = Scaling),
             shape = 4, size = 1.5
         ) +
-        scale_colour_brewer(palette = "Paired") +
+        scale_colour_manual(values = methods_pal) +
         scale_size_continuous(range = c(0.5, 3)) +
         scale_shape_manual(
             values = c(16, 21, 15, 22, 17, 24),
-            labels = c("embed (FULL)", "embed (HVG)", "gene (FULL)",
-                       "gene (HVG)", "graph (FULL)", "graph (HVG)")
+            labels = c("Embedding (Full)", "Embedding (HVG)", "Features (Full)",
+                       "Features (HVG)", "Graph (Full)", "Graph (HVG)"),
+            breaks = c("embed_FULL", "embed_HVG", "gene_FULL",
+                       "gene_HVG", "graph_FULL", "graph_HVG"),
+            drop = FALSE
         ) +
         scale_alpha_manual(values = c(1, 0)) +
         scale_linetype_manual(values = c(1, 5)) +
@@ -193,28 +190,18 @@ plotSummaryScatter <- function(scores) {
 #' Read a set of scores files and return a single tibble.
 #'
 #' @param scores_files Vector of paths to CSV files containing scores for each
-#' dataset. These files are produced by the `plotSingleAtlas()` function. If
-#' they are store in a directory named `data/` this vector can be created using
-#' `fs::dir_ls("data")`.
+#' dataset. These files are produced by the `plotSingleTaskRNA()` or
+#' `plotSingleTaskATAC()` functions. If they are store in a directory named
+#' `data/` this vector can be created using `fs::dir_ls("data")`.
+#' @param dataset_key Named vector giving names for datasets. See
+#' `getDatasetKey()` for an example.
 #'
 #' @return A tibble
 #'
 #' @author Luke Zappia
-loadScores <- function(scores_files) {
+loadScores <- function(scores_files, dataset_key) {
 
     `%>%` <- magrittr::`%>%`
-
-    dataset_key <- c(
-        pancreas_jointnorm               = "Pancreas",
-        lung_atlas                       = "Lung",
-        immune_cell_hum                  = "Immune (human)",
-        immune_cell_hum_mou              = "Immune (human/mouse)",
-        mouse_brain                      = "Mouse brain",
-        simulations_1_1                  = "Sim 1",
-        simulations_2                    = "Sim 2",
-        mouse_brain_atac_small_3datasets = "ATAC small",
-        mouse_brain_atac_large_3datasets = "ATAC large"
-    )
 
     scores_list <- purrr::map(scores_files, function(.file) {
 
