@@ -518,9 +518,9 @@ def precompute_cc_score(adata, batch_key, organism='mouse',
             s_score.append(raw_sub.obs['S_score'])
             g2m_score.append(raw_sub.obs['G2M_score'])
             
-        variable = raw_sub.obs[['S_score', 'G2M_score']]
+        covariate = raw_sub.obs[['S_score', 'G2M_score']]
         
-        before = pc_regression(raw_sub.X, variable, pca_var=None, n_comps=n_comps, verbose=verbose)
+        before = pc_regression(raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
         scores_before.update({batch : before})
     
     if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
@@ -531,7 +531,7 @@ def precompute_cc_score(adata, batch_key, organism='mouse',
 
 
 def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
-               organism='mouse', n_comps=50, verbose=False, recompute_cc = True, precompute_pcr_key = None):
+               organism='mouse', n_comps=50, verbose=False):
     """
     Compare the variance contribution of S-phase and G2/M-phase cell cycle scores before and
     after integration. Cell cycle scores are computed per batch on the unintegrated data set,
@@ -547,9 +547,6 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
         agg_func: any function that takes a list of numbers and aggregates them into a single number. 
                   If `agg_func=None`, all results will be returned
         organism: 'mouse' or 'human' for choosing cell cycle genes
-        recompute_cc: whether to force recompute cell cycle score (True) or use precomputed scores (False)
-        recompute_pcr_key: key in adata_pre for precomputed PCR values for cell cycle scores (does not require
-            cell cycle scores to be present in adata_pre)
     """
     checkAdata(adata_pre)
     checkAdata(adata_post)
@@ -561,53 +558,89 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     scores_final = []
     scores_before = []
     scores_after = []
-
-    recompute_cc = recompute_cc or ('S_score' not in adata_pre.obs_keys() and 'G2M_score' not in adata_pre.obs_keys())
-    recompute_pcr = precompute_pcr_key is None or precompute_pcr_key not in adata_pre.uns_keys()
-
-    for batch in batches:
-        # subset adata objects
-        raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
-        int_sub = adata_post[adata_post.obs[batch_key] == batch].copy()
-        int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
-
-        # sanity check: subsets have same nubmber of rows?
-        if raw_sub.shape[0] != int_sub.shape[0]:
-            message = f'batch "{batch}" of batch_key "{batch_key}" '
-            message += 'has unequal number of entries before and after integration.'
-            message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
-            raise ValueError(message)
-
-        # compute cc scores if necessary
-        if recompute_cc:
+    #if both (s-score, g2m-score) and pc-regression are pre-computed 
+    if (np.in1d(['S_score', 'G2M_score'], 
+                adata_pre.obs_keys()).sum() == 2) and ('scores_before' in adata_pre.uns_keys()): 
+        #extract needed infos from adata_pre and delete it from memory
+        df_pre = adata_pre.obs[['S_score', 'G2M_score', batch_key]]
+        
+        scores_precomp = pd.Series(adata_pre.uns['scores_before'])
+        del adata_pre
+        n_item = gc.collect()
+        
+        for batch in enumerate(batches):
+            raw_sub = df_pre.loc[df_pre[batch_key] == batch[1]]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch[1]].copy()
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+        
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch[1]}" of batch_key "{batch_key}" '
+                message += 'has unequal number of entries before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
+        
             if verbose:
                 print("score cell cycle")
-            score_cell_cycle(raw_sub, organism=organism)
+            
+            covariate = raw_sub[['S_score', 'G2M_score']]
+            after =  pc_regression(int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+            #get score before from list of pre-computed scores
+            before = scores_precomp[batch[1]]
+            scores_before.append(before)
 
-        # regression variable
-        variable = raw_sub.obs[['S_score', 'G2M_score']]
-
-        # PCR on adata before integration
-        before = pc_regression(raw_sub.X, variable, pca_var=None, n_comps=n_comps, verbose=verbose) \
-            if recompute_pcr else pd.Series(raw_sub.uns[precompute_pcr_key])
-        scores_before.append(before)
-
-        # PCR on adata after integration
-        after = pc_regression(int_sub, variable, pca_var=None, n_comps=n_comps, verbose=verbose)
-        scores_after.append(after)
-
-        # scaled result
-        score = 1 - abs(after - before)/before
-        if score < 0:
-            # Here variance contribution becomes more than twice as large as before
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
+        
+            scores_final.append(score)
+        
             if verbose:
-                print("Variance contrib more than twice as large after integration.")
-                print("Setting score to 0.")
-            score = 0
-        scores_final.append(score)
-
-        if verbose:
-            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+                print(f"batch: {batch[1]}\t before: {before}\t after: {after}\t score: {score}")
+                 
+    else: #not everything is pre-computed
+       
+        for batch in batches:
+            raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
+            int_sub = adata_post[adata_post.obs[batch_key] == batch]
+            int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
+        
+            if raw_sub.shape[0] != int_sub.shape[0]:
+                message = f'batch "{batch}" of batch_key "{batch_key}" '
+                message += 'has unequal number of observations before and after integration.'
+                message += f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+                raise ValueError(message)
+        
+            if verbose:
+                print("score cell cycle")
+            #compute cell cycle score if not done already    
+            if (np.in1d(['S_score', 'G2M_score'], raw_sub.obs_keys()).sum() < 2):
+                score_cell_cycle(raw_sub, organism=organism)
+                
+            covariate = raw_sub.obs[['S_score', 'G2M_score']]
+        
+            before = pc_regression(raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
+            scores_before.append(before)
+        
+            after =  pc_regression(int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
+            scores_after.append(after)
+        
+            score = 1 - abs(after - before)/before # scaled result
+            if score < 0:
+                # Here variance contribution becomes more than twice as large as before
+                if verbose:
+                    print("Variance contrib more than twice as large after integration.")
+                    print("Setting score to 0.")
+                score = 0
+        
+            scores_final.append(score)
+        
+            if verbose:
+                print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
         
     if agg_func is None:
         return pd.DataFrame([batches, scores_before, scores_after, scores_final],
@@ -615,8 +648,8 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     else:
         return agg_func(scores_final)
 
-### PC Regression
-def pcr_comparison(adata_pre, adata_post, variable, embed=None, n_comps=50, scale=True, verbose=False):
+### PC Regression        
+def pcr_comparison(adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False):
     """
     Compare the effect before and after integration
     Return either the difference of variance contribution before and after integration
@@ -636,9 +669,9 @@ def pcr_comparison(adata_pre, adata_post, variable, embed=None, n_comps=50, scal
     if embed == 'X_pca':
         embed = None
     
-    pcr_before = pcr(adata_pre, variable=variable, recompute_pca=True,
+    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=True,
                      n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, variable=variable, embed=embed, recompute_pca=True,
+    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=True,
                     n_comps=n_comps, verbose=verbose)
 
     if scale:
@@ -651,8 +684,7 @@ def pcr_comparison(adata_pre, adata_post, variable, embed=None, n_comps=50, scal
     else:
         return pcr_after - pcr_before
 
-
-def pcr(adata, variable, embed=None, n_comps=50, recompute_pca=True, verbose=False):
+def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
     """
     PCR for Adata object
     Checks whether to
@@ -664,36 +696,35 @@ def pcr(adata, variable, embed=None, n_comps=50, recompute_pca=True, verbose=Fal
         embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
                   use the embedding provided in `adata_post.obsm[embed]`
         n_comps: number of PCs if PCA should be computed
-        variable: key for adata.obs column to regress against
+        covariate: key for adata.obs column to regress against
     return:
         R2Var of PCR
     """
     
     checkAdata(adata)
-    checkBatch(variable, adata.obs)
+    checkBatch(covariate, adata.obs)
     
     if verbose:
-        print(f"variable: {variable}")
-    variable_values = adata.obs[variable]
+        print(f"covariate: {covariate}")
+    batch = adata.obs[covariate]
     
     # use embedding for PCA
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
             print(f"compute PCR on embedding n_comps: {n_comps}")
-        return pc_regression(adata.obsm[embed], variable_values, n_comps=n_comps)
+        return pc_regression(adata.obsm[embed], batch, n_comps=n_comps)
     
     # use existing PCA computation
     elif (recompute_pca == False) and ('X_pca' in adata.obsm) and ('pca' in adata.uns):
         if verbose:
             print("using existing PCA")
-        return pc_regression(adata.obsm['X_pca'], variable_values, pca_var=adata.uns['pca']['variance'])
+        return pc_regression(adata.obsm['X_pca'], batch, pca_var=adata.uns['pca']['variance'])
     
     # recompute PCA
     else:
         if verbose:
             print(f"compute PCA n_comps: {n_comps}")
-        return pc_regression(adata.X, variable_values, n_comps=n_comps)
-
+        return pc_regression(adata.X, batch, n_comps=n_comps)
 
 def pc_regression(data, variable, pca_var=None, n_comps=50, svd_solver='arpack', verbose=False):
     """
@@ -1851,7 +1882,7 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if pcr_:
         print('PC regression...')
-        pcr_score = pcr_comparison(adata, adata_int, embed=embed, variable=batch_key, verbose=verbose)
+        pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
     else:
         pcr_score = np.nan
     results['PCR_batch'] = pcr_score

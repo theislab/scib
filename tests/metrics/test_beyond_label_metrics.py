@@ -11,7 +11,7 @@ def test_cell_cycle(adata_factory):
         adata_int,
         batch_key='batch',
         organism='mouse',
-        recompute_cc=True,
+        #recompute_cc=True,
         verbose=True
     )
     LOGGER.info(f"score: {score}")
@@ -28,7 +28,7 @@ def test_cell_cycle_all(adata_factory):
         adata_int,
         batch_key='batch',
         organism='mouse',
-        recompute_cc=True,
+        #recompute_cc=True,
         agg_func=None,
         verbose=True
     )
