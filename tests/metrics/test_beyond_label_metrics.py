@@ -1,8 +1,8 @@
 from tests.common import *
 
 
-def test_cell_cycle(adata_factory):
-    adata = adata_factory()
+def test_cell_cycle(adata_paul15):
+    adata = adata_paul15
     adata_int = adata.copy()
 
     # only final score
@@ -18,8 +18,8 @@ def test_cell_cycle(adata_factory):
     assert score == 1
 
 
-def test_cell_cycle_all(adata_factory):
-    adata = adata_factory()
+def test_cell_cycle_all(adata_paul15):
+    adata = adata_paul15
     adata_int = adata.copy()
 
     # get all intermediate scores

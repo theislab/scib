@@ -39,3 +39,17 @@ def run(cmd, dir_path, report_stdout=True, stdout=subprocess.PIPE, stderr=subpro
 
 def runR(r_cmd, dir_path, report_stdout=False):
     return run(f"Rscript -e '{r_cmd}'", dir_path, report_stdout=report_stdout)
+
+
+def add_embed(adata, type_):
+    if type_ == 'pca':
+        if 'X_pca' in adata.obsm:
+            mtx = adata.obsm['X_pca']
+        else:
+            mtx = sc.tl.pca(adata, copy=True).obsm['X_pca']
+    elif type_ == 'full':
+        mtx = adata.X
+    else:
+        raise ValueError(f"'{type_}' not a valid embedding type")
+    adata.obsm['X_emb'] = mtx
+    return adata

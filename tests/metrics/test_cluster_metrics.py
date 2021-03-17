@@ -11,28 +11,33 @@ def test_ari_trivial(adata):
     assert score == 1
 
 
-def test_nmi(adata, adata_neighbors, cluster_factory):
-    _, _, nmi_all = cluster_factory(
-        adata_neighbors(adata),
-        cluster_key='cluster',
+def test_nmi(adata):
+
+    _, _, nmi_all = scIB.cl.opt_louvain(
+        adata,
         label_key='celltype',
+        cluster_key='cluster',
+        function=scIB.me.nmi,
+        plot=False,
+        inplace=True,
+        force=True,
         verbose=True
     )
+
     for score in nmi_all['score']:
         assert score >= 0
         assert score <= 1
 
 
-def test_ari(adata, adata_clustered):
-    score = scIB.me.ari(adata_clustered(adata), 'cluster', 'celltype')
+def test_ari(adata_clustered):
+    score = scIB.me.ari(adata_clustered, group1='cluster', group2='celltype')
     LOGGER.info(f"score: {score}")
-    assert score >= 0
-    assert score <= 1
+    assert 0 <= score <= 1
 
 
-def test_isolated_labels_F1(adata, adata_neighbors):
+def test_isolated_labels_F1(adata_neighbors):
     score = scIB.me.isolated_labels(
-        adata_neighbors(adata),
+        adata_neighbors,
         label_key='celltype',
         batch_key='batch',
         embed='X_pca',
@@ -40,5 +45,4 @@ def test_isolated_labels_F1(adata, adata_neighbors):
         verbose=True
     )
     LOGGER.info(f"score: {score}")
-    assert score <= 1
-    assert score >= 0
+    assert 0 <= score <= 1

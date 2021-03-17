@@ -2,8 +2,28 @@ from .common import *
 
 
 @pytest.fixture(scope="session")
-def adata_pbmc():
-    #adata_ref = sc.datasets.pbmc3k_processed()
+def adata_paul15_template():
+    adata = sc.datasets.paul15()
+    adata.obs['celltype'] = adata.obs['paul15_clusters']
+    np.random.seed(42)
+    adata.obs['batch'] = np.random.randint(1, 5, adata.n_obs)
+    adata.obs['batch'] = adata.obs['batch'].astype(str)
+    adata.obs['batch'] = adata.obs['batch'].astype("category")
+    adata.layers['counts'] = adata.X
+    scIB.preprocessing.reduce_data(
+        adata,
+        pca=False,
+        n_top_genes=None,
+        neighbors=False,
+        umap=False
+    )
+    yield adata
+    del adata
+
+
+@pytest.fixture(scope="session")
+def adata_pbmc_template():
+    # adata_ref = sc.datasets.pbmc3k_processed()
     # quick fix for broken dataset paths, should be removed with scanpy>=1.6.0
     adata_ref = sc.read(
         "pbmc3k_processed.h5ad",
@@ -36,85 +56,53 @@ def adata_pbmc():
     del adata_concat
 
 
-@pytest.fixture(scope="function")
-def adata(adata_pbmc):
-    adata = adata_pbmc.copy()
-    yield adata
-    del adata
-
-@pytest.fixture(scope="session")
-def adata_pca():
-    def adata_pca_(adata):
-        scIB.pp.reduce_data(adata, pca=True, n_top_genes=200, neighbors=False, umap=False)
-        return adata
-    return adata_pca_
+@pytest.fixture()
+def adata_paul15(adata_paul15_template):
+    adata_obj = adata_paul15_template.copy()
+    yield adata_obj
+    del adata_obj
 
 
-@pytest.fixture(scope="session")
-def adata_neighbors():
-    def adata_neighbors_(adata):
-        scIB.pp.reduce_data(adata, pca=True, n_top_genes=200, neighbors=True, umap=False)
-        return adata
-    return adata_neighbors_
+@pytest.fixture()
+def adata(adata_pbmc_template):
+    adata_obj = adata_pbmc_template.copy()
+    yield adata_obj
+    del adata_obj
 
 
-@pytest.fixture(scope="session")
-def adata_clustered():
-    def adata_clustered_(adata):
-        scIB.pp.reduce_data(adata, pca=True, n_top_genes=200, neighbors=True, umap=False)
-        scIB.cl.opt_louvain(adata, cluster_key='cluster', label_key='celltype', verbose=True)
-        return adata
-    return adata_clustered_
+@pytest.fixture()
+def adata_pca(adata):
+    adata_obj = adata
+    scIB.pp.reduce_data(
+        adata_obj,
+        pca=True,
+        n_top_genes=200,
+        neighbors=False,
+        umap=False
+    )
+    yield adata_obj
 
 
-@pytest.fixture(scope="session")
-def adata_factory():
-    def adata_factory_(pca=False, n_top_genes=None, neighbors=False):
-        adata = sc.datasets.paul15()
-        adata.obs['celltype'] = adata.obs['paul15_clusters']
-        np.random.seed(42)
-        adata.obs['batch'] = np.random.randint(1, 5, adata.n_obs)
-        adata.obs['batch'] = adata.obs['batch'].astype(str)
-        adata.obs['batch'] = adata.obs['batch'].astype("category")
-        adata.layers['counts'] = adata.X
-        scIB.preprocessing.reduce_data(
-            adata,
-            pca=pca,
-            n_top_genes=n_top_genes,
-            umap=False,
-            neighbors=neighbors
-        )
-        return adata
-    return adata_factory_
+@pytest.fixture()
+def adata_neighbors(adata):
+    adata_obj = adata
+    scIB.pp.reduce_data(
+        adata_obj,
+        pca=True,
+        n_top_genes=200,
+        neighbors=True,
+        umap=False
+    )
+    yield adata_obj
 
 
-@pytest.fixture(scope="session")
-def embed_factory():
-    def adata_embed_(adata, type_):
-        if type_ == 'pca':
-            if 'X_pca' in adata.obsm:
-                mtx = adata.obsm['X_pca']
-            else:
-                mtx = sc.tl.pca(adata, copy=True).obsm['X_pca']
-        elif type_ == 'full':
-            mtx = adata.X
-        else:
-            raise ValueError(f"'{type_}' not a valid embedding type")
-        adata.obsm['X_emb'] = mtx
-        return adata
-    return adata_embed_
-
-
-@pytest.fixture(scope="session")
-def cluster_factory():
-    def cluster_factory_(adata, label_key, cluster_key="cluster", verbose=False):
-        res_max, score_max, score_all = scIB.cl.opt_louvain(
-            adata,
-            label_key=label_key,
-            cluster_key=cluster_key,
-            plot=False, inplace=True, force=True,
-            verbose=verbose
-        )
-        return res_max, score_max, score_all
-    return cluster_factory_
-
+@pytest.fixture()
+def adata_clustered(adata_neighbors):
+    adata_obj = adata_neighbors
+    scIB.cl.opt_louvain(
+        adata_obj,
+        cluster_key='cluster',
+        label_key='celltype',
+        verbose=True
+    )
+    yield adata_obj
