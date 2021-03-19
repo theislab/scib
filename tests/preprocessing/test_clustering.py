@@ -1,10 +1,9 @@
 from tests.common import *
 
 
-def test_cluster(adata):
-    scIB.pp.reduce_data(adata, pca=True, n_top_genes=200, neighbors=True, umap=False)
+def test_cluster(adata_neighbors):
     _, _, score_all, clustering = scIB.cl.opt_louvain(
-        adata,
+        adata_neighbors,
         label_key='celltype',
         cluster_key='cluster',
         plot=False,

@@ -11,10 +11,10 @@ def test_ari_trivial(adata):
     assert score == 1
 
 
-def test_nmi(adata):
+def test_nmi(adata_neighbors):
 
     _, _, nmi_all = scIB.cl.opt_louvain(
-        adata,
+        adata_neighbors,
         label_key='celltype',
         cluster_key='cluster',
         function=scIB.me.nmi,
@@ -25,8 +25,7 @@ def test_nmi(adata):
     )
 
     for score in nmi_all['score']:
-        assert score >= 0
-        assert score <= 1
+        assert 0 <= score <= 1
 
 
 def test_ari(adata_clustered):
