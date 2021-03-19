@@ -459,9 +459,12 @@ def score_cell_cycle(adata, organism='mouse'):
                           root / 'resources/g2m_genes_tirosh.txt'],
                 'human': [root / 'resources/s_genes_tirosh_hm.txt',
                           root / 'resources/g2m_genes_tirosh_hm.txt']}
-    
-    s_genes = [x.strip() for x in open(cc_files[organism][0]) if x.strip() in adata.var.index]
-    g2m_genes = [x.strip() for x in open(cc_files[organism][1]) if x.strip() in adata.var.index]
+
+    with open(cc_files[organism][0], "r") as f:
+        s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+    with open(cc_files[organism][1], "r") as f:
+        g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
         rand_choice = np.random.randint(1,adata.n_vars,10)
         rand_genes = adata.var_names[rand_choice].tolist()
