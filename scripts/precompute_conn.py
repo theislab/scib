@@ -53,7 +53,7 @@ if __name__=='__main__':
         adata = sc.read(args.input, cache=True)
         print(adata)
         if (type_ == 'knn'):
-            neighbors = adata.uns['neighbors']['connectivities']
+            neighbors = adata.obsp['connectivities']
             del adata
             diff_neighbors = diffusion_conn(neighbors, min_k=50, copy=False, max_iterations=20)
             scio.mmwrite(target = os.path.join(args.output, f'{base}_diffconn.mtx'), a = diff_neighbors)

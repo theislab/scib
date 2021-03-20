@@ -821,12 +821,12 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
         raise ValueError('`neighbors` not in adata object. '
                          'Please compute a neighbourhood graph!')
 
-    if 'connectivities' not in adata.uns['neighbors']:
-        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
+    if 'connectivities' not in adata.obsp:
+        raise ValueError('`connectivities` not in `adata.obsp`. '
                          'Please pass an object with connectivities computed!')
 
 
-    T = adata.uns['neighbors']['connectivities']
+    T = adata.obsp['connectivities']
 
     #Normalize T with max row sum
     # Note: This keeps the matrix symmetric and ensures |M| doesn't keep growing
@@ -835,7 +835,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     M = T
 
     # Check for disconnected component
-    n_comp, labs = connected_components(adata.uns['neighbors']['connectivities'],
+    n_comp, labs = connected_components(adata.obsp['connectivities'],
                                                        connection='strong')
     
     if n_comp > 1:
@@ -884,11 +884,11 @@ def diffusion_nn(adata, k, max_iterations=26):
         raise ValueError('`neighbors` not in adata object. '
                          'Please compute a neighbourhood graph!')
     
-    if 'connectivities' not in adata.uns['neighbors']:
-        raise ValueError('`connectivities` not in `adata.uns["neighbors"]`. '
+    if 'connectivities' not in adata.obsp:
+        raise ValueError('`connectivities` not in `adata.obsp`. '
                          'Please pass an object with connectivities computed!')
         
-    T = adata.uns['neighbors']['connectivities']
+    T = adata.obsp['connectivities']
 
     # Row-normalize T
     T = sparse.diags(1/T.sum(1).A.ravel())*T
@@ -931,7 +931,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     #get knn index matrix
     if verbose:
         print("Convert nearest neighbor matrix and distances for LISI.")
-    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+    dist_mat = sparse.find(adata.obsp['distances'])
     #get number of nearest neighbours parameter
     if 'params' not in adata.uns['neighbors']:
         #estimate the number of nearest neighbors as the median 
@@ -941,9 +941,9 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
         n_nn = n_nn.astype('int')
     else:
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
-    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+    nn_index = np.empty(shape=(adata.obsp['distances'].shape[0],
                                n_nn))
-    nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+    nn_dists = np.empty(shape=(adata.obsp['distances'].shape[0],
                                n_nn))
     index_out = []
     for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0])+1):
@@ -1131,7 +1131,7 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
     #get knn index matrix
     if verbose:
         print("Convert nearest neighbor matrix and distances for LISI.")
-    dist_mat = sparse.find(adata.uns['neighbors']['distances'])
+    dist_mat = sparse.find(adata.obsp['distances'])
     #get number of nearest neighbours parameter
     if 'params' not in adata.uns['neighbors']:
         #estimate the number of nearest neighbors as the median 
@@ -1142,10 +1142,10 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
     else:
         n_nn = adata.uns['neighbors']['params']['n_neighbors']-1
     #initialise index and fill it with NaN values
-    nn_index = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+    nn_index = np.empty(shape=(adata.obsp['distances'].shape[0],
                                n_nn))
     nn_index[:] = np.NaN
-    nn_dists = np.empty(shape=(adata.uns['neighbors']['distances'].shape[0],
+    nn_dists = np.empty(shape=(adata.obsp['distances'].shape[0],
                                n_nn))
     nn_dists[:] = np.NaN
     index_out = []
@@ -1427,7 +1427,7 @@ def lisi_graph_py(adata, batch_key, n_neighbors = 90, perplexity=None, subsample
         print("Compute knn on shortest paths") 
     
     #set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
-    connectivities = adata.uns['neighbors']['connectivities'] #csr matrix format
+    connectivities = adata.obsp['connectivities'] #csr matrix format
     large_enough = connectivities.data>=3e-308
     if verbose:
         n_too_small = np.sum(large_enough==False)
@@ -1644,7 +1644,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
             if verbose:
                 print(f"Compute: Diffusion neighbours.")
             adata_tmp = diffusion_conn(adata, min_k = 50, copy = True)
-        adata_tmp.uns['neighbors']['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
+        adata_tmp.obsp['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
             
     if verbose:
         print(f"batch: {batch_key}")
@@ -1672,7 +1672,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                 
             if verbose:
                 print(f"Use {k0} nearest neighbors.")
-            n_comp, labs = connected_components(adata_sub.uns['neighbors']['connectivities'], 
+            n_comp, labs = connected_components(adata_sub.obsp['connectivities'], 
                                                               connection='strong')
             if n_comp > 1:
                 #check the number of components where kBET can be computed upon
@@ -1729,7 +1729,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
 # determine root cell for trajectory conservation metric
 def get_root(adata_pre, adata_post, ct_key, dpt_dim=3):
     
-    n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_post.uns['neighbors']['connectivities'], directed=False, return_labels=True)
+    n_components, adata_post.obs['neighborhood'] = connected_components(csgraph=adata_post.obsp['connectivities'], directed=False, return_labels=True)
     
     start_clust = adata_pre.obs.groupby([ct_key]).mean()['dpt_pseudotime'].idxmin()
     min_dpt = adata_pre.obs[adata_pre.obs[ct_key] == start_clust].index
@@ -1792,7 +1792,7 @@ def graph_connectivity(adata_post, label_key):
 
     for ct in adata_post.obs[label_key].cat.categories:
         adata_post_sub = adata_post[adata_post.obs[label_key].isin([ct]),]
-        _,labs = connected_components(adata_post_sub.uns['neighbors']['connectivities'], connection='strong')
+        _,labs = connected_components(adata_post_sub.obsp['connectivities'], connection='strong')
         tab = pd.value_counts(labs)
         clust_res.append(tab[0]/sum(tab))
 
