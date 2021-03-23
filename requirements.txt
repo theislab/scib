@@ -2,9 +2,9 @@ numpy==1.18.1
 pandas
 seaborn
 matplotlib
-numba<=0.46
-scanpy==1.4.6
-anndata==0.7.1
+numba
+scanpy
+anndata
 h5py<3
 rpy2==3.1.0
 anndata2ri==1.0.2
@@ -13,8 +13,8 @@ scikit-learn
 scikit-misc
 loompy==3.0.6
 louvain==0.6.1
-umap-learn==0.3.10
+umap-learn
 pydot
 python-igraph
-llvmlite==0.30
+llvmlite
 memory_profiler
