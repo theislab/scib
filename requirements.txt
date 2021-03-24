@@ -12,7 +12,7 @@ scipy
 scikit-learn
 scikit-misc
 loompy==3.0.6
-louvain==0.6.1
+louvain
 umap-learn
 pydot
 python-igraph
