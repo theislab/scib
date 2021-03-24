@@ -7,7 +7,7 @@ scanpy
 anndata
 h5py<3
 rpy2>=3
-anndata2ri==1.0.2
+anndata2ri
 scipy
 scikit-learn
 scikit-misc
