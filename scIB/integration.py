@@ -32,44 +32,48 @@ def runScanorama(adata, batch, hvg = None):
     return corrected
 
 def runTrVae(adata, batch, hvg=None):
+    """
+    Parametrization taken from tutorial notebook at:
+    https://nbviewer.jupyter.org/github/theislab/trVAE/blob/master/examples/trVAE_Haber.ipynb
+    """
+
     checkSanity(adata, batch, hvg)
     import trvae
 
-    n_batches = len(adata.obs[batch].cat.categories)
+    batches = adata.obs[batch].unique().tolist()
 
-    train_adata, valid_adata = trvae.utils.train_test_split(
-        adata,
-        train_frac=0.80
-    )
+    network = trvae.models.trVAE(x_dimension=adata.shape[1],
+                                 architecture=[256,64],
+                                 z_dimension=10,
+                                 gene_names=adata.var_names.tolist(),
+                                 conditions=batches,
+                                 model_path='/localscratch/',
+                                 alpha=0.0001,
+                                 beta=50,
+                                 eta=100,
+                                 loss_fn='sse',
+                                 output_activation='linear')
 
-    condition_encoder = trvae.utils.create_dictionary(
-        adata.obs[batch].cat.categories.tolist(), [])
+    network.train(adata,
+              batch,
+              train_size=0.8,
+              n_epochs=50,
+              batch_size=512,
+              early_stop_limit=10,
+              lr_reducer=20,
+              verbose=5,
+              save=False,
+              )
 
-    network = trvae.archs.trVAEMulti(
-        x_dimension=train_adata.shape[1],
-        n_conditions=n_batches,
-        output_activation='relu'
-    )
+    latent_adata = network.get_latent(adata, batch)
 
-    network.train(
-        train_adata,
-        valid_adata,
-        condition_key=batch,
-        condition_encoder=condition_encoder,
-        verbose=0,
-    )
+    target_batch = adata.obs[batch].value_counts().index[0]
 
-    labels, _ = trvae.tl.label_encoder(
-        adata,
-        condition_key=batch,
-        label_encoder=condition_encoder,
-    )
+    corrected_data = network.predict(adata, batch, target_condition=target_batch)
 
-    network.get_corrected(adata, labels, return_z=False)
-    
-    adata.obsm['X_emb'] = adata.obsm['mmd_latent']
-    del adata.obsm['mmd_latent']
-    adata.X = adata.obsm['reconstructed']
+    # Assign trVAE outputs
+    adata.obsm['X_emb'] = latent_adata
+    adata.X = corrected_data
     
     return adata
 
