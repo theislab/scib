@@ -353,7 +353,7 @@ def runDESC(adata, batch, res=1, ncores=None, tmp_dir='/localscratch/tmp_desc/',
                      use_ae_weights=False,
                      do_umap=False)
     
-    adata_out.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+    adata_out.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(float(res))]
 
     return adata_out
 
