@@ -1,5 +1,14 @@
 from setuptools import setup
 
+with open("requirements.txt", "r") as f:
+    requirements = f.read().splitlines()
+    requirements = [x for x in requirements if not x.startswith("#") and x != ""]
+    
+with open("requirements_extra.txt", "r") as f:
+    requirements_extra = f.read().splitlines()
+    requirements_extra = [x for x in requirements_extra if not x.startswith("#") and x != ""]
+
+
 setup(name='scIB',
       version='0.1.1',
       description='Benchmark tools for single cell data integration',
@@ -10,19 +19,9 @@ setup(name='scIB',
       zip_safe=False,
       license='MIT',
       url='https://github.com/theislab/scib',
-      keywords = ['benchmark', 'single cell', 'data integration'], 
-      install_requires=[            
-          'anndata>=0.7',
-          'scanpy<1.5',
-          'rpy2>=3',
-          'bbknn',
-          'anndata2ri',
-          'scanorama',
-          'memory_profiler',
-          'networkx>=2.3',
-          'python-igraph',
-          'louvain>=0.6,!=0.6.2'
-      ],
+      keywords = ['benchmark', 'single cell', 'data integration'],
+      install_requires=requirements,
+      extras_require={'integration': requirements_extra},
       classifiers=[
          'Development Status :: 3 - Alpha',      
          'Intended Audience :: Developers',      
