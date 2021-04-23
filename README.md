@@ -1,79 +1,41 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
 This repository contains the code for our benchmarking study for data integration tools.
-In this study, we benchmark 16 methods ([see here](##tools)) with 4 combinations of preprocessing steps leading to 68 
+In [our study](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v1), we benchmark 16 methods ([see here](##Tools)) with 4 combinations of preprocessing steps leading to 68 
 methods combinations on 85 batches of gene expression and chromatin accessibility data.
-This code is used in the  [`scIB pipeline`](https://github.com/theislab/scib-pipeline.git), which allows for reproducible and automated
-analysis of the different steps and combinations of preprocesssing and integration methods.
 
 ![Workflow](./figure.png)
 
-We created the python package `scIB` to streamline the integration process and to integrate it into
-a scanpy workflow. Additionally, we created an environment to allow easy integration of R integration methods
-into the scanpy workflow.
+## Package: `scib`
+We created the python package called `scIB` that uses `scanpy` to streamline the integration of single-cell datasets and evaluate the results.
+The evaluation of integration quality is based on a number of metrics.
 
-Furthermore, the package allows for evaluation of integration quality of different datasets if cell type annotations are present using our novel metrics.
+### Installation
+The `scIB` python package is in the folder scIB.
+It can be installed from the root of this repository using
+```
+pip install .
+```
 
-The `scIB` python package is in the folder scIB. It can be installed using `pip install -e .` run in the root directory.
-R helper functions for R integration methods can be found in the `R` directory.
-The `scripts` folder contains scripts for preparing the data, running the methods, postprocessing and calculation of the metrics.
-The `notebooks` folder contains jupyter notebooks for testing and demonstrating functions of the `scIB` package as well as notebooks
-for preprocessing of the data.
-
-
-
-## Installation
-To reproduce the results from this study, three different conda environments are needed.
-There are different environments for the python integration methods, the R integration methods and
-the conversion of R data types to anndata objects.
-
-For the installation of conda, follow [these](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) instructions
-or use your system's package manager. The environments have only been tested on linux operating systems
-although it should be possible to run the pipeline using Mac OS.
-
-To create the conda environments use the `.yml` files in the `envs` directory.
-To install the envs, use
-```bash
-conda env create -f FILENAME.yml
-``` 
-To set the correct paths so that R the correct R libraries can be found, copy `env_vars_activate.sh` to `etc/conda/activate.d/`
-and `env_vars_deactivate.sh` to `etc/conda/deactivate.d/` to every environment.
-As `Saucie` is not available as a python package for the scIB-python env, it needs to be installed manually from [here](https://github.com/KrishnaswamyLab/SAUCIE).
-Furthermore, you need to install `kBET` in the `scIB-python` env with `r-devtools` as described [here](https://github.com/theislab/kBET).
-
-In the `scIB-R-integration` environment, R packages need to be installed manually.
-Activate the environment and install the packages `scran`, `Seurat` and `Conos` in R. `Conos` needs to be installed using R devtools.
-See [here](https://github.com/hms-dbmi/conos).
-
-
-## Running the integration methods
-This package allows to run a multitude of single cell data integration methods in both `R` and `python`.
-We use [Snakemake](https://snakemake.readthedocs.io/en/stable/) to run the pipeline.
-The parameters of the run are configured using the `config.yaml` file.
-See the `DATA_SCENARIOS` section to change the data used for integration.
-The script expects one `.h5ad` file containing all batches per data scenario.
-
-To load the config file run `snakemake --configfile config.yaml`.
-Define the number of CPU threads you want to use with `snakemake --cores N_CORES`. To produce an overview of tasks that will be run, use `snakemake -n`.
-To run the pipeline, simply run `snakemake`.
-
-## Structure of the scIB package
+### Package structure
 The package contains several modules for the different steps of the integration and benchmarking pipeline.
-Functions for the integration methods are in `scIB.integrate`. The methods are called using `scIB.integration.runMETHOD(adata, BATCH)`.
+Functions for the integration methods are in `scIB.integration`. The methods are called using `scIB.integration.runMETHOD(adata, BATCH)`.
 `scIB.preprocessing` contains methods for preprocessing of the data such as normalisation, scaling or highly variable gene selection per batch.
 The metrics are located at `scIB.metrics`. To run multiple metrics in one run, use the `scIB.metrics.metrics()` function.
 
 ### Metrics
 For a detailed description of the metrics implemented in this package, please see the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
 
-Batch removal metrics include:
+#### Batch removal metrics include:
+
 - Principal component regression (`pcr_comparison()`)
 - Batch ASW (`silhouette()`)
 - K-nearest neighbour batch effect (`kBET()`)
 - Graph connectivity (`graph_connectivity()`)
 - Graph iLISI (`lisi_graph()`)
 
-Biological conservation metrics include:
+#### Biological conservation metrics include:
+
 - Normalised mutual information (`nmi()`)
 - Adjusted Rand Index (`ari()`)
 - Cell type ASW (`silhouette_batch()`)
@@ -101,3 +63,17 @@ Tools that are compared include:
 - [DESC](https://github.com/eleozzr/desc)
 - [LIGER](https://github.com/MacoskoLab/liger)
 - [SAUCIE](https://github.com/KrishnaswamyLab/SAUCIE)
+
+## Resources
+
++ On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
+
++ The reusable pipeline we used in the study can be found in the separate [`scIB pipeline`](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates the computation of preprocesssing combinations, integration methods and benchmarking metrics.
+
++ For reproducibility and visualisation we have a dedicated repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
+
+### Please cite:  
+
+_**Benchmarking atlas-level data integration in single-cell genomics.**  
+MD Luecken, M Büttner, K Chaichoompu, A Danese, M Interlandi, MF Mueller, DC Strobl, L Zappia, M Dugas, M Colomé-Tatché, FJ Theis
+bioRxiv 2020.05.22.111161; doi: https://doi.org/10.1101/2020.05.22.111161_ 
