@@ -6,7 +6,7 @@ methods combinations on 85 batches of gene expression and chromatin accessibilit
 
 ![Workflow](./figure.png)
 
-## Package: `scib`
+## Package: `scIB`
 We created the python package called `scIB` that uses `scanpy` to streamline the integration of single-cell datasets and evaluate the results.
 The evaluation of integration quality is based on a number of metrics.
 
