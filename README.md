@@ -12,10 +12,20 @@ The evaluation of integration quality is based on a number of metrics.
 
 ### Installation
 The `scIB` python package is in the folder scIB.
-It can be installed from the root of this repository using
+You can install it from the root of this repository using
+
 ```
 pip install .
 ```
+
+Additionally, in order to run the R package `kBET`, you need to install it through R.
+
+```R
+devtools::install_github('theislab/kBET')
+```
+
+We recommend to use a conda environment or something similar, so that python and R dependencies are in one place.
+Please also check out [scIB pipeline](https://github.com/theislab/scib-pipeline.git) for ready-to-use environments.
 
 ### Package structure
 The package contains several modules for the different steps of the integration and benchmarking pipeline.
@@ -68,7 +78,7 @@ Tools that are compared include:
 
 + On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
 
-+ The reusable pipeline we used in the study can be found in the separate [`scIB pipeline`](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates the computation of preprocesssing combinations, integration methods and benchmarking metrics.
++ The reusable pipeline we used in the study can be found in the separate [scIB pipeline](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates the computation of preprocesssing combinations, integration methods and benchmarking metrics.
 
 + For reproducibility and visualisation we have a dedicated repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
 
