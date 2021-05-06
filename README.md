@@ -44,7 +44,14 @@ Furthermore, you need to install `kBET` in the `scIB-python` env with `r-devtool
 In the `scIB-R-integration` environment, R packages need to be installed manually.
 Activate the environment and install the packages `scran`, `Seurat` and `Conos` in R. `Conos` needs to be installed using R devtools.
 See [here](https://github.com/hms-dbmi/conos).
-
+We used these versions of the R integration methods in our study:
+```
+harmony_1.0
+Seurat_3.2.0
+conos_1.3.0
+liger_0.5.0
+batchelor_1.4.0
+```
 
 ## Running the integration methods
 This package allows to run a multitude of single cell data integration methods in both `R` and `python`.
