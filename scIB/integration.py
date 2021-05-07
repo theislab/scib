@@ -288,7 +288,7 @@ def runBBKNN(adata, batch, hvg=None):
     sc.pp.pca(adata, svd_solver='arpack')
     if adata.n_obs <1e5:
         corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
-    if adata.n_obs >=250000:
+    if adata.n_obs >=1e5:
         corrected = bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
     return corrected
 

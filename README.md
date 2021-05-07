@@ -57,21 +57,23 @@ For a detailed description of the metrics implemented in this package, please se
 - Graph cLISI (`lisi_graph()`)
 
 ## Tools
+
 Tools that are compared include:
+
 - [Scanorama](https://github.com/brianhie/scanorama)
 - [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI)
-- [FastMNN](https://bioconductor.org/packages/batchelor/)
+- [FastMNN](https://bioconductor.org/packages/batchelor/) (`batchelor_1.4.0`)
 - [scGen](https://github.com/theislab/scgen)
 - [BBKNN](https://github.com/Teichlab/bbknn)
 - [scVI](https://github.com/YosefLab/scVI)
-- [Seurat v3 (CCA and RPCA)](https://github.com/satijalab/seurat)
-- [Harmony](https://github.com/immunogenomics/harmony)
-- [Conos](https://github.com/hms-dbmi/conos)
+- [Seurat v3](https://github.com/satijalab/seurat) (3.2.0) CCA and RPCA
+- [Harmony](https://github.com/immunogenomics/harmony) 1.0
+- [Conos](https://github.com/hms-dbmi/conos) 1.3.0
 - [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
 - [MNN](https://github.com/chriscainx/mnnpy)
 - [TrVae](https://github.com/theislab/trvae)
 - [DESC](https://github.com/eleozzr/desc)
-- [LIGER](https://github.com/MacoskoLab/liger)
+- [LIGER](https://github.com/MacoskoLab/liger) 0.5.0
 - [SAUCIE](https://github.com/KrishnaswamyLab/SAUCIE)
 
 ## Resources
