@@ -323,7 +323,7 @@ def runCombat(adata, batch):
     return adata_int
 
 
-def runDESC(adata, batch, res=0.5, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
+def runDESC(adata, batch, res=0.5, ncores=None, tmp_dir='/tmp/tmp_desc/', use_gpu=False):
     """
     Convenience function to run DESC. Parametrization was taken from:
     https://github.com/eleozzr/desc/issues/28
