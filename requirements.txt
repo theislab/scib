@@ -3,8 +3,8 @@ pandas
 seaborn
 matplotlib
 numba
-scanpy
-anndata
+scanpy>=1.5
+anndata>=0.7.2
 h5py<3
 rpy2>=3
 anndata2ri
