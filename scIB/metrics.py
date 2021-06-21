@@ -562,8 +562,11 @@ def cell_cycle(adata_pre, adata_post, batch_key, embed=None, agg_func=np.mean,
     scores_before = []
     scores_after = []
 
-    recompute_cc = recompute_cc or ('S_score' not in adata_pre.obs_keys() and 'G2M_score' not in adata_pre.obs_keys())
-    recompute_pcr = precompute_pcr_key is None or precompute_pcr_key not in adata_pre.uns_keys()
+    recompute_cc = recompute_cc \
+                   or 'S_score' not in adata_pre.obs_keys() \
+                   or 'G2M_score' not in adata_pre.obs_keys()
+    recompute_pcr = precompute_pcr_key is None \
+                    or precompute_pcr_key not in adata_pre.uns_keys()
 
     for batch in batches:
         # subset adata objects
