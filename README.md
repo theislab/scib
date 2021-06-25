@@ -125,5 +125,5 @@ Tools that are compared include:
 - [scGen](https://github.com/theislab/scgen) 1.1.5
 - [scVI](https://github.com/YosefLab/scVI) 0.6.7
 - [Seurat v3](https://github.com/satijalab/seurat) 3.2.0 CCA (default) and RPCA
-- [TrVae](https://github.com/theislab/trvae) 1.1.2
+- [TrVae](https://github.com/theislab/trvae) 0.0.1
 - [TrVaep](https://github.com/theislab/trvaep) 0.1.0
