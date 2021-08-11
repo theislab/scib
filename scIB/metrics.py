@@ -1771,6 +1771,7 @@ def trajectory_conservation(adata_pre, adata_post, label_key, pseudotime_key="dp
     adata_post_sub2.obs['dpt_pseudotime'][adata_post_sub2.obs['dpt_pseudotime'] > 1] = 0
     adata_post_sub.obs['dpt_pseudotime'] = 0
     adata_post_sub.obs['dpt_pseudotime'] = adata_post_sub2.obs['dpt_pseudotime']
+    adata_post_sub.obs['dpt_pseudotime'].fillna(0, inplace=True)
 
     correlation = adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')
 
