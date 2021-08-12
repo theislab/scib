@@ -1699,7 +1699,7 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
     return kBET_scores
 
 
-def get_root(adata_pre, adata_post, ct_key, pseudotime_key, dpt_dim=3):
+def get_root(adata_pre, adata_post, ct_key, pseudotime_key="dpt_pseudotime", dpt_dim=3):
     """
     Determine root cell for integrated adata based on unintegrated adata
 
