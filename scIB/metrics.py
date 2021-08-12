@@ -1708,7 +1708,7 @@ def get_root(adata_pre, adata_post, ct_key, pseudotime_key="dpt_pseudotime", dpt
     :param label_key: column in `adata_pre.obs` of the groups used to precompute the trajectory
     :param pseudotime_key: column in `adata_pre.obs` in which the pseudotime is saved in.
         Column can contain empty entries, the dataset will be subset to the cells with scores.
-    :param dpt_dim: number of diffmax dimensions used to determine root
+    :param dpt_dim: number of diffmap dimensions used to determine root
     """
     n_components, adata_post.obs['neighborhood'] = connected_components(
         csgraph=adata_post.obsp['connectivities'],
