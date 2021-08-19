@@ -1768,12 +1768,14 @@ def trajectory_conservation(adata_pre, adata_post, label_key, pseudotime_key="dp
     adata_post_sub2.uns['iroot'] = iroot
     
     sc.tl.dpt(adata_post_sub2)  # stored in 'dpt_pseudotime'
-    adata_post_sub2.obs['dpt_pseudotime'][adata_post_sub2.obs['dpt_pseudotime'] > 1] = 0
+    adata_post_sub2.obs.loc[adata_post_sub2.obs['dpt_pseudotime'] > 1, 'dpt_pseudotime'] = 0
     adata_post_sub.obs['dpt_pseudotime'] = 0
     adata_post_sub.obs['dpt_pseudotime'] = adata_post_sub2.obs['dpt_pseudotime']
     adata_post_sub.obs['dpt_pseudotime'].fillna(0, inplace=True)
 
-    correlation = adata_post_sub.obs['dpt_pseudotime'].corr(adata_pre_sub.obs['dpt_pseudotime'], 'spearman')
+    pseudotime_before = adata_post_sub.obs['dpt_pseudotime']
+    pseudotime_after = adata_pre_sub.obs[pseudotime_key]
+    correlation = pseudotime_before.corr(pseudotime_after, 'spearman')
 
     return (correlation + 1)/2  # scaled
 
