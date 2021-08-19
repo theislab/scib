@@ -708,7 +708,7 @@ def pc_regression(data, covariate, pca_var=None, n_comps=50, svd_solver='arpack'
     PCA is only computed, if variance contribution is not given (pca_sd).
     """
 
-    if isinstance(data, (np.ndarray, sparse.csr_matrix)):
+    if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
         matrix = data
     else:
         raise TypeError(f'invalid type: {data.__class__} is not a numpy array or sparse matrix')
