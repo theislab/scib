@@ -1767,6 +1767,7 @@ def trajectory_conservation(adata_pre, adata_post, label_key, pseudotime_key="dp
     try:
         iroot, adata_post_sub2 = get_root(adata_pre_sub, adata_post_sub, label_key, pseudotime_key)
     except RootCellError:
+        print('No root cell found, setting trajectory conservation metric to 0.')
         return 0  # failure to find root cell means no TI conservation
 
     adata_post_sub2.uns['iroot'] = iroot
