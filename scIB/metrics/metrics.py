@@ -35,6 +35,119 @@ def measureTM(*args, **kwargs):
     return mem, Stats(prof).total_tt, out[1:]
 
 
+def metrics_fast(
+        adata,
+        adata_int,
+        batch_key,
+        label_key
+):
+    """
+    Only fast metrics:
+
+    Biological conservation
+        HVG overlap
+        Cell type ASW
+        Isolated label ASW
+
+    Batch conservation
+        Graph connectivity
+        Batch ASW
+        PC regression
+    """
+    return metrics(
+        adata,
+        adata_int,
+        batch_key,
+        label_key,
+        isolated_labels_asw_=True,
+        silhouette_=True,
+        hvg_score_=True,
+        graph_conn_=True,
+        pcr_=True
+    )
+
+
+def metrics_extra(
+        adata,
+        adata_int,
+        batch_key,
+        label_key
+):
+    """
+    All metrics apart from kBET and LISI scores:
+
+    Biological conservation
+        HVG overlap
+        Cell type ASW
+        Isolated label ASW
+        Isolated label F1
+        NMI cluster/label
+        ARI cluster/label
+        Cell cycle conservation
+
+    Batch conservation
+        Graph connectivity
+        Batch ASW
+        PC regression
+    """
+    return metrics(
+        adata,
+        adata_int,
+        batch_key,
+        label_key,
+        isolated_labels_asw_=True,
+        silhouette_=True,
+        hvg_score_=True,
+        graph_conn_=True,
+        pcr_=True,
+        isolated_labels_f1_=True,
+        trajectory_=True,
+        nmi_=True,
+        ari_=True,
+        cell_cycle_=True,
+    )
+
+
+def metrics_all(
+        adata,
+        adata_int,
+        batch_key,
+        label_key
+):
+    """
+    All metrics
+
+    Biological conservation
+        HVG overlap
+        Cell type ASW
+        Isolated label ASW
+        Isolated label F1
+        NMI cluster/label
+        ARI cluster/label
+        Cell cycle conservation
+        cLISI
+
+    Batch conservation
+        Graph connectivity
+        Batch ASW
+        PC regression
+        kBET
+        iLISI
+    """
+    return metrics(
+        adata,
+        adata_int,
+        batch_key,
+        label_key,
+        isolated_labels_asw_=True,
+        silhouette_=True,
+        hvg_score_=True,
+        graph_conn_=True,
+        pcr_=True,
+
+    )
+
+
 def metrics(
         adata,
         adata_int,
