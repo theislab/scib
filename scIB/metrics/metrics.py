@@ -53,8 +53,8 @@ def metrics(
         pcr_=False,
         cell_cycle_=False,
         organism='mouse',
-        verbose=False,
-        isolated_labels_=False,
+        isolated_labels_f1_=False,
+        isolated_labels_asw_=False,
         n_isolated=None,
         graph_conn_=False,
         kBET_=False,
@@ -62,9 +62,11 @@ def metrics(
         lisi_graph_=False,
         lisi_raw=False,
         trajectory_=False,
-        type_=None
+        type_=None,
+        verbose=False,
 ):
     """
+    Master metrics function: Wrapper for all metrics used in the study
     Compute of all metrics given unintegrate and integrated anndata object
     """
 
@@ -106,7 +108,6 @@ def metrics(
         )
     else:
         nmi_score = np.nan
-    results['NMI_cluster/label'] = nmi_score
 
     if ari_:
         print('ARI...')
@@ -117,7 +118,6 @@ def metrics(
         )
     else:
         ari_score = np.nan
-    results['ARI_cluster/label'] = ari_score
 
     if silhouette_:
         print('Silhouette score...')
@@ -141,8 +141,6 @@ def metrics(
     else:
         sil_global = np.nan
         sil_clus = np.nan
-    results['ASW_label'] = sil_global
-    results['ASW_label/batch'] = sil_clus
 
     if pcr_:
         print('PC regression...')
@@ -155,7 +153,6 @@ def metrics(
         )
     else:
         pcr_score = np.nan
-    results['PCR_batch'] = pcr_score
 
     if cell_cycle_:
         print('cell cycle effect...')
@@ -169,11 +166,10 @@ def metrics(
         )
     else:
         cc_score = np.nan
-    results['cell_cycle_conservation'] = cc_score
 
-    if isolated_labels_:
-        print("isolated labels...")
-        il_score_clus = isolated_labels(
+    if isolated_labels_f1_:
+        print("Isolated labels F1...")
+        il_score_f1 = isolated_labels(
             adata_int,
             label_key=label_key,
             batch_key=batch_key,
@@ -182,7 +178,12 @@ def metrics(
             n=n_isolated,
             verbose=False
         )
-        il_score_sil = isolated_labels(
+    else:
+        il_score_f1 = np.nan
+
+    if isolated_labels_asw_:
+        print("Isolated labels ASW...")
+        il_score_asw = isolated_labels(
             adata_int,
             label_key=label_key,
             batch_key=batch_key,
@@ -192,10 +193,7 @@ def metrics(
             verbose=False
         ) if silhouette_ else np.nan
     else:
-        il_score_clus = np.nan
-        il_score_sil = np.nan
-    results['isolated_label_F1'] = il_score_clus
-    results['isolated_label_silhouette'] = il_score_sil
+        il_score_asw = np.nan
 
     if graph_conn_:
         print('Graph connectivity...')
@@ -205,7 +203,6 @@ def metrics(
         )
     else:
         graph_conn_score = np.nan
-    results['graph_conn'] = graph_conn_score
 
     if kBET_:
         print('kBET...')
@@ -226,7 +223,6 @@ def metrics(
             kbet_score = 0
     else:
         kbet_score = np.nan
-    results['kBET'] = kbet_score
 
     # if lisi_:
     #    print('LISI score...')
@@ -262,14 +258,11 @@ def metrics(
     else:
         ilisi_scaled = np.nan
         clisi_scaled = np.nan
-    results['iLISI'] = ilisi_scaled
-    results['cLISI'] = clisi_scaled
 
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
     else:
         hvg_score = np.nan
-    results['hvg_overlap'] = hvg_score
 
     if trajectory_:
         print('Trajectory conservation score...')
@@ -280,6 +273,22 @@ def metrics(
             trajectory_score = 0
     else:
         trajectory_score = np.nan
-    results['trajectory'] = trajectory_score
+
+    results = {
+        'NMI_cluster/label': nmi_score,
+        'ARI_cluster/label': ari_score,
+        'ASW_label': sil_global,
+        'ASW_label/batch': sil_clus,
+        'PCR_batch': pcr_score,
+        'cell_cycle_conservation': cc_score,
+        'isolated_label_F1': il_score_f1,
+        'isolated_label_silhouette': il_score_asw,
+        'graph_conn': graph_conn_score,
+        'kBET': kbet_score,
+        'iLISI': ilisi_scaled,
+        'cLISI': clisi_scaled,
+        'hvg_overlap': hvg_score,
+        'trajectory': trajectory_score
+    }
 
     return pd.DataFrame.from_dict(results, orient='index')
