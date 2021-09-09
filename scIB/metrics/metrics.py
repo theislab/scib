@@ -35,15 +35,35 @@ def measureTM(*args, **kwargs):
     return mem, Stats(prof).total_tt, out[1:]
 
 
-def metrics(adata, adata_int, batch_key, label_key,
-            hvg_score_=True, cluster_nmi=None,
-            nmi_=False, ari_=False, nmi_method='arithmetic', nmi_dir=None,
-            silhouette_=False, embed='X_pca', si_metric='euclidean',
-            pcr_=False, cell_cycle_=False, organism='mouse', verbose=False,
-            isolated_labels_=False, n_isolated=None, graph_conn_=False,
-            kBET_=False, kBET_sub=0.5, lisi_graph_=False, lisi_raw=False,
-            trajectory_=False, type_=None
-            ):
+def metrics(
+        adata,
+        adata_int,
+        batch_key,
+        label_key,
+        hvg_score_=False,
+        cluster_key='cluster',
+        cluster_opt_out=None,
+        ari_=False,
+        nmi_=False,
+        nmi_method='arithmetic',
+        nmi_dir=None,
+        silhouette_=False,
+        embed='X_pca',
+        si_metric='euclidean',
+        pcr_=False,
+        cell_cycle_=False,
+        organism='mouse',
+        verbose=False,
+        isolated_labels_=False,
+        n_isolated=None,
+        graph_conn_=False,
+        kBET_=False,
+        kBET_sub=0.5,
+        lisi_graph_=False,
+        lisi_raw=False,
+        trajectory_=False,
+        type_=None
+):
     """
     Compute of all metrics given unintegrate and integrated anndata object
     """
@@ -59,27 +79,42 @@ def metrics(adata, adata_int, batch_key, label_key,
     # clustering
     if nmi_ or ari_:
         print('Clustering...')
-        cluster_key = 'cluster'
-        res_max, nmi_max, nmi_all = opt_louvain(adata_int,
-                                                label_key=label_key, cluster_key=cluster_key, function=nmi,
-                                                plot=False, verbose=verbose, inplace=True, force=True)
-        if cluster_nmi is not None:
-            nmi_all.to_csv(cluster_nmi, header=False)
-            print(f'saved clustering NMI values to {cluster_nmi}')
+        res_max, nmi_max, nmi_all = opt_louvain(
+            adata_int,
+            label_key=label_key,
+            cluster_key=cluster_key,
+            function=nmi,
+            plot=False,
+            verbose=verbose,
+            inplace=True,
+            force=True
+        )
+        if cluster_opt_out is not None:
+            nmi_all.to_csv(cluster_opt_out, header=False)
+            print(f'saved clustering NMI values to {cluster_opt_out}')
 
     results = {}
 
     if nmi_:
         print('NMI...')
-        nmi_score = nmi(adata_int, group1=cluster_key, group2=label_key,
-                        method=nmi_method, nmi_dir=nmi_dir)
+        nmi_score = nmi(
+            adata_int,
+            group1=cluster_key,
+            group2=label_key,
+            method=nmi_method,
+            nmi_dir=nmi_dir
+        )
     else:
         nmi_score = np.nan
     results['NMI_cluster/label'] = nmi_score
 
     if ari_:
         print('ARI...')
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+        ari_score = ari(
+            adata_int,
+            group1=cluster_key,
+            group2=label_key
+        )
     else:
         ari_score = np.nan
     results['ARI_cluster/label'] = ari_score
@@ -87,10 +122,21 @@ def metrics(adata, adata_int, batch_key, label_key,
     if silhouette_:
         print('Silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(adata_int, group_key=label_key, embed=embed, metric=si_metric)
+        sil_global = silhouette(
+            adata_int,
+            group_key=label_key,
+            embed=embed,
+            metric=si_metric
+        )
         # silhouette coefficient per batch
-        _, sil_clus = silhouette_batch(adata_int, batch_key=batch_key, group_key=label_key,
-                                       embed=embed, metric=si_metric, verbose=False)
+        _, sil_clus = silhouette_batch(
+            adata_int,
+            batch_key=batch_key,
+            group_key=label_key,
+            embed=embed,
+            metric=si_metric,
+            verbose=False
+        )
         sil_clus = sil_clus['silhouette_score'].mean()
     else:
         sil_global = np.nan
@@ -100,15 +146,27 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if pcr_:
         print('PC regression...')
-        pcr_score = pcr_comparison(adata, adata_int, embed=embed, covariate=batch_key, verbose=verbose)
+        pcr_score = pcr_comparison(
+            adata,
+            adata_int,
+            embed=embed,
+            covariate=batch_key,
+            verbose=verbose
+        )
     else:
         pcr_score = np.nan
     results['PCR_batch'] = pcr_score
 
     if cell_cycle_:
         print('cell cycle effect...')
-        cc_score = cell_cycle(adata, adata_int, batch_key=batch_key, embed=embed,
-                              agg_func=np.mean, organism=organism)
+        cc_score = cell_cycle(
+            adata,
+            adata_int,
+            batch_key=batch_key,
+            embed=embed,
+            agg_func=np.mean,
+            organism=organism
+        )
     else:
         cc_score = np.nan
     results['cell_cycle_conservation'] = cc_score
@@ -141,7 +199,10 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if graph_conn_:
         print('Graph connectivity...')
-        graph_conn_score = graph_connectivity(adata_int, label_key=label_key)
+        graph_conn_score = graph_connectivity(
+            adata_int,
+            label_key=label_key
+        )
     else:
         graph_conn_score = np.nan
     results['graph_conn'] = graph_conn_score
@@ -149,9 +210,17 @@ def metrics(adata, adata_int, batch_key, label_key,
     if kBET_:
         print('kBET...')
         try:
-            kbet_score = 1 - np.nanmean(kBET(adata_int, batch_key=batch_key, label_key=label_key, type_=type_,
-                                             embed=embed, subsample=kBET_sub,
-                                             heuristic=True, verbose=verbose)['kBET'])
+            kbet_results = kBET(
+                adata_int,
+                batch_key=batch_key,
+                label_key=label_key,
+                type_=type_,
+                embed=embed,
+                subsample=kBET_sub,
+                heuristic=True,
+                verbose=verbose
+            )
+            kbet_score = 1 - np.nanmean(kbet_results['kBET'])
         except NeighborsError:
             print('Not enough neighbours')
             kbet_score = 0
@@ -171,11 +240,22 @@ def metrics(adata, adata_int, batch_key, label_key,
 
     if lisi_graph_:
         print('LISI graph score...')
-        ilisi_raw, clisi_raw = lisi_graph(adata_int, batch_key=batch_key, label_key=label_key,
-                                          type_=type_, subsample=kBET_sub * 100, scale=False,
-                                          multiprocessing=True, verbose=verbose)
+        ilisi_raw, clisi_raw = lisi_graph(
+            adata_int,
+            batch_key=batch_key,
+            label_key=label_key,
+            type_=type_,
+            subsample=kBET_sub * 100,
+            scale=False,
+            multiprocessing=True,
+            verbose=verbose
+        )
         nbatches = len(np.unique(adata_int.obs[batch_key]))
-        ilisi_scaled, clisi_scaled = scale_lisi(ilisi_raw, clisi_raw, nbatches)
+        ilisi_scaled, clisi_scaled = scale_lisi(
+            ilisi_raw,
+            clisi_raw,
+            nbatches
+        )
         if lisi_raw:
             results['iLISI_raw'] = ilisi_raw
             results['cLISI_raw'] = clisi_raw
