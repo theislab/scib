@@ -155,7 +155,7 @@ def metrics(
         label_key,
         hvg_score_=False,
         cluster_key='cluster',
-        cluster_opt_out=None,
+        cluster_nmi=None,
         ari_=False,
         nmi_=False,
         nmi_method='arithmetic',
@@ -205,9 +205,9 @@ def metrics(
             inplace=True,
             force=True
         )
-        if cluster_opt_out is not None:
-            nmi_all.to_csv(cluster_opt_out, header=False)
-            print(f'saved clustering NMI values to {cluster_opt_out}')
+        if cluster_nmi is not None:
+            nmi_all.to_csv(cluster_nmi, header=False)
+            print(f'saved clustering NMI values to {cluster_nmi}')
 
     results = {}
 
