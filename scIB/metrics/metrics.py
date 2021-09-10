@@ -67,7 +67,7 @@ def metrics_fast(
     )
 
 
-def metrics_extra(
+def metrics_slim(
         adata,
         adata_int,
         batch_key,
