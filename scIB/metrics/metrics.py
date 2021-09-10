@@ -166,6 +166,7 @@ def metrics(
         pcr_=False,
         cell_cycle_=False,
         organism='mouse',
+        isolated_labels_=False,  # backwards compatibility
         isolated_labels_f1_=False,
         isolated_labels_asw_=False,
         n_isolated=None,
@@ -280,7 +281,7 @@ def metrics(
     else:
         cc_score = np.nan
 
-    if isolated_labels_f1_:
+    if isolated_labels_f1_ or isolated_labels_:
         print("Isolated labels F1...")
         il_score_f1 = isolated_labels(
             adata_int,
@@ -294,7 +295,7 @@ def metrics(
     else:
         il_score_f1 = np.nan
 
-    if isolated_labels_asw_:
+    if isolated_labels_asw_ or isolated_labels_:
         print("Isolated labels ASW...")
         il_score_asw = isolated_labels(
             adata_int,
