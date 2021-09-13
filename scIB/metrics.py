@@ -1586,11 +1586,11 @@ def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, h
             
     anndata2ri.deactivate()
     try:
-        ro.r("batch.estimate$average.pval")[0]
+        ro.r("batch.estimate$summary$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
         return np.nan
     else:
-        return ro.r("batch.estimate$average.pval")[0]
+        return ro.r("batch.estimate$summary$kBET.observed")[0]
 
 def kBET(adata, batch_key, label_key, embed='X_pca', type_ = None,
                     hvg=False, subsample=0.5, heuristic=False, verbose=False):
