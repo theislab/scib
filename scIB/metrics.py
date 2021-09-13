@@ -1563,7 +1563,7 @@ def kBET_single(matrix, batch, type_ = None, k0 = 10, knn=None, subsample=0.5, h
         batch: series or list of batch assignemnts
         subsample: fraction to be subsampled. No subsampling if `subsample=None`
     returns:
-        kBET p-value
+        kBET observed rejection rate
     """
         
     anndata2ri.activate()
