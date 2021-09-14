@@ -39,7 +39,8 @@ def metrics_fast(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     Only fast metrics:
@@ -63,7 +64,8 @@ def metrics_fast(
         silhouette_=True,
         hvg_score_=True,
         graph_conn_=True,
-        pcr_=True
+        pcr_=True,
+        **kwargs
     )
 
 
@@ -71,7 +73,8 @@ def metrics_slim(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     All metrics apart from kBET and LISI scores:
@@ -105,6 +108,7 @@ def metrics_slim(
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
+        **kwargs
     )
 
 
@@ -112,7 +116,8 @@ def metrics_all(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     All metrics
@@ -144,7 +149,7 @@ def metrics_all(
         hvg_score_=True,
         graph_conn_=True,
         pcr_=True,
-
+        **kwargs
     )
 
 
