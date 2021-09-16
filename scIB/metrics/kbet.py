@@ -31,8 +31,6 @@ def kBET_single(
     returns:
         kBET p-value
     """
-
-    anndata2ri.activate()
     ro.r("library(kBET)")
 
     if verbose:
@@ -46,12 +44,18 @@ def kBET_single(
         print("kBET estimation")
     # k0 = len(batch) if len(batch) < 50 else 'NULL'
 
+    anndata2ri.activate()
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
-    batch_estimate = ro.r(
-        f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
-
+    ro.r(
+        "batch.estimate <- kBET("
+        "  data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE,"
+        "  heuristic=FALSE, adapt=FALSE,"
+        f"  verbose={str(verbose).upper()}"
+        ")"
+    )
     anndata2ri.deactivate()
+
     try:
         ro.r("batch.estimate$average.pval")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
@@ -60,8 +64,17 @@ def kBET_single(
         return ro.r("batch.estimate$average.pval")[0]
 
 
-def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
-         hvg=False, subsample=0.5, heuristic=False, verbose=False):
+def kBET(
+        adata,
+        batch_key,
+        label_key,
+        embed='X_pca',
+        type_=None,
+        hvg=False,
+        subsample=0.5,
+        heuristic=False,
+        verbose=False
+):
     """
     Compare the effect before and after integration
     params:
@@ -69,6 +82,15 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
     return:
         pd.DataFrame with kBET p-values per cluster for batch
     """
+
+    kBET_scores = {'cluster': [], 'kBET': []}
+
+    try:
+        ro.r("library(kBET)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
+        print(e)
+        print("Couldn't compute kBET, returning NaN")
+        return pd.DataFrame.from_dict(kBET_scores)
 
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
@@ -92,7 +114,6 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
     # set upper bound for k0
     size_max = 2 ** 31 - 1
 
-    kBET_scores = {'cluster': [], 'kBET': []}
     for clus in adata_tmp.obs[label_key].unique():
 
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus, :].copy()

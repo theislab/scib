@@ -209,7 +209,7 @@ def lisi_graph(
     # recompute neighbours
     if (type_ == 'embed'):
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, use_rep='X_emb', copy=True)
-    if (type_ == 'full'):
+    elif (type_ == 'full'):
         if 'X_pca' not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver='arpack')
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, copy=True)
@@ -326,7 +326,12 @@ def lisi_graph_py(
     # create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
     n_splits = n_chunks - 1
     args_int = [cpp_file_path.as_posix(), mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
-    subprocess.run(args_int)
+    try:
+        subprocess.run(args_int)
+    except Exception as e:
+        print(e)
+        print("Couldn't compute LISI, returning NaN")
+        return np.nan
 
     if verbose:
         print("LISI score estimation")
@@ -750,4 +755,3 @@ def lisi_matrix(
     anndata2ri.deactivate()
 
     return lisi_estimate
-
