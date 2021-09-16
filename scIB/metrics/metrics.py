@@ -39,7 +39,8 @@ def metrics_fast(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     Only fast metrics:
@@ -63,15 +64,17 @@ def metrics_fast(
         silhouette_=True,
         hvg_score_=True,
         graph_conn_=True,
-        pcr_=True
+        pcr_=True,
+        **kwargs
     )
 
 
-def metrics_extra(
+def metrics_slim(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     All metrics apart from kBET and LISI scores:
@@ -105,6 +108,7 @@ def metrics_extra(
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
+        **kwargs
     )
 
 
@@ -112,7 +116,8 @@ def metrics_all(
         adata,
         adata_int,
         batch_key,
-        label_key
+        label_key,
+        **kwargs
 ):
     """
     All metrics
@@ -144,7 +149,7 @@ def metrics_all(
         hvg_score_=True,
         graph_conn_=True,
         pcr_=True,
-
+        **kwargs
     )
 
 
@@ -155,7 +160,7 @@ def metrics(
         label_key,
         hvg_score_=False,
         cluster_key='cluster',
-        cluster_opt_out=None,
+        cluster_nmi=None,
         ari_=False,
         nmi_=False,
         nmi_method='arithmetic',
@@ -166,6 +171,7 @@ def metrics(
         pcr_=False,
         cell_cycle_=False,
         organism='mouse',
+        isolated_labels_=False,  # backwards compatibility
         isolated_labels_f1_=False,
         isolated_labels_asw_=False,
         n_isolated=None,
@@ -204,9 +210,9 @@ def metrics(
             inplace=True,
             force=True
         )
-        if cluster_opt_out is not None:
-            nmi_all.to_csv(cluster_opt_out, header=False)
-            print(f'saved clustering NMI values to {cluster_opt_out}')
+        if cluster_nmi is not None:
+            nmi_all.to_csv(cluster_nmi, header=False)
+            print(f'saved clustering NMI values to {cluster_nmi}')
 
     results = {}
 
@@ -280,7 +286,7 @@ def metrics(
     else:
         cc_score = np.nan
 
-    if isolated_labels_f1_:
+    if isolated_labels_f1_ or isolated_labels_:
         print("Isolated labels F1...")
         il_score_f1 = isolated_labels(
             adata_int,
@@ -294,7 +300,7 @@ def metrics(
     else:
         il_score_f1 = np.nan
 
-    if isolated_labels_asw_:
+    if isolated_labels_asw_ or isolated_labels_:
         print("Isolated labels ASW...")
         il_score_asw = isolated_labels(
             adata_int,
