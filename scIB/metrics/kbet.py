@@ -16,11 +16,8 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning
 def kBET_single(
         matrix,
         batch,
-        type_=None,
         k0=10,
         knn=None,
-        subsample=0.5,
-        heuristic=True,
         verbose=False
 ):
     """
@@ -31,6 +28,8 @@ def kBET_single(
     returns:
         kBET observed rejection rate
     """
+
+    anndata2ri.activate()
     ro.r("library(kBET)")
 
     if verbose:
@@ -44,7 +43,6 @@ def kBET_single(
         print("kBET estimation")
     # k0 = len(batch) if len(batch) < 50 else 'NULL'
 
-    anndata2ri.activate()
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
     ro.r(
@@ -62,7 +60,6 @@ def kBET_single(
     )
 
     anndata2ri.deactivate()
-
     try:
         ro.r("batch.estimate$summary$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
@@ -77,9 +74,7 @@ def kBET(
         label_key,
         embed='X_pca',
         type_=None,
-        hvg=False,
-        subsample=0.5, #non-functional
-        heuristic=False,
+        subsample=0.5,
         verbose=False
 ):
     """
@@ -89,15 +84,6 @@ def kBET(
     return:
         pd.DataFrame with kBET observed rejection rates per cluster for batch
     """
-
-    kBET_scores = {'cluster': [], 'kBET': []}
-
-    try:
-        ro.r("library(kBET)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
-        print(e)
-        print("Couldn't compute kBET, returning NaN")
-        return pd.DataFrame.from_dict(kBET_scores)
 
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
@@ -122,6 +108,7 @@ def kBET(
     size_max = 2 ** 31 - 1
 
     #prepare call of kBET per cluster
+    kBET_scores = {'cluster': [], 'kBET': []}
     for clus in adata_tmp.obs[label_key].unique():
 
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus, :].copy()
