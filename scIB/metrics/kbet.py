@@ -29,7 +29,7 @@ def kBET_single(
         batch: series or list of batch assignemnts
         subsample: fraction to be subsampled. No subsampling if `subsample=None`
     returns:
-        kBET p-value
+        kBET observed rejection rate
     """
 
     anndata2ri.activate()
@@ -48,16 +48,27 @@ def kBET_single(
 
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
-    batch_estimate = ro.r(
-        f"batch.estimate <- kBET(data_mtrx, batch, knn=knn_graph, k0=k0, plot=FALSE, do.pca=FALSE, heuristic=FALSE, adapt=FALSE, verbose={str(verbose).upper()})")
+    ro.r(
+        "batch.estimate <- kBET("
+        "  data_mtrx,"
+        "  batch,"
+        "  knn=knn_graph,"
+        "  k0=k0,"
+        "  plot=FALSE,"
+        "  do.pca=FALSE,"
+        "  heuristic=FALSE,"
+        "  adapt=FALSE,"
+        f"  verbose={str(verbose).upper()}"
+        ")"
+    )
 
     anndata2ri.deactivate()
     try:
-        ro.r("batch.estimate$average.pval")[0]
+        ro.r("batch.estimate$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
         return np.nan
     else:
-        return ro.r("batch.estimate$average.pval")[0]
+        return ro.r("batch.estimate$summary$kBET.observed")[0]
 
 
 def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
