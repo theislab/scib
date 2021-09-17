@@ -1,9 +1,8 @@
 from tests.common import *
-import pandas as pd
 
 
 def test_pc_regression(adata):
-    scIB.me.pc_regression(adata.X, adata.obs["batch"])
+    scIB.me.pcr.pc_regression(adata.X, adata.obs["batch"])
 
 
 def test_pcr_batch(adata):
