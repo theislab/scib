@@ -6,13 +6,17 @@ from sklearn.metrics.cluster import adjusted_rand_score
 from scIB.utils import checkAdata, checkBatch
 
 
-def ari(adata, group1, group2, implementation='sklearn'):
-    """
-    params:
-        adata: anndata object
-        group1: ground-truth cluster assignments (e.g. cell type labels)
-        group2: "predicted" cluster assignments
+def ari(adata, group1, group2, implementation=None):
+    """ Adjusted Rand Index
     The function is symmetric, so group1 and group2 can be switched
+    For single cell integration evaluation the scenario is:
+        predicted cluster assignments vs. ground-truth (e.g. cell type) assignments
+
+    :param adata: anndata object
+    :param group1: string of column in adata.obs containing labels
+    :param group2: string of column in adata.obs containing labels
+    :params implementation: of set to 'sklearn', uses sklearns implementation,
+        otherwise native implementation is taken
     """
 
     checkAdata(adata)
