@@ -10,16 +10,23 @@ import scipy as sp
 from scIB.utils import *
 import os
 import anndata
+from scIB.exceptions import IntegrationMethodNotFound
 
 import rpy2.rinterface_lib.callbacks
 import logging
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR) # Ignore R warning messages
+
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 from scipy.sparse import issparse
+
 
 # functions for running the methods
 
-def runScanorama(adata, batch, hvg = None):
-    import scanorama
+def runScanorama(adata, batch, hvg=None):
+    try:
+        import scanorama
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
     checkSanity(adata, batch, hvg)
     split, categories = splitBatches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True)
@@ -27,14 +34,18 @@ def runScanorama(adata, batch, hvg = None):
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
     corrected.obsm['X_emb'] = corrected.obsm['X_scanorama']
-    #corrected.uns['emb']=True
+    # corrected.uns['emb']=True
 
     return corrected
 
-def runTrVae(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import trvae
 
+def runTrVae(adata, batch, hvg=None):
+    try:
+        import trvae
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
+    checkSanity(adata, batch, hvg)
     n_batches = len(adata.obs[batch].cat.categories)
 
     train_adata, valid_adata = trvae.utils.train_test_split(
@@ -66,20 +77,23 @@ def runTrVae(adata, batch, hvg=None):
     )
 
     network.get_corrected(adata, labels, return_z=False)
-    
+
     adata.obsm['X_emb'] = adata.obsm['mmd_latent']
     del adata.obsm['mmd_latent']
     adata.X = adata.obsm['reconstructed']
-    
+
     return adata
 
 
 def runTrVaep(adata, batch, hvg=None):
-    checkSanity(adata, batch, hvg)
-    import trvaep
+    try:
+        import trvaep
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
 
+    checkSanity(adata, batch, hvg)
     n_batches = adata.obs[batch].nunique()
-    
+
     # Densify the data matrix
     if issparse(adata.X):
         adata.X = adata.X.A
@@ -89,10 +103,10 @@ def runTrVaep(adata, batch, hvg=None):
                         decoder_layer_sizes=[32, 64], latent_dim=10,
                         alpha=0.0001, use_mmd=True, beta=1,
                         output_activation="ReLU")
-    
+
     # Note: set seed for reproducibility of results
     trainer = trvaep.Trainer(model, adata, condition_key=batch, seed=42)
-    
+
     trainer.train_trvae(300, 1024, early_patience=50)
 
     # Get the dominant batch covariate
@@ -111,51 +125,57 @@ def runTrVaep(adata, batch, hvg=None):
 
     return adata
 
+
 def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
     """
     Parametrization taken from the tutorial notebook at:
     https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
     """
-    import scgen
+    try:
+        import scgen
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
 
     checkSanity(adata, batch, hvg)
-    
+
     # Fit the model
-    network = scgen.VAEArith(x_dimension= adata.shape[1], model_path=model_path)
+    network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
     network.train(train_data=adata, n_epochs=epochs, save=False)
     corrected_adata = scgen.batch_removal(network, adata, batch_key=batch, cell_label_key=cell_type)
 
     network.sess.close()
-    
+
     return corrected_adata
 
 
 def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
     # Expects data only on HVGs
-    
+    try:
+        from scvi.models import VAE
+        from scvi.inference import UnsupervisedTrainer
+        from sklearn.preprocessing import LabelEncoder
+        from scvi.dataset import AnnDatasetFromAnnData
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
     checkSanity(adata, batch, hvg)
 
     # Check for counts data layer
     if 'counts' not in adata.layers:
         raise TypeError('Adata does not contain a `counts` layer in `adata.layers[`counts`]`')
 
-    from scvi.models import VAE
-    from scvi.inference import UnsupervisedTrainer
-    from sklearn.preprocessing import LabelEncoder
-    from scvi.dataset import AnnDatasetFromAnnData
-
     # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
-    n_epochs=np.min([round((20000/adata.n_obs)*400), 400])
-    n_latent=30
-    n_hidden=128
-    n_layers=2
-    
+    n_epochs = np.min([round((20000 / adata.n_obs) * 400), 400])
+    n_latent = 30
+    n_hidden = 128
+    n_layers = 2
+
     net_adata = adata.copy()
     net_adata.X = adata.layers['counts']
     del net_adata.layers['counts']
     # Ensure that the raw counts are not accidentally used
-    del net_adata.raw # Note that this only works from anndata 0.7
+    del net_adata.raw  # Note that this only works from anndata 0.7
 
     # Define batch indices
     le = LabelEncoder()
@@ -187,25 +207,30 @@ def runScvi(adata, batch, hvg=None):
     adata.obsm['X_emb'] = latent
 
     return adata
+
+
 def runScanvi(adata, batch, labels):
-# Use non-normalized (count) data for scanvi!
-    
-    # Check for counts data layer
+    # Use non-normalized (count) data for scanvi!
+    try:
+        from scvi.models import VAE, SCANVI
+        from scvi.inference import UnsupervisedTrainer, SemiSupervisedTrainer
+        from sklearn.preprocessing import LabelEncoder
+        from scvi.dataset import AnnDatasetFromAnnData
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
+    import numpy as np
+
     if 'counts' not in adata.layers:
         raise TypeError('Adata does not contain a `counts` layer in `adata.layers[`counts`]`')
+    # Check for counts data layer
 
-    from scvi.models import VAE, SCANVI
-    from scvi.inference import UnsupervisedTrainer, SemiSupervisedTrainer
-    from sklearn.preprocessing import LabelEncoder
-    from scvi.dataset import AnnDatasetFromAnnData
-    import numpy as np
-    
     # STEP 1: prepare the data
     net_adata = adata.copy()
     net_adata.X = adata.layers['counts']
     del net_adata.layers['counts']
     # Ensure that the raw counts are not accidentally used
-    del net_adata.raw # Note that this only works from anndata 0.7
+    del net_adata.raw  # Note that this only works from anndata 0.7
 
     # Define batch indices
     le = LabelEncoder()
@@ -216,17 +241,16 @@ def runScanvi(adata, batch, labels):
 
     print("scANVI dataset object with {} batches and {} cell types".format(net_adata.n_batches, net_adata.n_labels))
 
-    #if hvg is True:
+    # if hvg is True:
     #    # this also corrects for different batches by default
     #    net_adata.subsample_genes(2000, mode="seurat_v3")
 
     # # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
-    n_epochs_scVI = np.min([round((20000/adata.n_obs)*400), 400]) #400
+    n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
     n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.)])]))
-    n_latent=30
-    n_hidden=128
-    n_layers=2
-
+    n_latent = 30
+    n_hidden = 128
+    n_layers = 2
 
     # STEP 2: RUN scVI to initialize scANVI
 
@@ -251,13 +275,15 @@ def runScanvi(adata, batch, labels):
     # STEP 3: RUN scANVI
 
     scanvi = SCANVI(net_adata.nb_genes, net_adata.n_batches, net_adata.n_labels,
-                          n_hidden=n_hidden, n_latent=n_latent, n_layers=n_layers, dispersion='gene', reconstruction_loss='nb')
+                    n_hidden=n_hidden, n_latent=n_latent, n_layers=n_layers, dispersion='gene',
+                    reconstruction_loss='nb')
     scanvi.load_state_dict(trainer.model.state_dict(), strict=False)
 
     # use default parameter from semi-supervised trainer class
     trainer_scanvi = SemiSupervisedTrainer(scanvi, net_adata)
     # use all cells as labelled set
-    trainer_scanvi.labelled_set = trainer_scanvi.create_posterior(trainer_scanvi.model, net_adata, indices=np.arange(len(net_adata)))
+    trainer_scanvi.labelled_set = trainer_scanvi.create_posterior(trainer_scanvi.model, net_adata,
+                                                                  indices=np.arange(len(net_adata)))
     # put one cell in the unlabelled set
     trainer_scanvi.unlabelled_set = trainer_scanvi.create_posterior(indices=[0])
     trainer_scanvi.train(n_epochs=n_epochs_scANVI)
@@ -271,8 +297,12 @@ def runScanvi(adata, batch, labels):
     return adata
 
 
-def runMNN(adata, batch, hvg = None):
-    import mnnpy
+def runMNN(adata, batch, hvg=None):
+    try:
+        import mnnpy
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
     checkSanity(adata, batch, hvg)
     split, categories = splitBatches(adata, batch, return_categories=True)
 
@@ -282,22 +312,30 @@ def runMNN(adata, batch, hvg = None):
 
     return corrected
 
+
 def runBBKNN(adata, batch, hvg=None):
-    import bbknn
+    try:
+        import bbknn
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
     checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
-    if adata.n_obs <1e5:
-        corrected = bbknn.bbknn(adata, batch_key=batch, copy=True)
-    if adata.n_obs >=1e5:
-        corrected = bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
-    return corrected
+    if adata.n_obs < 1e5:
+        return bbknn.bbknn(adata, batch_key=batch, copy=True)
+    if adata.n_obs >= 1e5:
+        return bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
 
 
 def runSaucie(adata, batch):
     """
     parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
     """
-    import SAUCIE
+    try:
+        import SAUCIE
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
     import sklearn.decomposition
     pca_op = sklearn.decomposition.PCA(100)
     if isinstance(adata.X, sp.sparse.csr_matrix):
@@ -312,10 +350,9 @@ def runSaucie(adata, batch):
     ret = adata.copy()
     ret.obsm['X_emb'] = saucie.get_reconstruction(loader_eval)[0]
     ret.X = pca_op.inverse_transform(ret.obsm['X_emb'])
-                                                    
+
     return ret
-                                                             
-    
+
 
 def runCombat(adata, batch):
     adata_int = adata.copy()
@@ -329,7 +366,10 @@ def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/
     https://github.com/eleozzr/desc/issues/28
     as suggested by the developer (rather than from the tutorial notebook).
     """
-    import desc
+    try:
+        import desc
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
 
     # Set number of CPUs to all available
     if ncores is None:
@@ -338,32 +378,21 @@ def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/
     adata_out = adata.copy()
 
     adata_out = desc.scale_bygroup(adata_out, groupby=batch, max_value=6)
-    
+
     adata_out = desc.train(adata_out,
-                     dims=[adata.shape[1],128,32],
-                     tol=0.001,
-                     n_neighbors=10,
-                     batch_size=256,
-                     louvain_resolution=res,
-                     save_encoder_weights=False,
-                     save_dir=tmp_dir,
-                     do_tsne=False,
-                     use_GPU=use_gpu,
-                     num_Cores=ncores,
-                     use_ae_weights=False,
-                     do_umap=False)
-    
-    adata_out.obsm['X_emb'] = adata_out.obsm['X_Embeded_z'+str(res)]
+                           dims=[adata.shape[1], 128, 32],
+                           tol=0.001,
+                           n_neighbors=10,
+                           batch_size=256,
+                           louvain_resolution=res,
+                           save_encoder_weights=False,
+                           save_dir=tmp_dir,
+                           do_tsne=False,
+                           use_GPU=use_gpu,
+                           num_Cores=ncores,
+                           use_ae_weights=False,
+                           do_umap=False)
+
+    adata_out.obsm['X_emb'] = adata_out.obsm['X_Embeded_z' + str(res)]
 
     return adata_out
-
-
-if __name__=="__main__":
-    adata = sc.read('testing.h5ad')
-    #emb, corrected = runScanorama(adata, 'method', False)
-    #print(emb)
-    #print(corrected)
-
-
-        
-

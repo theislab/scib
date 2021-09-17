@@ -31,8 +31,6 @@ def kBET_single(
     returns:
         kBET observed rejection rate
     """
-
-    anndata2ri.activate()
     ro.r("library(kBET)")
 
     if verbose:
@@ -46,6 +44,7 @@ def kBET_single(
         print("kBET estimation")
     # k0 = len(batch) if len(batch) < 50 else 'NULL'
 
+    anndata2ri.activate()
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
     ro.r(
@@ -63,6 +62,7 @@ def kBET_single(
     )
 
     anndata2ri.deactivate()
+
     try:
         ro.r("batch.estimate$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
@@ -71,8 +71,17 @@ def kBET_single(
         return ro.r("batch.estimate$summary$kBET.observed")[0]
 
 
-def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
-         hvg=False, subsample=0.5, heuristic=False, verbose=False):
+def kBET(
+        adata,
+        batch_key,
+        label_key,
+        embed='X_pca',
+        type_=None,
+        hvg=False,
+        subsample=0.5,
+        heuristic=False,
+        verbose=False
+):
     """
     Compare the effect before and after integration
     params:
@@ -80,6 +89,15 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
     return:
         pd.DataFrame with kBET p-values per cluster for batch
     """
+
+    kBET_scores = {'cluster': [], 'kBET': []}
+
+    try:
+        ro.r("library(kBET)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
+        print(e)
+        print("Couldn't compute kBET, returning NaN")
+        return pd.DataFrame.from_dict(kBET_scores)
 
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
@@ -103,7 +121,6 @@ def kBET(adata, batch_key, label_key, embed='X_pca', type_=None,
     # set upper bound for k0
     size_max = 2 ** 31 - 1
 
-    kBET_scores = {'cluster': [], 'kBET': []}
     for clus in adata_tmp.obs[label_key].unique():
 
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus, :].copy()

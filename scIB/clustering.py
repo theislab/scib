@@ -1,10 +1,8 @@
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import scanpy as sc
-from scIB import utils
-from scIB import metrics
+from . import metrics
 
 
 def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
@@ -29,24 +27,26 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
         clustering: only if `inplace=False`, return cluster assignment as `pd.Series`
         plot: if `plot=True` plot the score profile over resolution
     """
-    
+
+    if verbose:
+        print('Clustering...')
+
     if function is None:
         function = metrics.nmi
-    
+
     if cluster_key in adata.obs.columns:
         if force:
-            if verbose:
-                print(f"Warning: cluster key {cluster_key} already exists " +
-                      "in adata.obs and will be overwritten")
+            print(f"Warning: cluster key {cluster_key} already exists "
+                  "in adata.obs and will be overwritten")
         else:
             raise ValueError(f"cluster key {cluster_key} already exists in " +
                              "adata, please remove the key or choose a different name." +
                              "If you want to force overwriting the key, specify `force=True`")
-    
+
     if resolutions is None:
         n = 20
         resolutions = [2*x/n for x in range(1,n+1)]
-    
+
     score_max = 0
     res_max = resolutions[0]
     clustering = None
@@ -56,30 +56,32 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
         adata.uns['neighbors']
     except KeyError:
         if verbose:
-            print('computing neigbours for opt_cluster')
+            print('computing neighbours for opt_cluster')
         sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
         score = function(adata, label_key, cluster_key, **kwargs)
+        if verbose:
+            print(f'resolution: {res}, {function.__name__}: {score}')
         score_all.append(score)
         if score_max < score:
             score_max = score
             res_max = res
             clustering = adata.obs[cluster_key]
         del adata.obs[cluster_key]
-    
+
     if verbose:
         print(f'optimised clustering against {label_key}')
         print(f'optimal cluster resolution: {res_max}')
         print(f'optimal score: {score_max}')
-    
+
     score_all = pd.DataFrame(zip(resolutions, score_all), columns=('resolution', 'score'))
     if plot:
         # score vs. resolution profile
         sns.lineplot(data= score_all, x='resolution', y='score').set_title('Optimal cluster resolution profile')
         plt.show()
-    
+
     if inplace:
         adata.obs[cluster_key] = clustering
         return res_max, score_max, score_all
