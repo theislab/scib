@@ -64,7 +64,7 @@ def kBET_single(
     anndata2ri.deactivate()
 
     try:
-        ro.r("batch.estimate$kBET.observed")[0]
+        ro.r("batch.estimate$summary$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
         return np.nan
     else:
