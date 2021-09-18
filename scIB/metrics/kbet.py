@@ -24,7 +24,6 @@ def kBET_single(
     params:
         matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
         batch: series or list of batch assignemnts
-        subsample: fraction to be subsampled. No subsampling if `subsample=None`
     returns:
         kBET observed rejection rate
     """
@@ -36,12 +35,9 @@ def kBET_single(
         print("importing expression matrix")
     ro.globalenv['data_mtrx'] = matrix
     ro.globalenv['batch'] = batch
-    # print(matrix.shape)
-    # print(len(batch))
 
     if verbose:
         print("kBET estimation")
-    # k0 = len(batch) if len(batch) < 50 else 'NULL'
 
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
@@ -72,17 +68,23 @@ def kBET(
         adata,
         batch_key,
         label_key,
+        scaled=True,
         embed='X_pca',
         type_=None,
-        subsample=0.5,
+        return_df=False,
         verbose=False
 ):
     """
-    Compare the effect before and after integration
-    params:
-        matrix: matrix from adata to calculate on
+
+    :param adata: anndata object to compute kBET on
+    :param batch_key: name of batch column in adata.obs
+    :param label_key: name of cell identity labels column in adata.obs
+    :param scaled: whether to scale between 0 and 1
+        with 0 meaning low batch mixing and 1 meaning optimal batch mixing
+        if scaled=False, 0 means optimal batch mixing and 1 means low batch mixing
     return:
-        pd.DataFrame with kBET observed rejection rates per cluster for batch
+        kBET score (average of kBET per label) based on observed rejection rate
+        return_df=True: pd.DataFrame with kBET observed rejection rates per cluster for batch
     """
 
     checkAdata(adata)
@@ -149,11 +151,8 @@ def kBET(
                         matrix=matrix,
                         batch=adata_sub.obs[batch_key],
                         knn=nn_index_tmp + 1,  # nn_index in python is 0-based and 1-based in R
-                        subsample=subsample,
                         verbose=verbose,
-                        heuristic=False,
-                        k0=k0,
-                        type_=type_
+                        k0=k0
                     )
                 else:
                     # if there are too many too small connected components, set kBET score to 1
@@ -168,11 +167,8 @@ def kBET(
                     matrix=matrix,
                     batch=adata_sub.obs[batch_key],
                     knn=nn_index_tmp + 1,  # nn_index in python is 0-based and 1-based in R
-                    subsample=subsample,
                     verbose=verbose,
-                    heuristic=False,
-                    k0=k0,
-                    type_=type_
+                    k0=k0
                 )
 
         kBET_scores['cluster'].append(clus)
@@ -181,4 +177,8 @@ def kBET(
     kBET_scores = pd.DataFrame.from_dict(kBET_scores)
     kBET_scores = kBET_scores.reset_index(drop=True)
 
-    return kBET_scores
+    if return_df:
+        return kBET_scores
+
+    final_score = np.nanmean(kBET_scores['kBET'])
+    return 1 - final_score if scaled else final_score

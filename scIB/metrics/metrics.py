@@ -326,17 +326,15 @@ def metrics(
     if kBET_:
         print('kBET...')
         try:
-            kbet_results = kBET(
+            kbet_score = kBET(
                 adata_int,
                 batch_key=batch_key,
                 label_key=label_key,
                 type_=type_,
                 embed=embed,
-                subsample=kBET_sub,
-                heuristic=True,
+                scaled=True,
                 verbose=verbose
             )
-            kbet_score = 1 - np.nanmean(kbet_results['kBET'])
         except NeighborsError:
             print('Not enough neighbours')
             kbet_score = 0
