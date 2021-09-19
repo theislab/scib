@@ -16,7 +16,7 @@ from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation
-from .utils import NeighborsError, RootCellError
+from .utils import RootCellError
 
 
 def measureTM(*args, **kwargs):
@@ -156,8 +156,8 @@ def metrics_all(
         cell_cycle_=True,
         kBET_=True,
         ilisi_=True,
-        clisi_=True
-               ** kwargs
+        clisi_=True,
+        **kwargs
     )
 
 
@@ -208,14 +208,13 @@ def metrics(
 
     # clustering
     if nmi_ or ari_:
-        print('Clustering...')
         res_max, nmi_max, nmi_all = opt_louvain(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
             function=nmi,
             plot=False,
-            verbose=verbose,
+            verbose=False,
             inplace=True,
             force=True
         )
@@ -334,19 +333,15 @@ def metrics(
 
     if kBET_:
         print('kBET...')
-        try:
-            kbet_score = kBET(
-                adata_int,
-                batch_key=batch_key,
-                label_key=label_key,
-                type_=type_,
-                embed=embed,
-                scaled=True,
-                verbose=verbose
-            )
-        except NeighborsError:
-            print('Not enough neighbours')
-            kbet_score = 0
+        kbet_score = kBET(
+            adata_int,
+            batch_key=batch_key,
+            label_key=label_key,
+            type_=type_,
+            embed=embed,
+            scaled=True,
+            verbose=verbose
+        )
     else:
         kbet_score = np.nan
 
