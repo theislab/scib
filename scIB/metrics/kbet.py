@@ -64,7 +64,7 @@ def kBET_single(
     anndata2ri.deactivate()
 
     try:
-        ro.r("batch.estimate$kBET.observed")[0]
+        ro.r("batch.estimate$summary$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
         return np.nan
     else:
@@ -78,7 +78,7 @@ def kBET(
         embed='X_pca',
         type_=None,
         hvg=False,
-        subsample=0.5,
+        subsample=0.5, #non-functional
         heuristic=False,
         verbose=False
 ):
@@ -87,7 +87,7 @@ def kBET(
     params:
         matrix: matrix from adata to calculate on
     return:
-        pd.DataFrame with kBET p-values per cluster for batch
+        pd.DataFrame with kBET observed rejection rates per cluster for batch
     """
 
     kBET_scores = {'cluster': [], 'kBET': []}
@@ -121,6 +121,7 @@ def kBET(
     # set upper bound for k0
     size_max = 2 ** 31 - 1
 
+    #prepare call of kBET per cluster
     for clus in adata_tmp.obs[label_key].unique():
 
         adata_sub = adata_tmp[adata_tmp.obs[label_key] == clus, :].copy()
@@ -156,7 +157,7 @@ def kBET(
                     nn_index_tmp = np.empty(shape=(adata_sub.n_obs, k0))
                     nn_index_tmp[:] = np.nan
                     nn_index_tmp[idx_nonan] = diffusion_nn(adata_sub_sub, k=k0).astype('float')
-                    # need to check neighbors (k0 or k0-1) as input?
+                    #call kBET
                     score = kBET_single(
                         matrix=matrix,
                         batch=adata_sub.obs[batch_key],
@@ -173,8 +174,9 @@ def kBET(
                     score = 1
 
             else:  # a single component to compute kBET on
-                # need to check neighbors (k0 or k0-1) as input?
+                
                 nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype('float')
+                #call kBET
                 score = kBET_single(
                     matrix=matrix,
                     batch=adata_sub.obs[batch_key],
