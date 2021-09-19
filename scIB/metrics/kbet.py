@@ -90,6 +90,12 @@ def kBET(
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
+
+    try:
+        ro.r("library(kBET)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError:
+        return np.nan
+
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
     if type_ != 'knn':
