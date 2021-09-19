@@ -16,7 +16,6 @@ from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation
-from .utils import RootCellError
 
 
 def measureTM(*args, **kwargs):
@@ -385,11 +384,7 @@ def metrics(
 
     if trajectory_:
         print('Trajectory conservation score...')
-        try:
-            trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
-        except RootCellError:
-            print('No cell of root cluster in largest connected component')
-            trajectory_score = 0
+        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
     else:
         trajectory_score = np.nan
 
