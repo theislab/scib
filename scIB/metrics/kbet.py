@@ -27,7 +27,6 @@ def kBET_single(
     returns:
         kBET observed rejection rate
     """
-
     anndata2ri.activate()
     ro.r("library(kBET)")
 
@@ -55,13 +54,14 @@ def kBET_single(
         ")"
     )
 
-    anndata2ri.deactivate()
     try:
-        ro.r("batch.estimate$summary$kBET.observed")[0]
+        score = ro.r("batch.estimate$summary$kBET.observed")[0]
     except rpy2.rinterface_lib.embedded.RRuntimeError:
-        return np.nan
-    else:
-        return ro.r("batch.estimate$summary$kBET.observed")[0]
+        scorenp.nan
+
+    anndata2ri.deactivate()
+
+    return score
 
 
 def kBET(
@@ -130,8 +130,10 @@ def kBET(
 
             if verbose:
                 print(f"Use {k0} nearest neighbors.")
-            n_comp, labs = scipy.sparse.csgraph.connected_components(adata_sub.obsp['connectivities'],
-                                                                     connection='strong')
+            n_comp, labs = scipy.sparse.csgraph.connected_components(
+                adata_sub.obsp['connectivities'],
+                connection='strong'
+            )
             if n_comp > 1:
                 # check the number of components where kBET can be computed upon
                 comp_size = pd.value_counts(labs)
