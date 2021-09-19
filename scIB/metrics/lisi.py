@@ -451,14 +451,6 @@ def lisi_graph_py(
     return lisi_estimate
 
 
-def scale_lisi(ilisi_score, clisi_score, nbatches):
-    # scale iLISI score to 0 bad 1 good
-    ilisi_score = (ilisi_score - 1) / (nbatches - 1)
-    # scale clisi score to 0 bad 1 good
-    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
-    return ilisi_score, clisi_score
-
-
 # LISI core functions
 
 def compute_simpson_index(
@@ -694,6 +686,13 @@ def convertToOneHot(vector, num_classes=None):
 
 
 # DEPRECATED
+def scale_lisi(ilisi_score, clisi_score, nbatches):
+    # scale iLISI score to 0 bad 1 good
+    ilisi_score = (ilisi_score - 1) / (nbatches - 1)
+    # scale clisi score to 0 bad 1 good
+    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
+    return ilisi_score, clisi_score
+
 
 def lisi_knn(
         adata,

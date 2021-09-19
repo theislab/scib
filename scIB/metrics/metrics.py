@@ -11,7 +11,7 @@ from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
-from .lisi import lisi_graph, scale_lisi
+from .lisi import ilisi_graph, clisi_graph
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -149,7 +149,15 @@ def metrics_all(
         hvg_score_=True,
         graph_conn_=True,
         pcr_=True,
-        **kwargs
+        isolated_labels_f1_=True,
+        trajectory_=True,
+        nmi_=True,
+        ari_=True,
+        cell_cycle_=True,
+        kBET_=True,
+        ilisi_=True,
+        clisi_=True
+               ** kwargs
     )
 
 
@@ -177,9 +185,10 @@ def metrics(
         n_isolated=None,
         graph_conn_=False,
         kBET_=False,
-        kBET_sub=0.5,
+        subsample=0.5,
         lisi_graph_=False,
-        lisi_raw=False,
+        ilisi_=False,
+        clisi_=False,
         trajectory_=False,
         type_=None,
         verbose=False,
@@ -341,40 +350,38 @@ def metrics(
     else:
         kbet_score = np.nan
 
-    # if lisi_:
-    #    print('LISI score...')
-    #    ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
-    #                                    type_ = type_, verbose=verbose)
-    # else:
-    #    ilisi_score = np.nan
-    #    clisi_score = np.nan
-    # results['iLISI'] = ilisi_score
-    # results['cLISI'] = clisi_score
-
     if lisi_graph_:
-        print('LISI graph score...')
-        ilisi_raw, clisi_raw = lisi_graph(
+        clisi_ = True,
+        ilisi_ = True
+
+    if clisi_:
+        print('cLISI score...')
+        clisi = clisi_graph(
             adata_int,
             batch_key=batch_key,
             label_key=label_key,
             type_=type_,
-            subsample=kBET_sub * 100,
-            scale=False,
+            subsample=subsample * 100,
+            scale=True,
             multiprocessing=True,
             verbose=verbose
         )
-        nbatches = len(np.unique(adata_int.obs[batch_key]))
-        ilisi_scaled, clisi_scaled = scale_lisi(
-            ilisi_raw,
-            clisi_raw,
-            nbatches
-        )
-        if lisi_raw:
-            results['iLISI_raw'] = ilisi_raw
-            results['cLISI_raw'] = clisi_raw
     else:
-        ilisi_scaled = np.nan
-        clisi_scaled = np.nan
+        clisi = np.nan
+
+    if ilisi_:
+        print('iLISI score...')
+        ilisi = ilisi_graph(
+            adata_int,
+            batch_key=batch_key,
+            type_=type_,
+            subsample=subsample * 100,
+            scale=True,
+            multiprocessing=True,
+            verbose=verbose
+        )
+    else:
+        ilisi = np.nan
 
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
@@ -402,8 +409,8 @@ def metrics(
         'isolated_label_silhouette': il_score_asw,
         'graph_conn': graph_conn_score,
         'kBET': kbet_score,
-        'iLISI': ilisi_scaled,
-        'cLISI': clisi_scaled,
+        'iLISI': ilisi,
+        'cLISI': clisi,
         'hvg_overlap': hvg_score,
         'trajectory': trajectory_score
     }
