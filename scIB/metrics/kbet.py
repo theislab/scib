@@ -158,7 +158,7 @@ def kBET(
                     )
                 except NeighborsError:
                     print('Not enough neighbours')
-                    score = 0
+                    score = 1  # i.e. 100% rejection
 
             else:
                 # check the number of components where kBET can be computed upon
@@ -188,9 +188,9 @@ def kBET(
                         )
                     except NeighborsError:
                         print('Not enough neighbours')
-                        score = 0
+                        score = 1  # i.e. 100% rejection
                 else:  # if there are too many too small connected components, set kBET score to 1
-                    score = 1  # (i.e. 100% rejection)
+                    score = 1  # i.e. 100% rejection
 
         kBET_scores['cluster'].append(clus)
         kBET_scores['kBET'].append(score)
