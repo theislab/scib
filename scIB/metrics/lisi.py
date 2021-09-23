@@ -200,7 +200,7 @@ def ilisi_graph(
         verbose=False
 ):
     """
-    Compute iLISI score according to harmony paper
+    Compute iLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in adata.obs
@@ -256,7 +256,7 @@ def clisi_graph(
         verbose=False
 ):
     """
-    Compute cLISI score according to harmony paper
+    Compute cLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
 
     :params adata: adata object to calculate on
     :param batch_key: batch column name in adata.obs
