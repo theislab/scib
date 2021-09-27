@@ -167,11 +167,30 @@ def lisi_knn_py(
 
 
 # Graph LISI (analoguous to lisi function)
-
 def lisi_graph(
         adata,
-        batch_key=None,
-        label_key=None,
+        batch_key,
+        label_key,
+        **kwargs
+):
+    """
+    Compute cLISI and iLISI scores on precomputed kNN graph
+
+    :param adata: adata object to calculate on
+    :param batch_key: batch column name in adata.obs
+    :param label_key: label column name in adata.obs
+    :param **kwargs: arguments to be passed to iLISI and cLISI functions
+    :return:
+        Median cLISI and iLISI scores
+    """
+    ilisi = ilisi_graph(adata, batch_key=batch_key, **kwargs)
+    clisi = clisi_graph(adata, batch_key=batch_key, label_key=label_key, **kwargs)
+    return ilisi, clisi
+
+
+def ilisi_graph(
+        adata,
+        batch_key,
         k0=90,
         type_=None,
         subsample=None,
@@ -181,62 +200,121 @@ def lisi_graph(
         verbose=False
 ):
     """
-    Compute lisi score (after integration)
-    params:
-        adata: adata object to calculate on
-        batch_key: variable to compute iLISI on
-        label_key: variable to compute cLISI on
-        k0: number of nearest neighbors to compute lisi score
-            Please note that the initial neighborhood size that is
-            used to compute shortest paths is 15.
-        type_: type of data integration, either knn, full or embed
-        subsample: Percentage of observations (integer between 0 and 100)
-                   to which lisi scoring should be subsampled
-        scale: scale output values (True/False)
-        multiprocessing: parallel computation of LISI scores, if None, no parallisation
-                         via multiprocessing is performed
-        nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
-               multiprocessing is set to None
-    return:
-        pd.DataFrame with median cLISI and median iLISI scores
-        (following the harmony paper)
+    Compute iLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
+
+    :param adata: adata object to calculate on
+    :param batch_key: batch column name in adata.obs
+    :param k0: number of nearest neighbors to compute lisi score
+        Please note that the initial neighborhood size that is
+        used to compute shortest paths is 15.
+    :param type_: type of data integration, either knn, full or embed
+    :param subsample: Percentage of observations (integer between 0 and 100)
+        to which lisi scoring should be subsampled
+    :param scale: scale output values between 0 and 1 (True/False)
+    :param multiprocessing: parallel computation of LISI scores, if None, no parallisation
+        via multiprocessing is performed
+    :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
+        multiprocessing is set to None
+    :return: Median of iLISI score
+    """
+
+    checkAdata(adata)
+    checkBatch(batch_key, adata.obs)
+
+    adata_tmp = recompute_knn(adata, type_)
+    ilisi_score = lisi_graph_py(
+        adata=adata_tmp,
+        batch_key=batch_key,
+        n_neighbors=k0,
+        perplexity=None,
+        subsample=subsample,
+        multiprocessing=multiprocessing,
+        nodes=nodes,
+        verbose=verbose
+    )
+
+    # iLISI: nbatches good, 1 bad
+    ilisi = np.nanmedian(ilisi_score)
+
+    if scale:
+        nbatches = adata.obs[batch_key].nunique()
+        ilisi = (ilisi - 1) / (nbatches - 1)
+
+    return ilisi
+
+
+def clisi_graph(
+        adata,
+        batch_key,
+        label_key,
+        k0=90,
+        type_=None,
+        subsample=None,
+        scale=True,
+        multiprocessing=None,
+        nodes=None,
+        verbose=False
+):
+    """
+    Compute cLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
+
+    :params adata: adata object to calculate on
+    :param batch_key: batch column name in adata.obs
+    :param label_key: label column name in adata.obs
+    :param k0: number of nearest neighbors to compute lisi score
+        Please note that the initial neighborhood size that is
+        used to compute shortest paths is 15.
+    :param type_: type of data integration, either knn, full or embed
+    :param subsample: Percentage of observations (integer between 0 and 100)
+        to which lisi scoring should be subsampled
+    :param scale: scale output values between 0 and 1 (True/False)
+    :param multiprocessing: parallel computation of LISI scores, if None, no parallisation
+        via multiprocessing is performed
+    :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
+        multiprocessing is set to None
+    :return: Median of cLISI score
     """
 
     checkAdata(adata)
     checkBatch(batch_key, adata.obs)
     checkBatch(label_key, adata.obs)
 
-    # recompute neighbours
-    if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, use_rep='X_emb', copy=True)
-    elif (type_ == 'full'):
-        if 'X_pca' not in adata.obsm.keys():
-            sc.pp.pca(adata, svd_solver='arpack')
-        adata_tmp = sc.pp.neighbors(adata, n_neighbors=15, copy=True)
-    else:
-        adata_tmp = adata.copy()
-    # if knn - do not compute a new neighbourhood graph (it exists already)
+    adata_tmp = recompute_knn(adata, type_)
 
-    # compute LISI score
-    ilisi_score = lisi_graph_py(adata=adata_tmp, batch_key=batch_key,
-                                n_neighbors=k0, perplexity=None, subsample=subsample,
-                                multiprocessing=multiprocessing, nodes=nodes, verbose=verbose)
+    scores = lisi_graph_py(
+        adata=adata_tmp,
+        batch_key=label_key,
+        n_neighbors=k0,
+        perplexity=None,
+        subsample=subsample,
+        multiprocessing=multiprocessing,
+        nodes=nodes,
+        verbose=verbose
+    )
 
-    clisi_score = lisi_graph_py(adata=adata_tmp, batch_key=label_key,
-                                n_neighbors=k0, perplexity=None, subsample=subsample,
-                                multiprocessing=multiprocessing, nodes=nodes, verbose=verbose)
-
-    # iLISI: nbatches good, 1 bad
-    ilisi_score = np.nanmedian(ilisi_score)
     # cLISI: 1 good, nbatches bad
-    clisi_score = np.nanmedian(clisi_score)
+    clisi = np.nanmedian(scores)
 
     if scale:
-        # get number of batches
-        nbatches = len(np.unique(adata.obs[batch_key]))
-        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
+        nbatches = adata.obs[batch_key].nunique()
+        clisi = (nbatches - clisi) / (nbatches - 1)
 
-    return ilisi_score, clisi_score
+    return clisi
+
+
+def recompute_knn(adata, type_):
+    """
+    Recompute neighbours
+    """
+    if type_ == 'embed':
+        return sc.pp.neighbors(adata, n_neighbors=15, use_rep='X_emb', copy=True)
+    elif type_ == 'full':
+        if 'X_pca' not in adata.obsm.keys():
+            sc.pp.pca(adata, svd_solver='arpack')
+        return sc.pp.neighbors(adata, n_neighbors=15, copy=True)
+    else:
+        # if knn - do not compute a new neighbourhood graph (it exists already)
+        return adata.copy()
 
 
 def lisi_graph_py(
@@ -371,14 +449,6 @@ def lisi_graph_py(
     lisi_estimate = pd.DataFrame(data=d, index=np.arange(0, len(simpson_est_batch)))
 
     return lisi_estimate
-
-
-def scale_lisi(ilisi_score, clisi_score, nbatches):
-    # scale iLISI score to 0 bad 1 good
-    ilisi_score = (ilisi_score - 1) / (nbatches - 1)
-    # scale clisi score to 0 bad 1 good
-    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
-    return ilisi_score, clisi_score
 
 
 # LISI core functions
@@ -616,6 +686,13 @@ def convertToOneHot(vector, num_classes=None):
 
 
 # DEPRECATED
+def scale_lisi(ilisi_score, clisi_score, nbatches):
+    # scale iLISI score to 0 bad 1 good
+    ilisi_score = (ilisi_score - 1) / (nbatches - 1)
+    # scale clisi score to 0 bad 1 good
+    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
+    return ilisi_score, clisi_score
+
 
 def lisi_knn(
         adata,

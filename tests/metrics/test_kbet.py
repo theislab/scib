@@ -10,6 +10,5 @@ def test_kbet(adata_pca):
         label_key='celltype',
         embed='X_pca'
     )
-    score = 1 - np.nanmean(score['kBET'])
     LOGGER.info(f"score: {score}")
     assert np.isnan(score)

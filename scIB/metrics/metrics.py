@@ -1,9 +1,6 @@
 import pandas as pd
 from scIB.utils import *
 from scIB.clustering import opt_louvain
-import cProfile
-from pstats import Stats
-import memory_profiler
 
 from .ari import ari
 from .cell_cycle import cell_cycle
@@ -11,28 +8,11 @@ from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
-from .lisi import lisi_graph, scale_lisi
+from .lisi import ilisi_graph, clisi_graph
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation
-from .utils import NeighborsError, RootCellError
-
-
-def measureTM(*args, **kwargs):
-    """
-    params:
-        *args: function to be tested for time and memory
-        **kwargs: list of function paramters
-    returns:
-        tuple : (memory (MB), time (s), list of *args function outputs)
-    """
-    prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
-    mem = np.max(out[0]) - out[0][0]
-    print(f'memory usage:{round(mem, 0)} MB')
-    print(f'runtime: {round(Stats(prof).total_tt, 0)} s')
-    return mem, Stats(prof).total_tt, out[1:]
 
 
 def metrics_fast(
@@ -149,6 +129,14 @@ def metrics_all(
         hvg_score_=True,
         graph_conn_=True,
         pcr_=True,
+        isolated_labels_f1_=True,
+        trajectory_=True,
+        nmi_=True,
+        ari_=True,
+        cell_cycle_=True,
+        kBET_=True,
+        ilisi_=True,
+        clisi_=True,
         **kwargs
     )
 
@@ -177,9 +165,10 @@ def metrics(
         n_isolated=None,
         graph_conn_=False,
         kBET_=False,
-        kBET_sub=0.5,
+        subsample=0.5,
         lisi_graph_=False,
-        lisi_raw=False,
+        ilisi_=False,
+        clisi_=False,
         trajectory_=False,
         type_=None,
         verbose=False,
@@ -199,14 +188,13 @@ def metrics(
 
     # clustering
     if nmi_ or ari_:
-        print('Clustering...')
         res_max, nmi_max, nmi_all = opt_louvain(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
             function=nmi,
             plot=False,
-            verbose=verbose,
+            verbose=False,
             inplace=True,
             force=True
         )
@@ -325,58 +313,50 @@ def metrics(
 
     if kBET_:
         print('kBET...')
-        try:
-            kbet_results = kBET(
-                adata_int,
-                batch_key=batch_key,
-                label_key=label_key,
-                type_=type_,
-                embed=embed,
-                subsample=kBET_sub,
-                heuristic=True,
-                verbose=verbose
-            )
-            kbet_score = 1 - np.nanmean(kbet_results['kBET'])
-        except NeighborsError:
-            print('Not enough neighbours')
-            kbet_score = 0
-    else:
-        kbet_score = np.nan
-
-    # if lisi_:
-    #    print('LISI score...')
-    #    ilisi_score, clisi_score = lisi(adata_int, batch_key=batch_key, label_key=label_key,
-    #                                    type_ = type_, verbose=verbose)
-    # else:
-    #    ilisi_score = np.nan
-    #    clisi_score = np.nan
-    # results['iLISI'] = ilisi_score
-    # results['cLISI'] = clisi_score
-
-    if lisi_graph_:
-        print('LISI graph score...')
-        ilisi_raw, clisi_raw = lisi_graph(
+        kbet_score = kBET(
             adata_int,
             batch_key=batch_key,
             label_key=label_key,
             type_=type_,
-            subsample=kBET_sub * 100,
-            scale=False,
+            embed=embed,
+            scaled=True,
+            verbose=verbose
+        )
+    else:
+        kbet_score = np.nan
+
+    if lisi_graph_:
+        clisi_ = True,
+        ilisi_ = True
+
+    if clisi_:
+        print('cLISI score...')
+        clisi = clisi_graph(
+            adata_int,
+            batch_key=batch_key,
+            label_key=label_key,
+            type_=type_,
+            subsample=subsample * 100,
+            scale=True,
             multiprocessing=True,
             verbose=verbose
         )
-        nbatches = len(np.unique(adata_int.obs[batch_key]))
-        ilisi_scaled, clisi_scaled = scale_lisi(
-            ilisi_raw,
-            clisi_raw,
-            nbatches
-        )
-        if lisi_raw:
-            results['iLISI_raw'] = ilisi_raw
-            results['cLISI_raw'] = clisi_raw
     else:
-        ilisi_scaled = np.nan
-        clisi_scaled = np.nan
+        clisi = np.nan
+
+    if ilisi_:
+        print('iLISI score...')
+        ilisi = ilisi_graph(
+            adata_int,
+            batch_key=batch_key,
+            type_=type_,
+            subsample=subsample * 100,
+            scale=True,
+            multiprocessing=True,
+            verbose=verbose
+        )
+    else:
+        ilisi = np.nan
 
     if hvg_score_:
         hvg_score = hvg_overlap(adata, adata_int, batch_key)
@@ -385,11 +365,7 @@ def metrics(
 
     if trajectory_:
         print('Trajectory conservation score...')
-        try:
-            trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
-        except RootCellError:
-            print('No cell of root cluster in largest connected component')
-            trajectory_score = 0
+        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
     else:
         trajectory_score = np.nan
 
@@ -404,10 +380,33 @@ def metrics(
         'isolated_label_silhouette': il_score_asw,
         'graph_conn': graph_conn_score,
         'kBET': kbet_score,
-        'iLISI': ilisi_scaled,
-        'cLISI': clisi_scaled,
+        'iLISI': ilisi,
+        'cLISI': clisi,
         'hvg_overlap': hvg_score,
         'trajectory': trajectory_score
     }
 
     return pd.DataFrame.from_dict(results, orient='index')
+
+
+# Deprecated
+
+def measureTM(*args, **kwargs):
+    """
+    Deprecated
+    params:
+        *args: function to be tested for time and memory
+        **kwargs: list of function paramters
+    returns:
+        tuple : (memory (MB), time (s), list of *args function outputs)
+    """
+    import cProfile
+    from pstats import Stats
+    import memory_profiler
+
+    prof = cProfile.Profile()
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
+    mem = np.max(out[0]) - out[0][0]
+    print(f'memory usage:{round(mem, 0)} MB')
+    print(f'runtime: {round(Stats(prof).total_tt, 0)} s')
+    return mem, Stats(prof).total_tt, out[1:]
