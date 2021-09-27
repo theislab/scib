@@ -32,6 +32,7 @@ def kBET_single(
         kBET observed rejection rate
     """
     ro.r("library(kBET)")
+    anndata2ri.activate()
 
     if verbose:
         print("importing expression matrix")
@@ -44,7 +45,6 @@ def kBET_single(
         print("kBET estimation")
     # k0 = len(batch) if len(batch) < 50 else 'NULL'
 
-    anndata2ri.activate()
     ro.globalenv['knn_graph'] = knn
     ro.globalenv['k0'] = k0
     ro.r(
