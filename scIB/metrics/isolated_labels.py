@@ -1,4 +1,4 @@
-import numpy as np
+import pandas as pd
 from sklearn.metrics import f1_score
 
 from scIB.clustering import opt_louvain
@@ -54,11 +54,12 @@ def isolated_labels(
             verbose=verbose
         )
         scores[label] = score
+    scores = pd.Series(scores)
 
     if return_all:
         return scores
 
-    return np.mean(scores.values())
+    return scores.mean()
 
 
 def score_isolated_label(
