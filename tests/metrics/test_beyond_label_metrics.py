@@ -48,6 +48,3 @@ def test_hvg_overlap(adata):
     )
     LOGGER.info(f"score: {score}")
     assert score == 1
-
-
-# TODO: trajectory conservation metric
