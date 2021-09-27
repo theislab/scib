@@ -5,6 +5,17 @@ from scIB.utils import splitBatches
 
 
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
+    """
+    Compute HVGs per batch
+    
+    :param adata: anndata object
+    :param batch: key in adata.obs
+    :param features: features to subset to
+    :param n_hvg: maximum number of HVGs to compute
+    :save_hvg: whether to add hvg per batch information to adata object
+    :return:
+        dictionary of batch to HVG list
+    """
     adata_list = splitBatches(adata, batch, hvg=features)
     hvg_dir = {}
     for i in adata_list:
@@ -31,7 +42,8 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
     :param adata_post: Integrated anndata object
     :param batch: Batch variable
     :param n_hvg: Number of hvgs to compute per batch
-    
+    :return:
+        Average percentage of overlapping highly variable genes
     """
     hvg_post = adata_post.var_names
 
