@@ -1,7 +1,7 @@
 import os
 import pathlib
 import itertools
-import time
+import tempfile
 import numpy as np
 import pandas as pd
 import scipy.sparse
@@ -386,11 +386,7 @@ def lisi_graph_py(
         n_chunks = n_processes
 
     # create temporary directory
-    dir_path = "/tmp/lisi_tmp" + str(int(time.time()))
-    while os.path.isdir(dir_path):
-        dir_path += '2'
-    dir_path += '/'
-    os.mkdir(dir_path)
+    dir_path = tempfile.TemporaryDirectory().name
     # write to temporary directory
     mtx_file_path = dir_path + 'input.mtx'
     mmwrite(mtx_file_path,
