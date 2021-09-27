@@ -6,38 +6,6 @@ from scIB.utils import checkAdata
 from scIB.preprocessing import score_cell_cycle
 
 
-def precompute_cc_score(
-        adata,
-        batch_key,
-        organism='mouse',
-        n_comps=50,
-        verbose=False
-):
-    batches = adata.obs[batch_key].cat.categories
-    scores_before = {}
-    s_score = []
-    g2m_score = []
-
-    for batch in batches:
-        raw_sub = adata[adata.obs[batch_key] == batch].copy()
-        # score cell cycle if not already done
-        if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
-            score_cell_cycle(raw_sub, organism=organism)
-            s_score.append(raw_sub.obs['S_score'])
-            g2m_score.append(raw_sub.obs['G2M_score'])
-
-        covariate = raw_sub.obs[['S_score', 'G2M_score']]
-
-        before = pc_regression(raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose)
-        scores_before.update({batch: before})
-
-    if (np.in1d(['S_score', 'G2M_score'], adata.obs_keys()).sum() < 2):
-        adata.obs['S_score'] = pd.concat(s_score)
-        adata.obs['G2M_score'] = pd.concat(g2m_score)
-    adata.uns['scores_before'] = scores_before
-    return
-
-
 def cell_cycle(
         adata_pre,
         adata_post,
