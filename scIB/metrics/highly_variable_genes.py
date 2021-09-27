@@ -38,7 +38,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
         if verbose:
             print(n_hvg_tmp)
             
-        tmp_pre = hvg_pre_list[batch_var]  # adata_pre_list[i].var.index[hvg_pre['highly_variable']]
+        tmp_pre = hvg_pre_list[batch_var]
         hvg_post = sc.pp.highly_variable_genes(adata_post_list[i], flavor='cell_ranger', n_top_genes=n_hvg_tmp,
                                                inplace=False)
         tmp_post = adata_post_list[i].var.index[hvg_post['highly_variable']]
