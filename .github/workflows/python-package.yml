@@ -38,5 +38,5 @@ jobs:
         python -c 'import scIB'
     - name: Test with pytest
       run: |
-        pytest --durations 0
+        pytest --durations 0 -s
 
