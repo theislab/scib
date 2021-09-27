@@ -13,7 +13,7 @@ def test_silhouette(adata_pca):
 
 
 def test_silhouette_batch(adata_pca):
-    _, sil = scIB.me.silhouette_batch(
+    score = scIB.me.silhouette_batch(
         adata_pca,
         batch_key='batch',
         group_key='celltype',
@@ -21,7 +21,6 @@ def test_silhouette_batch(adata_pca):
         scale=True,
         verbose=False
     )
-    score = sil['silhouette_score'].mean()
     LOGGER.info(f"score: {score}")
     assert 0 <= score <= 1
 
