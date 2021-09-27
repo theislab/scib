@@ -26,6 +26,6 @@ def graph_connectivity(adata, label_key):
             connection='strong'
         )
         tab = pd.value_counts(labels)
-        clust_res.append(tab[0] / sum(tab))
+        clust_res.append(tab.max() / sum(tab))
 
     return np.mean(clust_res)
