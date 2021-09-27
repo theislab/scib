@@ -1,9 +1,6 @@
 import pandas as pd
 from scIB.utils import *
 from scIB.clustering import opt_louvain
-import cProfile
-from pstats import Stats
-import memory_profiler
 
 from .ari import ari
 from .cell_cycle import cell_cycle
@@ -16,22 +13,6 @@ from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation
-
-
-def measureTM(*args, **kwargs):
-    """
-    params:
-        *args: function to be tested for time and memory
-        **kwargs: list of function paramters
-    returns:
-        tuple : (memory (MB), time (s), list of *args function outputs)
-    """
-    prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
-    mem = np.max(out[0]) - out[0][0]
-    print(f'memory usage:{round(mem, 0)} MB')
-    print(f'runtime: {round(Stats(prof).total_tt, 0)} s')
-    return mem, Stats(prof).total_tt, out[1:]
 
 
 def metrics_fast(
@@ -406,3 +387,26 @@ def metrics(
     }
 
     return pd.DataFrame.from_dict(results, orient='index')
+
+
+# Deprecated
+
+def measureTM(*args, **kwargs):
+    """
+    Deprecated
+    params:
+        *args: function to be tested for time and memory
+        **kwargs: list of function paramters
+    returns:
+        tuple : (memory (MB), time (s), list of *args function outputs)
+    """
+    import cProfile
+    from pstats import Stats
+    import memory_profiler
+
+    prof = cProfile.Profile()
+    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
+    mem = np.max(out[0]) - out[0][0]
+    print(f'memory usage:{round(mem, 0)} MB')
+    print(f'runtime: {round(Stats(prof).total_tt, 0)} s')
+    return mem, Stats(prof).total_tt, out[1:]
