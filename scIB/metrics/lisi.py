@@ -1,7 +1,7 @@
 import os
 import pathlib
 import itertools
-import time
+import tempfile
 import numpy as np
 import pandas as pd
 import scipy.sparse
@@ -385,17 +385,16 @@ def lisi_graph_py(
         # update numbr of chunks
         n_chunks = n_processes
 
-    # create temporary directory
-    dir_path = "/tmp/lisi_tmp" + str(int(time.time()))
-    while os.path.isdir(dir_path):
-        dir_path += '2'
-    dir_path += '/'
-    os.mkdir(dir_path)
-    # write to temporary directory
+    # temporary file
+    tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
+    dir_path = tmpdir.name + '/'
     mtx_file_path = dir_path + 'input.mtx'
-    mmwrite(mtx_file_path,
-            connectivities,
-            symmetry='general')
+    print(mtx_file_path, dir_path)
+    mmwrite(
+        mtx_file_path,
+        connectivities,
+        symmetry='general'
+    )
     # call knn-graph computation in Cpp
 
     root = pathlib.Path(__file__).parent.parent  # get current root directory
@@ -423,26 +422,33 @@ def lisi_graph_py(
         count = np.arange(0, n_processes)
 
         # create argument list for each worker
-        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(dir_path),
-                                                                itertools.repeat(batch),
-                                                                itertools.repeat(n_batches),
-                                                                itertools.repeat(n_neighbors),
-                                                                itertools.repeat(perplexity),
-                                                                count))
+        results = pool.starmap(
+            compute_simpson_index_graph,
+            zip(itertools.repeat(dir_path),
+                itertools.repeat(batch),
+                itertools.repeat(n_batches),
+                itertools.repeat(n_neighbors),
+                itertools.repeat(perplexity),
+                count)
+        )
         pool.close()
         pool.join()
 
         simpson_est_batch = 1 / np.concatenate(results)
 
     else:
-        simpson_estimate_batch = compute_simpson_index_graph(input_path=dir_path,
-                                                             batch_labels=batch,
-                                                             n_batches=n_batches,
-                                                             perplexity=perplexity,
-                                                             n_neighbors=n_neighbors,
-                                                             chunk_no=None
-                                                             )
+        simpson_estimate_batch = compute_simpson_index_graph(
+            input_path=dir_path,
+            batch_labels=batch,
+            n_batches=n_batches,
+            perplexity=perplexity,
+            n_neighbors=n_neighbors,
+            chunk_no=None
+        )
         simpson_est_batch = 1 / simpson_estimate_batch
+
+    tmpdir.cleanup()
+
     # extract results
     d = {batch_key: simpson_est_batch}
 
