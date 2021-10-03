@@ -4,7 +4,7 @@ from tests.common import *
 
 
 def test_kbet(adata_pca):
-    score = scIB.me.kBET(
+    score = scib.me.kBET(
         adata_pca,
         batch_key='batch',
         label_key='celltype',

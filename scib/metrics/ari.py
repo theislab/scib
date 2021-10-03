@@ -3,7 +3,7 @@ import pandas as pd
 import scipy.special
 from sklearn.metrics.cluster import adjusted_rand_score
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import checkAdata, checkBatch
 
 
 def ari(adata, group1, group2, implementation=None):

@@ -1,5 +1,5 @@
 import pytest
-import scIB
+import scib
 import scanpy as sc
 import numpy as np
 import pandas as pd

@@ -14,7 +14,7 @@ import rpy2.rinterface_lib.callbacks
 import anndata2ri
 import scanpy as sc
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import checkAdata, checkBatch
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 

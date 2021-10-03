@@ -1,4 +1,4 @@
-import scIB.utils as utils
+from . import utils as utils
 from . import preprocessing, integration, metrics, clustering
 pp = preprocessing
 ig = integration

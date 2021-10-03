@@ -1,7 +1,7 @@
 import numpy as np
 import scanpy as sc
 
-from scIB.utils import splitBatches
+from ..utils import splitBatches
 
 
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
