@@ -9,13 +9,13 @@ with open("requirements_extra.txt", "r") as f:
     requirements_extra = [x for x in requirements_extra if not x.startswith("#") and x != ""]
 
 
-setup(name='scIB',
+setup(name='scib',
       version='0.1.1',
       description='Benchmark tools for single cell data integration',
       author='Malte Luecken, Maren Buettner, Daniel Strobl, Michaela Mueller',
       author_email='malte.luecken@helmholtz-muenchen.de',
-      packages=['scIB', 'scIB.metrics'],
-      package_data={'scIB': ['resources/*.txt', 'knn_graph/*']},
+      packages=['scib', 'scib.metrics'],
+      package_data={'scib': ['resources/*.txt', 'knn_graph/*']},
       zip_safe=False,
       license='MIT',
       url='https://github.com/theislab/scib',
@@ -30,4 +30,3 @@ setup(name='scIB',
          'Programming Language :: Python :: 3',      
          'Programming Language :: Python :: 3.7',
       ])
-
