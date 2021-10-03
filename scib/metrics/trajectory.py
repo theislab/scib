@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 import scanpy as sc
+from scipy.sparse.csgraph import connected_components
 
 from .utils import RootCellError
 

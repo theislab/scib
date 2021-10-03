@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from .pcr import pc_regression
-from ..utils import checkAdata
 from ..preprocessing import score_cell_cycle
+from ..utils import checkAdata
+from .pcr import pc_regression
 
 
 def cell_cycle(

@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.metrics.cluster import silhouette_score, silhouette_samples
+from sklearn.metrics.cluster import silhouette_samples, silhouette_score
 
 
 def silhouette(
