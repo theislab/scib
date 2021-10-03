@@ -35,7 +35,7 @@ jobs:
       run: |
         pip list
         cd tests
-        python -c 'import scIB'
+        python -c 'import scib'
     - name: Test with pytest
       run: |
         pytest --durations 0 -s
