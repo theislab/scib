@@ -1,23 +1,23 @@
-#!/bin/env python
-
 ### D. C. Strobl, M. Müller; 2019-07-23
 
 """ This module provides a toolkit for running a large range of single cell data integration methods
     as well as tools and metrics to benchmark them.
 """
 
-import scipy as sp
-from .utils import *
-import os
-import anndata
-from .exceptions import IntegrationMethodNotFound
-
-import rpy2.rinterface_lib.callbacks
 import logging
+import os
+
+import anndata
+import numpy as np
+import rpy2.rinterface_lib.callbacks
+import scanpy as sc
+import scipy as sp
+
+from . import utils
+from .exceptions import IntegrationMethodNotFound
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 from scipy.sparse import issparse
-
 
 # functions for running the methods
 
@@ -27,8 +27,8 @@ def runScanorama(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
-    split, categories = splitBatches(adata.copy(), batch, return_categories=True)
+    utils.checkSanity(adata, batch, hvg)
+    split, categories = utils.splitBatches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = anndata.AnnData.concatenate(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
@@ -45,7 +45,7 @@ def runTrVae(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
+    utils.checkSanity(adata, batch, hvg)
     n_batches = len(adata.obs[batch].cat.categories)
 
     train_adata, valid_adata = trvae.utils.train_test_split(
@@ -91,7 +91,7 @@ def runTrVaep(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
+    utils.checkSanity(adata, batch, hvg)
     n_batches = adata.obs[batch].nunique()
 
     # Densify the data matrix
@@ -136,7 +136,7 @@ def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localsc
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
+    utils.checkSanity(adata, batch, hvg)
 
     # Fit the model
     network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
@@ -152,14 +152,14 @@ def runScvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
     # Expects data only on HVGs
     try:
-        from scvi.models import VAE
-        from scvi.inference import UnsupervisedTrainer
-        from sklearn.preprocessing import LabelEncoder
         from scvi.dataset import AnnDatasetFromAnnData
+        from scvi.inference import UnsupervisedTrainer
+        from scvi.models import VAE
+        from sklearn.preprocessing import LabelEncoder
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
+    utils.checkSanity(adata, batch, hvg)
 
     # Check for counts data layer
     if 'counts' not in adata.layers:
@@ -212,10 +212,10 @@ def runScvi(adata, batch, hvg=None):
 def runScanvi(adata, batch, labels):
     # Use non-normalized (count) data for scanvi!
     try:
-        from scvi.models import VAE, SCANVI
-        from scvi.inference import UnsupervisedTrainer, SemiSupervisedTrainer
-        from sklearn.preprocessing import LabelEncoder
         from scvi.dataset import AnnDatasetFromAnnData
+        from scvi.inference import SemiSupervisedTrainer, UnsupervisedTrainer
+        from scvi.models import SCANVI, VAE
+        from sklearn.preprocessing import LabelEncoder
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
@@ -303,8 +303,8 @@ def runMNN(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
-    split, categories = splitBatches(adata, batch, return_categories=True)
+    utils.checkSanity(adata, batch, hvg)
+    split, categories = utils.splitBatches(adata, batch, return_categories=True)
 
     corrected, _, _ = mnnpy.mnn_correct(
         *split, var_subset=hvg, batch_key=batch, batch_categories=categories, index_unique=None
@@ -319,7 +319,7 @@ def runBBKNN(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    checkSanity(adata, batch, hvg)
+    utils.checkSanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     if adata.n_obs < 1e5:
         return bbknn.bbknn(adata, batch_key=batch, copy=True)

@@ -1,7 +1,6 @@
 import numpy as np
-from scipy import sparse
 import pandas as pd
-
+from scipy import sparse
 
 # Errors
 

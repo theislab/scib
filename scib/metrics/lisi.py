@@ -1,18 +1,19 @@
+import itertools
+import logging
+import multiprocessing as mp
 import os
 import pathlib
-import itertools
+import subprocess
 import tempfile
+
+import anndata2ri
 import numpy as np
 import pandas as pd
+import rpy2.rinterface_lib.callbacks
+import rpy2.robjects as ro
+import scanpy as sc
 import scipy.sparse
 from scipy.io import mmwrite
-import multiprocessing as mp
-import subprocess
-import logging
-import rpy2.robjects as ro
-import rpy2.rinterface_lib.callbacks
-import anndata2ri
-import scanpy as sc
 
 from ..utils import checkAdata, checkBatch
 

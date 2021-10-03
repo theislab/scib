@@ -1,23 +1,25 @@
-import numpy as np
-from matplotlib import pyplot as plt
-import seaborn as sns
-import scanpy as sc
-from scipy import sparse
-
-# rpy2 for running R code
-import rpy2.rinterface_lib.callbacks
 import logging
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
-import rpy2.robjects as ro
 import anndata2ri
+import numpy as np
+# rpy2 for running R code
+import rpy2.rinterface_lib.callbacks
+import rpy2.robjects as ro
+import scanpy as sc
+import seaborn
+import seaborn as sns
+from matplotlib import pyplot as plt
+from scipy import sparse
 
 # access to other methods of this module
-from .utils import *
+from . import utils
+
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
+seaborn.set_context('talk')
 
 
 def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
-    checkAdata(adata)
+    utils.checkAdata(adata)
 
     if count_matrix is None:
         count_matrix = adata.X
@@ -85,9 +87,9 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
 def plot_scatter(adata, count_threshold=0, gene_threshold=0,
                  color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
                  palette=None):
-    checkAdata(adata)
+    utils.checkAdata(adata)
     if color:
-        checkBatch(color, adata.obs)
+        utils.checkBatch(color, adata.obs)
 
     ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
                        legend_fontweight=50, legend_loc=legend_loc, palette=palette)
@@ -145,7 +147,7 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
 
 ### Normalisation
 def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
-    checkAdata(adata)
+    utils.checkAdata(adata)
 
     # Check for 0 count cells
     if np.any(adata.X.sum(axis=1) == 0):
@@ -231,8 +233,8 @@ def scale_batch(adata, batch):
     Function to scale the gene expression values of each batch separately.
     """
 
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
+    utils.checkAdata(adata)
+    utils.checkBatch(batch, adata.obs)
 
     # Store layers for after merge (avoids vstack error in merge)
     adata_copy = adata.copy()
@@ -241,12 +243,12 @@ def scale_batch(adata, batch):
         tmp[lay] = adata_copy.layers[lay]
         del adata_copy.layers[lay]
 
-    split = splitBatches(adata_copy, batch)
+    split = utils.splitBatches(adata_copy, batch)
 
     for i in split:
         sc.pp.scale(i)
 
-    adata_scaled = merge_adata(split)
+    adata_scaled = utils.merge_adata(split)
 
     # Reorder to original obs_name ordering
     adata_scaled = adata_scaled[adata.obs_names]
@@ -275,14 +277,14 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
         list of highly variable genes less or equal to `target_genes`
     """
 
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
+    utils.checkAdata(adata)
+    utils.checkBatch(batch, adata.obs)
 
     intersect = None
     enough = False
     n_hvg = target_genes
 
-    split = splitBatches(adata, batch)
+    split = utils.splitBatches(adata, batch)
     hvg_res = []
 
     for i in split:
@@ -329,9 +331,9 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     until HVGs in a single batch are considered.
     """
 
-    checkAdata(adata)
+    utils.checkAdata(adata)
     if batch_key is not None:
-        checkBatch(batch_key, adata.obs)
+        utils.checkBatch(batch_key, adata.obs)
 
     adata_hvg = adata if adataOut else adata.copy()
 
@@ -398,9 +400,9 @@ def reduce_data(adata, batch_key=None, subset=False,
         pre-existing HVG column for PCA
     """
 
-    checkAdata(adata)
+    utils.checkAdata(adata)
     if batch_key:
-        checkBatch(batch_key, adata.obs)
+        utils.checkBatch(batch_key, adata.obs)
 
     if n_top_genes is not None and overwrite_hvg:
         print("HVG")
@@ -525,11 +527,12 @@ def readSeurat(path):
 
 
 def readConos(inPath):
-    from time import time
-    from shutil import rmtree
-    from scipy.io import mmread
     from os import mkdir, path
+    from shutil import rmtree
+    from time import time
+
     import pandas as pd
+    from scipy.io import mmread
 
     dir_path = "/localscratch/conos" + str(int(time()))
     while path.isdir(dir_path):

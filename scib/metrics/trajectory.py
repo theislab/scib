@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 import scanpy as sc
 import pandas as pd
+from scipy.sparse.csgraph import connected_components
 
 from .utils import RootCellError
 from ..utils import checkBatch
