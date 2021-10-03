@@ -1,6 +1,6 @@
 import scanpy as sc
 import matplotlib.pyplot as plt
-from scIB.utils import *
+from .utils import *
 
 def paga(adata, groups='louvain'):
     """

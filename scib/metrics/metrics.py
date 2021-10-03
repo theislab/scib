@@ -1,6 +1,6 @@
 import pandas as pd
-from scIB.utils import *
-from scIB.clustering import opt_louvain
+from ..utils import *
+from ..clustering import opt_louvain
 
 from .ari import ari
 from .cell_cycle import cell_cycle

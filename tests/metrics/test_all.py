@@ -2,7 +2,7 @@ from tests.common import *
 
 
 def test_fast(adata_neighbors):
-    metrics_df = scIB.me.metrics_fast(
+    metrics_df = scib.me.metrics_fast(
         adata_neighbors,
         adata_neighbors,
         batch_key='batch',
@@ -20,7 +20,7 @@ def test_slim(adata_paul15):
     sc.pp.neighbors(adata_paul15)
     sc.tl.dpt(adata_paul15)
 
-    metrics_df = scIB.me.metrics_slim(
+    metrics_df = scib.me.metrics_slim(
         adata_paul15,
         adata_paul15,
         batch_key='batch',
@@ -38,7 +38,7 @@ def test_slim(adata_paul15):
 #    sc.pp.neighbors(adata_paul15)
 #    sc.tl.dpt(adata_paul15)
 #
-#    metrics_df = scIB.me.metrics_all(
+#    metrics_df = scib.me.metrics_all(
 #        adata_paul15,
 #        adata_paul15,
 #        batch_key='batch',

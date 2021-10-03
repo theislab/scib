@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 from .pcr import pc_regression
-from scIB.utils import checkAdata
-from scIB.preprocessing import score_cell_cycle
+from ..utils import checkAdata
+from ..preprocessing import score_cell_cycle
 
 
 def cell_cycle(

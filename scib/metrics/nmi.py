@@ -3,7 +3,7 @@ import subprocess
 import pandas as pd
 from sklearn.metrics.cluster import normalized_mutual_info_score
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import checkAdata, checkBatch
 
 
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):

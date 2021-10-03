@@ -7,10 +7,10 @@
 """
 
 import scipy as sp
-from scIB.utils import *
+from .utils import *
 import os
 import anndata
-from scIB.exceptions import IntegrationMethodNotFound
+from .exceptions import IntegrationMethodNotFound
 
 import rpy2.rinterface_lib.callbacks
 import logging

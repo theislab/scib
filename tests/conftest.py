@@ -10,7 +10,7 @@ def adata_paul15_template():
     adata.obs['batch'] = adata.obs['batch'].astype(str)
     adata.obs['batch'] = adata.obs['batch'].astype("category")
     adata.layers['counts'] = adata.X
-    scIB.preprocessing.reduce_data(
+    scib.preprocessing.reduce_data(
         adata,
         pca=False,
         n_top_genes=None,
@@ -73,7 +73,7 @@ def adata(adata_pbmc_template):
 @pytest.fixture()
 def adata_pca(adata):
     adata_obj = adata
-    scIB.pp.reduce_data(
+    scib.pp.reduce_data(
         adata_obj,
         pca=True,
         n_top_genes=200,
@@ -86,7 +86,7 @@ def adata_pca(adata):
 @pytest.fixture()
 def adata_neighbors(adata):
     adata_obj = adata
-    scIB.pp.reduce_data(
+    scib.pp.reduce_data(
         adata_obj,
         pca=True,
         n_top_genes=200,
@@ -99,7 +99,7 @@ def adata_neighbors(adata):
 @pytest.fixture()
 def adata_clustered(adata_neighbors):
     adata_obj = adata_neighbors
-    scIB.cl.opt_louvain(
+    scib.cl.opt_louvain(
         adata_obj,
         cluster_key='cluster',
         label_key='celltype',

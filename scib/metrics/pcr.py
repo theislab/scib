@@ -4,7 +4,7 @@ from scipy import sparse
 import scanpy as sc
 from sklearn.linear_model import LinearRegression
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import checkAdata, checkBatch
 
 
 def pcr_comparison(
