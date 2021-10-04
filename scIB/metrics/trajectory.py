@@ -67,7 +67,7 @@ def trajectory_conservation(
         adata_pre,
         adata_post,
         label_key,
-        pseudotime_key="dpt_pseudotime"
+        pseudotime_key="dpt_pseudotime",
 	batch_key=False
 ):
     """
