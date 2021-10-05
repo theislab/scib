@@ -11,22 +11,22 @@ import numpy as np
 import rpy2.rinterface_lib.callbacks
 import scanpy as sc
 import scipy as sp
+from scipy.sparse import issparse
 
 from . import utils
 from .exceptions import IntegrationMethodNotFound
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
-from scipy.sparse import issparse
 
 
-def runScanorama(adata, batch, hvg=None):
+def scanorama(adata, batch, hvg=None):
     try:
         import scanorama
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
-    split, categories = utils.splitBatches(adata.copy(), batch, return_categories=True)
+    utils.check_sanity(adata, batch, hvg)
+    split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True)
     corrected = anndata.AnnData.concatenate(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
@@ -37,13 +37,13 @@ def runScanorama(adata, batch, hvg=None):
     return corrected
 
 
-def runTrVae(adata, batch, hvg=None):
+def trvae(adata, batch, hvg=None):
     try:
         import trvae
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
+    utils.check_sanity(adata, batch, hvg)
     n_batches = len(adata.obs[batch].cat.categories)
 
     train_adata, valid_adata = trvae.utils.train_test_split(
@@ -83,13 +83,13 @@ def runTrVae(adata, batch, hvg=None):
     return adata
 
 
-def runTrVaep(adata, batch, hvg=None):
+def trvaep(adata, batch, hvg=None):
     try:
         import trvaep
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
+    utils.check_sanity(adata, batch, hvg)
     n_batches = adata.obs[batch].nunique()
 
     # Densify the data matrix
@@ -124,7 +124,7 @@ def runTrVaep(adata, batch, hvg=None):
     return adata
 
 
-def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
+def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
     """
     Parametrization taken from the tutorial notebook at:
     https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
@@ -134,7 +134,7 @@ def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localsc
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
+    utils.check_sanity(adata, batch, hvg)
 
     # Fit the model
     network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
@@ -146,7 +146,7 @@ def runScGen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localsc
     return corrected_adata
 
 
-def runScvi(adata, batch, hvg=None):
+def scvi(adata, batch, hvg=None):
     # Use non-normalized (count) data for scvi!
     # Expects data only on HVGs
     try:
@@ -157,7 +157,7 @@ def runScvi(adata, batch, hvg=None):
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
+    utils.check_sanity(adata, batch, hvg)
 
     # Check for counts data layer
     if 'counts' not in adata.layers:
@@ -207,7 +207,7 @@ def runScvi(adata, batch, hvg=None):
     return adata
 
 
-def runScanvi(adata, batch, labels):
+def scanvi(adata, batch, labels):
     # Use non-normalized (count) data for scanvi!
     try:
         from scvi.dataset import AnnDatasetFromAnnData
@@ -295,14 +295,14 @@ def runScanvi(adata, batch, labels):
     return adata
 
 
-def runMNN(adata, batch, hvg=None):
+def mnnpy(adata, batch, hvg=None):
     try:
         import mnnpy
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
-    split, categories = utils.splitBatches(adata, batch, return_categories=True)
+    utils.check_sanity(adata, batch, hvg)
+    split, categories = utils.split_batches(adata, batch, return_categories=True)
 
     corrected, _, _ = mnnpy.mnn_correct(
         *split, var_subset=hvg, batch_key=batch, batch_categories=categories, index_unique=None
@@ -311,13 +311,13 @@ def runMNN(adata, batch, hvg=None):
     return corrected
 
 
-def runBBKNN(adata, batch, hvg=None):
+def bbknn(adata, batch, hvg=None):
     try:
         import bbknn
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    utils.checkSanity(adata, batch, hvg)
+    utils.check_sanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     if adata.n_obs < 1e5:
         return bbknn.bbknn(adata, batch_key=batch, copy=True)
@@ -325,7 +325,7 @@ def runBBKNN(adata, batch, hvg=None):
         return bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
 
 
-def runSaucie(adata, batch):
+def saucie(adata, batch):
     """
     parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
     """
@@ -352,13 +352,13 @@ def runSaucie(adata, batch):
     return ret
 
 
-def runCombat(adata, batch):
+def combat(adata, batch):
     adata_int = adata.copy()
     sc.pp.combat(adata_int, key=batch)
     return adata_int
 
 
-def runDESC(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
+def desc(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
     """
     Convenience function to run DESC. Parametrization was taken from:
     https://github.com/eleozzr/desc/issues/28

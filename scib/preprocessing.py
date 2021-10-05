@@ -19,7 +19,7 @@ seaborn.set_context('talk')
 
 
 def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
 
     if count_matrix is None:
         count_matrix = adata.X
@@ -87,9 +87,9 @@ def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
 def plot_scatter(adata, count_threshold=0, gene_threshold=0,
                  color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
                  palette=None):
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
     if color:
-        utils.checkBatch(color, adata.obs)
+        utils.check_batch(color, adata.obs)
 
     ax = sc.pl.scatter(adata, 'n_counts', 'n_genes', color=color, show=False,
                        legend_fontweight=50, legend_loc=legend_loc, palette=palette)
@@ -147,7 +147,7 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
 
 ### Normalisation
 def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
 
     # Check for 0 count cells
     if np.any(adata.X.sum(axis=1) == 0):
@@ -233,8 +233,8 @@ def scale_batch(adata, batch):
     Function to scale the gene expression values of each batch separately.
     """
 
-    utils.checkAdata(adata)
-    utils.checkBatch(batch, adata.obs)
+    utils.check_adata(adata)
+    utils.check_batch(batch, adata.obs)
 
     # Store layers for after merge (avoids vstack error in merge)
     adata_copy = adata.copy()
@@ -243,7 +243,7 @@ def scale_batch(adata, batch):
         tmp[lay] = adata_copy.layers[lay]
         del adata_copy.layers[lay]
 
-    split = utils.splitBatches(adata_copy, batch)
+    split = utils.split_batches(adata_copy, batch)
 
     for i in split:
         sc.pp.scale(i)
@@ -277,14 +277,14 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
         list of highly variable genes less or equal to `target_genes`
     """
 
-    utils.checkAdata(adata)
-    utils.checkBatch(batch, adata.obs)
+    utils.check_adata(adata)
+    utils.check_batch(batch, adata.obs)
 
     intersect = None
     enough = False
     n_hvg = target_genes
 
-    split = utils.splitBatches(adata, batch)
+    split = utils.split_batches(adata, batch)
     hvg_res = []
 
     for i in split:
@@ -331,9 +331,9 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     until HVGs in a single batch are considered.
     """
 
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
     if batch_key is not None:
-        utils.checkBatch(batch_key, adata.obs)
+        utils.check_batch(batch_key, adata.obs)
 
     adata_hvg = adata if adataOut else adata.copy()
 
@@ -400,9 +400,9 @@ def reduce_data(adata, batch_key=None, subset=False,
         pre-existing HVG column for PCA
     """
 
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
     if batch_key:
-        utils.checkBatch(batch_key, adata.obs)
+        utils.check_batch(batch_key, adata.obs)
 
     if n_top_genes is not None and overwrite_hvg:
         print("HVG")

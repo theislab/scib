@@ -2,19 +2,19 @@ import anndata
 
 
 # checker functions for data sanity
-def checkAdata(adata):
+def check_adata(adata):
     if type(adata) is not anndata.AnnData:
         raise TypeError('Input is not a valid AnnData object')
 
 
-def checkBatch(batch, obs, verbose=False):
+def check_batch(batch, obs, verbose=False):
     if batch not in obs:
         raise ValueError(f'column {batch} is not in obs')
     elif verbose:
         print(f'Object contains {obs[batch].nunique()} batches.')
 
 
-def checkHVG(hvg, adata_var):
+def check_hvg(hvg, adata_var):
     if type(hvg) is not list:
         raise TypeError('HVG list is not a list')
     else:
@@ -22,14 +22,14 @@ def checkHVG(hvg, adata_var):
             raise ValueError('Not all HVGs are in the adata object')
 
 
-def checkSanity(adata, batch, hvg):
-    checkAdata(adata)
-    checkBatch(batch, adata.obs)
+def check_sanity(adata, batch, hvg):
+    check_adata(adata)
+    check_batch(batch, adata.obs)
     if hvg is not None:
-        checkHVG(hvg, adata.var)
+        check_hvg(hvg, adata.var)
 
 
-def splitBatches(adata, batch, hvg=None, return_categories=False):
+def split_batches(adata, batch, hvg=None, return_categories=False):
     split = []
     batch_categories = adata.obs[batch].unique()
     if hvg is not None:

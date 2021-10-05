@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from ..preprocessing import score_cell_cycle
-from ..utils import checkAdata
+from ..utils import check_adata
 from .pcr import pc_regression
 
 
@@ -45,8 +45,8 @@ def cell_cycle(
         A score between 1 and 0. The larger the score, the stronger the cell cycle
         variance is conserved.
     """
-    checkAdata(adata_pre)
-    checkAdata(adata_post)
+    check_adata(adata_pre)
+    check_adata(adata_post)
 
     if embed == 'X_pca':
         embed = None

@@ -8,7 +8,7 @@ from . import utils
 def paga(adata, groups='louvain'):
     """
     """
-    utils.checkAdata(adata)
+    utils.check_adata(adata)
 
     sc.pp.neighbors(adata)
     sc.tl.paga(adata, groups=groups)
@@ -23,7 +23,7 @@ def paga(adata, groups='louvain'):
 
 
 def dpt(adata, group, root, opt='min', comp=0):
-    utils.checkAdata()
+    utils.check_adata()
 
     # TODO compute diffmap before
 
