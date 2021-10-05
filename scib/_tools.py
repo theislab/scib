@@ -12,8 +12,8 @@ def wrap_func_naming(func, name):
     @wraps(func)
     def wrapper(*args, **kwargs):
         warnings.warn(
-            "Mixed case function naming is deprecated."
-            "Please use the snake_case version of this file.",
+            f"Mixed case function naming is deprecated for '{name}'. "
+            f"Please use '{func.__name__}' instead.",
             DeprecationWarning
         )
         return func(*args, **kwargs)
