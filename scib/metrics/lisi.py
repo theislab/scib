@@ -15,7 +15,7 @@ import scanpy as sc
 import scipy.sparse
 from scipy.io import mmwrite
 
-from ..utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
@@ -41,9 +41,9 @@ def lisi(
         pd.DataFrame with median cLISI and median iLISI scores (following the harmony paper)
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
     # if type_ != 'knn':
     #    if verbose:
@@ -219,8 +219,8 @@ def ilisi_graph(
     :return: Median of iLISI score
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
 
     adata_tmp = recompute_knn(adata, type_)
     ilisi_score = lisi_graph_py(
@@ -276,9 +276,9 @@ def clisi_graph(
     :return: Median of cLISI score
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
     adata_tmp = recompute_knn(adata, type_)
 

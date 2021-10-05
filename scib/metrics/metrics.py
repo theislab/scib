@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from ..utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
 from .clustering import opt_louvain
@@ -179,13 +179,13 @@ def metrics(
     Compute of all metrics given unintegrate and integrated anndata object
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
-    checkAdata(adata_int)
-    checkBatch(batch_key, adata_int.obs)
-    checkBatch(label_key, adata_int.obs)
+    check_adata(adata_int)
+    check_batch(batch_key, adata_int.obs)
+    check_batch(label_key, adata_int.obs)
 
     # clustering
     if nmi_ or ari_:

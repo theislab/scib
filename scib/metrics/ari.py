@@ -3,7 +3,7 @@ import pandas as pd
 import scipy.special
 from sklearn.metrics.cluster import adjusted_rand_score
 
-from ..utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 
 def ari(adata, group1, group2, implementation=None):
@@ -19,9 +19,9 @@ def ari(adata, group1, group2, implementation=None):
         otherwise native implementation is taken
     """
 
-    checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
+    check_adata(adata)
+    check_batch(group1, adata.obs)
+    check_batch(group2, adata.obs)
 
     group1 = adata.obs[group1].to_numpy()
     group2 = adata.obs[group2].to_numpy()
