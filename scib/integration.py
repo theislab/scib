@@ -1,7 +1,6 @@
-### D. C. Strobl, M. Müller; 2019-07-23
-
-""" This module provides a toolkit for running a large range of single cell data integration methods
-    as well as tools and metrics to benchmark them.
+"""
+This module provides a toolkit for running a large range of single cell data integration
+methods as well as tools and metrics to benchmark them.
 """
 
 import logging
@@ -19,7 +18,6 @@ from .exceptions import IntegrationMethodNotFound
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 from scipy.sparse import issparse
 
-# functions for running the methods
 
 def runScanorama(adata, batch, hvg=None):
     try:
