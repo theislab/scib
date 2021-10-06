@@ -1,5 +1,6 @@
 import warnings
 from functools import wraps
+import inspect
 
 warnings.simplefilter('default')  # or 'always'
 
@@ -20,3 +21,9 @@ def wrap_func_naming(func, name):
 
     wrapper.__name__ = name
     return wrapper
+
+
+def rename_func(function, new_name):
+    if callable(function):
+        function = wrap_func_naming(function, new_name)
+    setattr(inspect.getmodule(function), new_name, function)
