@@ -1,6 +1,6 @@
 from . import integration, metrics, preprocessing
 from . import utils as utils
-from ._tools import wrap_func_naming
+from ._tools import rename_func
 from .metrics import clustering
 
 alias_func_map = {
@@ -15,12 +15,12 @@ alias_func_map = {
     'runSaucie': integration.saucie,
     'runCombat': integration.combat,
     'runDESC': integration.desc,
+    'readSeurat': preprocessing.read_seurat,
+    'readConos': preprocessing.read_conos,
 }
 
 for alias, func in alias_func_map.items():
-    if callable(func):
-        func = wrap_func_naming(func, alias)
-    setattr(integration, alias, func)
+    rename_func(func, alias)
 
 pp = preprocessing
 ig = integration

@@ -46,7 +46,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
 
 
 ### Quality Control
-def plot_QC(adata, color=None, bins=60, legend_loc='right margin', histogram=True,
+def plot_qc(adata, color=None, bins=60, legend_loc='right margin', histogram=True,
             gene_threshold=(0, np.inf),
             gene_filter_threshold=(0, np.inf),
             count_threshold=(0, np.inf),
@@ -508,7 +508,7 @@ def saveSeurat(adata, path, batch, hvgs=None):
     anndata2ri.deactivate()
 
 
-def readSeurat(path):
+def read_seurat(path):
     anndata2ri.activate()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
@@ -526,7 +526,7 @@ def readSeurat(path):
     return (adata)
 
 
-def readConos(inPath):
+def read_conos(inPath):
     from os import mkdir, path
     from shutil import rmtree
     from time import time
