@@ -96,7 +96,7 @@ scib.integration.scanorama(adata, batch='batch')
 
 > **Warning:** the following notation is deprecated.
 > ```
-> scib.integration.run<method>(adata, batch=<batch>)
+> scib.integration.run<method>(adata, batch=<batch_key>)
 > ```
 > Please use the snake case naming without the `run` prefix.
 
@@ -104,8 +104,8 @@ Some integration methods (`scgen`, `scanvi`) also use cell type labels as input.
 the corresponding label column.
 
 ```py
-scgen(adata, batch=<batch>, cell_type=<cell_type>)
-scanvi(adata, batch=<batch>, labels=<cell_type>)
+scgen(adata, batch=<batch_key>, cell_type=<cell_type>)
+scanvi(adata, batch=<batch_key>, labels=<cell_type>)
 ```
 
 `scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or selecting highly variable genes per batch
