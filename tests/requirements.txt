@@ -1,3 +1,0 @@
-pytest
-pytest-runner
-pytest-icdiff
