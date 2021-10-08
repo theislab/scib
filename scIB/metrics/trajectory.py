@@ -104,7 +104,7 @@ def trajectory_conservation(
         return (correlation + 1) / 2  # scaled
     else:
         corr = pd.Series()
-        for i in batch_key:
+        for i in adata_pre_ti.obs[batch_key].unique():
             pseudotime_before = adata_post_ti.obs[adata_post_ti.obs[batch_key]==i]['dpt_pseudotime']
             pseudotime_after = adata_pre_ti.obs[adata_pre_ti.obs[batch_key]==i][pseudotime_key]
             corr[i] = pseudotime_before.corr(pseudotime_after, 'spearman')
