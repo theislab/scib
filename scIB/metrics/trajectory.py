@@ -4,6 +4,7 @@ import scanpy as sc
 import pandas as pd
 
 from .utils import RootCellError
+from ..utils import checkBatch
 
 
 def get_root(
@@ -69,7 +70,7 @@ def trajectory_conservation(
         adata_post,
         label_key,
         pseudotime_key="dpt_pseudotime",
-	batch_key=None
+        batch_key=None
 ):
     """
     :param adata_pre: unintegrated adata
@@ -99,16 +100,17 @@ def trajectory_conservation(
 
     adata_post_ti.obs['batch'] = adata_pre_ti.obs['batch']
 
-    
     if batch_key == None:
         pseudotime_before = adata_pre_ti.obs[pseudotime_key]
         pseudotime_after = adata_post_ti.obs['dpt_pseudotime']
         correlation = pseudotime_before.corr(pseudotime_after, 'spearman')
         return (correlation + 1) / 2  # scaled
     else:
+        checkBatch(adata_pre, batch_key)
+        checkBatch(adata_post, batch_key)
         corr = pd.Series()
         for i in adata_pre_ti.obs[batch_key].unique():
-            pseudotime_before = adata_pre_ti.obs[adata_pre_ti.obs[batch_key]==i][pseudotime_key]
-            pseudotime_after = adata_post_ti.obs[adata_post_ti.obs[batch_key]==i]['dpt_pseudotime']
+            pseudotime_before = adata_pre_ti.obs[adata_pre_ti.obs[batch_key] == i][pseudotime_key]
+            pseudotime_after = adata_post_ti.obs[adata_post_ti.obs[batch_key] == i]['dpt_pseudotime']
             corr[i] = pseudotime_before.corr(pseudotime_after, 'spearman')
-        return (corr.mean() + 1) / 2 # scaled
+        return (corr.mean() + 1) / 2  # scaled
