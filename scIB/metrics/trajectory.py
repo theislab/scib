@@ -97,15 +97,18 @@ def trajectory_conservation(
     adata_post_ti.obs['dpt_pseudotime'] = adata_post_ti2.obs['dpt_pseudotime']
     adata_post_ti.obs['dpt_pseudotime'].fillna(0, inplace=True)
 
-    pseudotime_before = adata_post_ti.obs['dpt_pseudotime']
-    pseudotime_after = adata_pre_ti.obs[pseudotime_key]
-    correlation = pseudotime_before.corr(pseudotime_after, 'spearman')
+    adata_post_ti.obs['batch'] = adata_pre_ti.obs['batch']
+
+    
     if batch_key == None:
+        pseudotime_before = adata_pre_ti.obs[pseudotime_key]
+        pseudotime_after = adata_post_ti.obs['dpt_pseudotime']
+        correlation = pseudotime_before.corr(pseudotime_after, 'spearman')
         return (correlation + 1) / 2  # scaled
     else:
         corr = pd.Series()
         for i in adata_pre_ti.obs[batch_key].unique():
-            pseudotime_before = adata_post_ti.obs[adata_post_ti.obs[batch_key]==i]['dpt_pseudotime']
-            pseudotime_after = adata_pre_ti.obs[adata_pre_ti.obs[batch_key]==i][pseudotime_key]
+            pseudotime_before = adata_pre_ti.obs[adata_pre_ti.obs[batch_key]==i][pseudotime_key]
+            pseudotime_after = adata_post_ti.obs[adata_post_ti.obs[batch_key]==i]['dpt_pseudotime']
             corr[i] = pseudotime_before.corr(pseudotime_after, 'spearman')
         return (corr.mean() + 1) / 2 # scaled
