@@ -15,7 +15,7 @@ def test_trajectory(adata_neighbors):
         pseudotime_key='dpt_pseudotime'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.956091 <= score <= 0.956092
+    assert 0.95609 <= score <= 0.9561
 
 
 def test_trajectory_batch(adata_neighbors):
@@ -33,4 +33,4 @@ def test_trajectory_batch(adata_neighbors):
         pseudotime_key='dpt_pseudotime'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.9631630 <= score <= 0.9631631
+    assert 0.963163 <= score <= 0.963164
