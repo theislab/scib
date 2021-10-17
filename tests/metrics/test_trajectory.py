@@ -8,7 +8,7 @@ def test_trajectory(adata_neighbors):
     sc.tl.diffmap(adata_neighbors)
     sc.tl.dpt(adata_neighbors)
 
-    score = scIB.me.trajectory_conservation(
+    score = scib.me.trajectory_conservation(
         adata_pre=adata_neighbors,
         adata_post=adata_int,
         label_key='celltype',
@@ -25,7 +25,7 @@ def test_trajectory_batch(adata_neighbors):
     sc.tl.diffmap(adata_neighbors)
     sc.tl.dpt(adata_neighbors)
 
-    score = scIB.me.trajectory_conservation(
+    score = scib.me.trajectory_conservation(
         adata_pre=adata_neighbors,
         adata_post=adata_int,
         label_key='celltype',

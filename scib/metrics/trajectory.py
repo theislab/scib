@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.sparse.csgraph import connected_components
 
 from .utils import RootCellError
-from ..utils import checkBatch
+from ..utils import check_batch
 
 
 def get_root(
@@ -106,8 +106,8 @@ def trajectory_conservation(
         correlation = pseudotime_before.corr(pseudotime_after, 'spearman')
         return (correlation + 1) / 2  # scaled
     else:
-        checkBatch(batch_key, adata_pre.obs)
-        checkBatch(batch_key, adata_post.obs)
+        check_batch(batch_key, adata_pre.obs)
+        check_batch(batch_key, adata_post.obs)
         corr = pd.Series()
         for i in adata_pre_ti.obs[batch_key].unique():
             pseudotime_before = adata_pre_ti.obs[adata_pre_ti.obs[batch_key] == i][pseudotime_key]
