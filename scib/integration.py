@@ -5,6 +5,7 @@ methods as well as tools and metrics to benchmark them.
 
 import logging
 import os
+import tempfile
 
 import anndata
 import numpy as np
@@ -124,7 +125,7 @@ def trvaep(adata, batch, hvg=None):
     return adata
 
 
-def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch', **kwargs):
+def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwargs):
     """
     Parametrization taken from the tutorial notebook at:
     https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
@@ -136,9 +137,20 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscrat
 
     utils.check_sanity(adata, batch, hvg)
 
+    if model_path is None:
+        temp_dir = tempfile.TemporaryDirectory()
+        model_path = temp_dir.name
+
     # Fit the model
-    network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
-    network.train(train_data=adata, n_epochs=epochs, save=False)
+    network = scgen.VAEArith(
+        x_dimension=adata.shape[1],
+        model_path=model_path
+    )
+    network.train(
+        train_data=adata,
+        n_epochs=epochs,
+        save=False
+    )
     corrected_adata = scgen.batch_removal(
         network,
         adata,
@@ -376,7 +388,7 @@ def combat(adata, batch):
     return adata_int
 
 
-def desc(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', use_gpu=False):
+def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
     """
     Convenience function to run DESC. Parametrization was taken from:
     https://github.com/eleozzr/desc/issues/28
@@ -386,6 +398,10 @@ def desc(adata, batch, res=0.8, ncores=None, tmp_dir='/localscratch/tmp_desc/', 
         import desc
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
+
+    if tmp_dir is None:
+        temp_dir = tempfile.TemporaryDirectory()
+        tmp_dir = temp_dir.name
 
     # Set number of CPUs to all available
     if ncores is None:
