@@ -19,7 +19,7 @@ from .exceptions import IntegrationMethodNotFound
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
 
-def scanorama(adata, batch, hvg=None):
+def scanorama(adata, batch, hvg=None, **kwargs):
     try:
         import scanorama
     except ModuleNotFoundError as e:
@@ -27,7 +27,7 @@ def scanorama(adata, batch, hvg=None):
 
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
-    corrected = scanorama.correct_scanpy(split, return_dimred=True)
+    corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
     corrected = anndata.AnnData.concatenate(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
@@ -124,7 +124,7 @@ def trvaep(adata, batch, hvg=None):
     return adata
 
 
-def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch'):
+def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscratch', **kwargs):
     """
     Parametrization taken from the tutorial notebook at:
     https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
@@ -139,7 +139,13 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path='/localscrat
     # Fit the model
     network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
     network.train(train_data=adata, n_epochs=epochs, save=False)
-    corrected_adata = scgen.batch_removal(network, adata, batch_key=batch, cell_label_key=cell_type)
+    corrected_adata = scgen.batch_removal(
+        network,
+        adata,
+        batch_key=batch,
+        cell_label_key=cell_type,
+        **kwargs
+    )
 
     network.sess.close()
 
@@ -295,7 +301,7 @@ def scanvi(adata, batch, labels):
     return adata
 
 
-def mnn(adata, batch, hvg=None):
+def mnn(adata, batch, hvg=None, **kwargs):
     try:
         import mnnpy
     except ModuleNotFoundError as e:
@@ -305,13 +311,18 @@ def mnn(adata, batch, hvg=None):
     split, categories = utils.split_batches(adata, batch, return_categories=True)
 
     corrected, _, _ = mnnpy.mnn_correct(
-        *split, var_subset=hvg, batch_key=batch, batch_categories=categories, index_unique=None
+        *split,
+        var_subset=hvg,
+        batch_key=batch,
+        batch_categories=categories,
+        index_unique=None,
+        **kwargs
     )
 
     return corrected
 
 
-def bbknn(adata, batch, hvg=None):
+def bbknn(adata, batch, hvg=None, **kwargs):
     try:
         import bbknn
     except ModuleNotFoundError as e:
@@ -320,9 +331,16 @@ def bbknn(adata, batch, hvg=None):
     utils.check_sanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver='arpack')
     if adata.n_obs < 1e5:
-        return bbknn.bbknn(adata, batch_key=batch, copy=True)
+        return bbknn.bbknn(
+            adata, batch_key=batch, copy=True, **kwargs)
     if adata.n_obs >= 1e5:
-        return bbknn.bbknn(adata, batch_key=batch, neighbors_within_batch=25, copy=True)
+        return bbknn.bbknn(
+            adata,
+            batch_key=batch,
+            neighbors_within_batch=25,
+            copy=True,
+            **kwargs
+        )
 
 
 def saucie(adata, batch):
