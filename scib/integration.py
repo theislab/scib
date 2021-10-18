@@ -295,7 +295,7 @@ def scanvi(adata, batch, labels):
     return adata
 
 
-def mnnpy(adata, batch, hvg=None):
+def mnn(adata, batch, hvg=None):
     try:
         import mnnpy
     except ModuleNotFoundError as e:

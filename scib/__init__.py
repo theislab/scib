@@ -10,7 +10,7 @@ alias_func_map = {
     'runScGen': integration.scgen,
     'runScvi': integration.scvi,
     'runScanvi': integration.scanvi,
-    'runMNN': integration.mnnpy,
+    'runMNN': integration.mnn,
     'runBBKNN': integration.bbknn,
     'runSaucie': integration.saucie,
     'runCombat': integration.combat,
