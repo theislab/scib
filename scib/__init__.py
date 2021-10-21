@@ -1,6 +1,6 @@
 from . import integration, metrics, preprocessing
 from . import utils as utils
-from ._tools import rename_func
+from ._package_tools import rename_func
 from .metrics import clustering
 
 alias_func_map = {
