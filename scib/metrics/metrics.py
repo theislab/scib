@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 
 from ..utils import check_adata, check_batch
+from .utils.clustering import opt_louvain
 from .ari import ari
 from .cell_cycle import cell_cycle
-from .clustering import opt_louvain
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels

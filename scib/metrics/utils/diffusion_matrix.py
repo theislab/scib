@@ -2,19 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-# Errors
+from scib.metrics.utils.Errors import NeighborsError
 
-class RootCellError(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class NeighborsError(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-# Diffusion
 
 def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     """
@@ -132,20 +121,3 @@ def diffusion_nn(adata, k, max_iterations=26):
     k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
 
     return k_indices
-
-
-# Not used
-
-def get_hvg_indices(adata, verbose=True):
-    if "highly_variable" not in adata.var.columns:
-        if verbose:
-            print(f"No highly variable genes computed, continuing with full matrix {adata.shape}")
-        return np.array(range(adata.n_vars))
-    return np.where((adata.var["highly_variable"] == True))[0]
-
-
-def select_hvg(adata, select=True):
-    if select and 'highly_variable' in adata.var:
-        return adata[:, adata.var['highly_variable']].copy()
-    else:
-        return adata

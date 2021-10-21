@@ -1,6 +1,7 @@
 __all__ = [
     "ari",
     "cell_cycle",
+    "clustering",
     "graph_connectivity",
     "highly_variable_genes",
     "isolated_labels",
@@ -14,3 +15,4 @@ __all__ = [
 ]
 
 from .metrics import *
+from .utils import clustering

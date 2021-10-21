@@ -3,7 +3,7 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 
-from .nmi import nmi
+from ..nmi import nmi
 
 
 def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,

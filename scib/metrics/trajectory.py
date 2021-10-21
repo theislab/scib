@@ -3,7 +3,7 @@ import scanpy as sc
 import pandas as pd
 from scipy.sparse.csgraph import connected_components
 
-from .utils import RootCellError
+from .utils.Errors import RootCellError
 from ..utils import check_batch
 
 
