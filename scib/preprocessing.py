@@ -1,5 +1,5 @@
 import logging
-
+import tempfile
 import anndata2ri
 import numpy as np
 # rpy2 for running R code
@@ -526,7 +526,7 @@ def read_seurat(path):
     return (adata)
 
 
-def read_conos(inPath):
+def read_conos(inPath, dir_path=None):
     from os import mkdir, path
     from shutil import rmtree
     from time import time
@@ -534,11 +534,9 @@ def read_conos(inPath):
     import pandas as pd
     from scipy.io import mmread
 
-    dir_path = "/localscratch/conos" + str(int(time()))
-    while path.isdir(dir_path):
-        dir_path += '2'
-    dir_path += '/'
-    mkdir(dir_path)
+    if dir_path is None:
+        tmpdir = tempfile.TemporaryDirectory()
+        dir_path = tmpdir.name + '/'
 
     ro.r('library(conos)')
     ro.r(f'con <- readRDS("{inPath}")')
@@ -547,6 +545,7 @@ def read_conos(inPath):
     ro.r('library(data.table)')
     ro.r('metaM <- do.call(rbind,unname(metalist))')
     ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
+
     gene_df = pd.read_csv(dir_path + "genes.csv")
 
     metadata = pd.read_csv(dir_path + "metadata.csv")
