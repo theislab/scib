@@ -33,7 +33,7 @@ evaluate the results. For evaluating the integration quality it provides a numbe
 
 + Linux or UNIX system
 + Python >= 3.7
-+ R >= 3.6
++ 3.6 <= R <= 4.0
 
 We recommend working with environments such as Conda or virtualenv, so that python and R dependencies are in one place.
 Please also check out [scib pipeline](https://github.com/theislab/scib-pipeline.git) for ready-to-use environments.
