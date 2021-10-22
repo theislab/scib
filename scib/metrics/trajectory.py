@@ -98,12 +98,7 @@ def trajectory_conservation(
     adata_post_ti.obs['dpt_pseudotime'] = adata_post_ti2.obs['dpt_pseudotime']
     adata_post_ti.obs['dpt_pseudotime'].fillna(0, inplace=True)
 
-    if adata_post_ti.obs['batch'] != adata_pre_ti.obs['batch']:
-        raise ValueError(
-            'Batch columns do not match\n'
-            f"adata_post_ti.obs['batch']:\n {adata_post_ti.obs['batch']}\n"
-            f"adata_pre_ti.obs['batch']:\n {adata_pre_ti.obs['batch']}\n"
-        )
+    adata_post_ti.obs['batch'] = adata_pre_ti.obs['batch']
 
     if batch_key == None:
         pseudotime_before = adata_pre_ti.obs[pseudotime_key]
