@@ -98,13 +98,6 @@ def trajectory_conservation(
     adata_post_ti.obs['dpt_pseudotime'] = adata_post_ti2.obs['dpt_pseudotime']
     adata_post_ti.obs['dpt_pseudotime'].fillna(0, inplace=True)
 
-    if adata_post_ti.obs['batch'] != adata_pre_ti.obs['batch']:
-        raise ValueError(
-            'Batch columns do not match\n'
-            f"adata_post_ti.obs['batch']:\n {adata_post_ti.obs['batch']}\n"
-            f"adata_pre_ti.obs['batch']:\n {adata_pre_ti.obs['batch']}\n"
-        )
-
     if batch_key == None:
         pseudotime_before = adata_pre_ti.obs[pseudotime_key]
         pseudotime_after = adata_post_ti.obs['dpt_pseudotime']
@@ -113,9 +106,19 @@ def trajectory_conservation(
     else:
         check_batch(batch_key, adata_pre.obs)
         check_batch(batch_key, adata_post.obs)
+
+        # check if batches match
+        if not np.array_equal(adata_post_ti.obs[batch_key], adata_pre_ti.obs[batch_key]):
+            raise ValueError(
+                'Batch columns do not match\n'
+                f"adata_post_ti.obs['batch']:\n {adata_post_ti.obs[batch_key]}\n"
+                f"adata_pre_ti.obs['batch']:\n {adata_pre_ti.obs[batch_key]}\n"
+            )
+
         corr = pd.Series()
         for i in adata_pre_ti.obs[batch_key].unique():
             pseudotime_before = adata_pre_ti.obs[adata_pre_ti.obs[batch_key] == i][pseudotime_key]
             pseudotime_after = adata_post_ti.obs[adata_post_ti.obs[batch_key] == i]['dpt_pseudotime']
             corr[i] = pseudotime_before.corr(pseudotime_after, 'spearman')
+
         return (corr.mean() + 1) / 2  # scaled
