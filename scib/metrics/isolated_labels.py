@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from .utils.clustering import opt_louvain
+from .clustering import opt_louvain
 from .silhouette import silhouette
 
 

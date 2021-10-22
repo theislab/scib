@@ -9,8 +9,7 @@ import scanpy as sc
 import scipy.sparse
 
 from ..utils import check_adata, check_batch
-from .utils.Errors import NeighborsError
-from .utils.diffusion_matrix import diffusion_conn, diffusion_nn
+from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
