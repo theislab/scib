@@ -1,3 +1,10 @@
+try:
+    from importlib import metadata
+except ImportError:  # for Python<3.8
+    import importlib_metadata as metadata
+
+__version__ = metadata.version('scib')
+
 from . import integration, metrics, preprocessing
 from . import utils as utils
 from ._package_tools import rename_func
