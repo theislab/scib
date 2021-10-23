@@ -1,6 +1,6 @@
+import inspect
 import warnings
 from functools import wraps
-import inspect
 
 warnings.simplefilter('default')  # or 'always'
 

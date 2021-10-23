@@ -1,10 +1,10 @@
 import numpy as np
-import scanpy as sc
 import pandas as pd
+import scanpy as sc
 from scipy.sparse.csgraph import connected_components
 
-from .utils import RootCellError
 from ..utils import check_batch
+from .utils import RootCellError
 
 
 def get_root(
