@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-from scipy import sparse
 import scanpy as sc
+from scipy import sparse
 from sklearn.linear_model import LinearRegression
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 
 def pcr_comparison(
@@ -96,8 +96,8 @@ def pcr(
         R2Var of regression
     """
 
-    checkAdata(adata)
-    checkBatch(covariate, adata.obs)
+    check_adata(adata)
+    check_batch(covariate, adata.obs)
 
     if verbose:
         print(f"covariate: {covariate}")

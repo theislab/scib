@@ -1,9 +1,9 @@
 import os
 import subprocess
-import pandas as pd
+
 from sklearn.metrics.cluster import normalized_mutual_info_score
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
@@ -26,9 +26,9 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
         Normalized mutual information NMI value
     """
 
-    checkAdata(adata)
-    checkBatch(group1, adata.obs)
-    checkBatch(group2, adata.obs)
+    check_adata(adata)
+    check_batch(group1, adata.obs)
+    check_batch(group2, adata.obs)
 
     group1 = adata.obs[group1].tolist()
     group2 = adata.obs[group2].tolist()

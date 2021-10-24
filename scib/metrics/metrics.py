@@ -1,14 +1,15 @@
+import numpy as np
 import pandas as pd
-from scIB.utils import *
-from scIB.clustering import opt_louvain
 
+from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
+from .clustering import opt_louvain
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
-from .lisi import ilisi_graph, clisi_graph
+from .lisi import clisi_graph, ilisi_graph
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -178,13 +179,13 @@ def metrics(
     Compute of all metrics given unintegrate and integrated anndata object
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
-    checkAdata(adata_int)
-    checkBatch(batch_key, adata_int.obs)
-    checkBatch(label_key, adata_int.obs)
+    check_adata(adata_int)
+    check_batch(batch_key, adata_int.obs)
+    check_batch(label_key, adata_int.obs)
 
     # clustering
     if nmi_ or ari_:
@@ -365,7 +366,12 @@ def metrics(
 
     if trajectory_:
         print('Trajectory conservation score...')
-        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        trajectory_score = trajectory_conservation(
+            adata,
+            adata_int,
+            label_key=label_key,
+            # batch_key=batch_key
+        )
     else:
         trajectory_score = np.nan
 
@@ -402,6 +408,7 @@ def measureTM(*args, **kwargs):
     """
     import cProfile
     from pstats import Stats
+
     import memory_profiler
 
     prof = cProfile.Profile()

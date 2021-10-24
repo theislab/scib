@@ -1,14 +1,15 @@
-import numpy as np
-import scipy.sparse
-import pandas as pd
 import logging
-import rpy2.robjects as ro
-import rpy2.rinterface_lib.callbacks
-import anndata2ri
-import scanpy as sc
 
-from scIB.utils import checkAdata, checkBatch
-from .utils import diffusion_conn, diffusion_nn, NeighborsError
+import anndata2ri
+import numpy as np
+import pandas as pd
+import rpy2.rinterface_lib.callbacks
+import rpy2.robjects as ro
+import scanpy as sc
+import scipy.sparse
+
+from ..utils import check_adata, check_batch
+from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
@@ -87,9 +88,9 @@ def kBET(
         return_df=True: pd.DataFrame with kBET observed rejection rates per cluster for batch
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
     try:
         ro.r("library(kBET)")
