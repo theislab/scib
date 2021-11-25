@@ -147,7 +147,7 @@ def metrics(
         adata_int,
         batch_key,
         label_key,
-        hvg_score_=False,
+        embed='X_pca',
         cluster_key='cluster',
         cluster_nmi=None,
         ari_=False,
@@ -155,28 +155,63 @@ def metrics(
         nmi_method='arithmetic',
         nmi_dir=None,
         silhouette_=False,
-        embed='X_pca',
         si_metric='euclidean',
         pcr_=False,
         cell_cycle_=False,
         organism='mouse',
+        hvg_score_=False,
         isolated_labels_=False,  # backwards compatibility
         isolated_labels_f1_=False,
         isolated_labels_asw_=False,
         n_isolated=None,
         graph_conn_=False,
+        trajectory_=False,
         kBET_=False,
-        subsample=0.5,
         lisi_graph_=False,
         ilisi_=False,
         clisi_=False,
-        trajectory_=False,
+        subsample=0.5,
         type_=None,
         verbose=False,
 ):
     """
     Master metrics function: Wrapper for all metrics used in the study
     Compute of all metrics given unintegrate and integrated anndata object
+    :param adata: unintegrated, preprocessed anndata object
+    :param adata_int: integrated anndata object
+    :param batch_key: name of batch column in adata.obs and adata_int.obs
+    :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
+    :param embed: embedding representation of adata_int used for
+        + silhouette scores (label ASW, batch ASW)
+        + PC regression
+        + cell cycle conservation
+        + isolated label scores
+        + kBET
+    :param cluster_key: name of column to store cluster assignments. Will be overwritten if it exists
+    :param cluster_nmi: Where to save cluster resolutions and NMI for optimal clustering
+        If None, these results will not be saved
+    :param ari_: whether to compute ARI
+    :param nmi_: whether to compute NMI
+    :param nmi_method: which implementation of NMI to use
+    :param nmi_dir: directory of NMI code for some implementations of NMI
+    :param silhouette_: whether to compute the average silhouette width scores for labels and batch
+    :param si_metric: which metric to use for silhouette scores
+    :param pcr_: whether to compute principal component regression
+    :param cell_cycle_: whether to compute cell cycle score conservation
+    :param organism: organism of the datasets, used for computing cell cycle scores on gene names
+    :param hvg_score_: whether to compute HVG score
+    :param isolated_labels_: whether to compute both isolated label scores
+    :param isolated_labels_f1_: wehther to compute isolated label score based on F1 score of clusters vs labels
+    :param isolated_labels_asw_: whether to compute isolated label score based on ASW
+    :param n_isolated: max number of batches per label for label to be considered as isolated
+    :param graph_conn_: whether to compute graph connectivity score
+    :param trajectory_: whether to compute trajectory score
+    :param kBET_: whether to compute kBET score
+    :param lisi_graph_: whether to compute both cLISI and iLISI
+    :param clisi_: whether to compute cLISI
+    :param ilisi_: whether to compute iLISI
+    :param subsample: subsample fraction for LISI scores
+    :param type_: one of 'full', 'embed' or 'knn'
     """
 
     check_adata(adata)
@@ -202,8 +237,6 @@ def metrics(
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
             print(f'saved clustering NMI values to {cluster_nmi}')
-
-    results = {}
 
     if nmi_:
         print('NMI...')

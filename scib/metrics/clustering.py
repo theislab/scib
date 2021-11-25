@@ -6,9 +6,19 @@ import seaborn as sns
 from .nmi import nmi
 
 
-def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
-                use_rep=None,
-                inplace=True, plot=False, force=True, verbose=True, **kwargs):
+def opt_louvain(
+        adata,
+        label_key,
+        cluster_key,
+        function=None,
+        resolutions=None,
+        use_rep=None,
+        inplace=True,
+        plot=False,
+        force=True,
+        verbose=True,
+        **kwargs
+):
     """
     params:
         label_key: name of column in adata.obs containing biological labels to be
