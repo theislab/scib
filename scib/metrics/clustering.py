@@ -20,23 +20,26 @@ def opt_louvain(
         **kwargs
 ):
     """
-    params:
-        label_key: name of column in adata.obs containing biological labels to be
-            optimised against
-        cluster_key: name of column to be added to adata.obs during clustering. 
-            Will be overwritten if exists and `force=True`
-        function: function that computes the cost to be optimised over. Must take as
-            arguments (adata, group1, group2, **kwargs) and returns a number for maximising
-        resolutions: list if resolutions to be optimised over. If `resolutions=None`,
-            default resolutions of 20 values ranging between 0.1 and 2 will be used
-        use_rep: key of embedding to use only if adata.uns['neighbors'] is not defined,
-            otherwise will be ignored
-    returns:
-        res_max: resolution of maximum score
-        score_max: maximum score
-        score_all: `pd.DataFrame` containing all scores at resolutions. Can be used to plot the score profile.
-        clustering: only if `inplace=False`, return cluster assignment as `pd.Series`
-        plot: if `plot=True` plot the score profile over resolution
+    Louvain clustering optimised against a metric over multiple resolutions.
+
+    :params adata: anndata object
+    :params label_key: name of column in adata.obs containing biological labels to be
+        optimised against
+    :param cluster_key: name of column to be added to adata.obs during clustering.
+        Will be overwritten if exists and ``force=True``
+    :param function: function that computes the cost to be optimised over. Must take as
+        arguments ``(adata, group1, group2, **kwargs)`` and returns a number for maximising
+    :param resolutions: list if resolutions to be optimised over. If ``resolutions=None``,
+        default resolutions of 20 values ranging between 0.1 and 2 will be used
+    :param use_rep: key of embedding to use only if ``adata.uns['neighbors']`` is not
+        defined, otherwise will be ignored
+    :returns:
+        Tuple of ``(res_max, score_max, score_all)`` or
+        ``(res_max, score_max, score_all, clustering)`` if ``inplace=False``.
+        ``res_max``: resolution of maximum score;
+        ``score_max``: maximum score;
+        ``score_all``: ``pd.DataFrame`` containing all scores at resolutions. Can be used to plot the score profile.
+        ``clustering``: only if ``inplace=False``, return cluster assignment as ``pd.Series``
     """
 
     if verbose:

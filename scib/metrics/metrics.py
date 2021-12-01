@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from deprecate import deprecated
 
 from ..utils import check_adata, check_batch
 from .ari import ari
@@ -27,23 +28,23 @@ def metrics_fast(
     Only metrics with minimal preprocessing and runtime:
 
     Biological conservation
-        HVG overlap
-        Cell type ASW
-        Isolated label ASW
+        + HVG overlap
+        + Cell type ASW
+        + Isolated label ASW
 
     Batch conservation
-        Graph connectivity
-        Batch ASW
-        PC regression
+        + Graph connectivity
+        + Batch ASW
+        + PC regression
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs: parameters to pass on to metrics function
-        embed
-        si_metric
-        n_isolated
+        + embed
+        + si_metric
+        + n_isolated
     """
     return metrics(
         adata,
@@ -70,32 +71,32 @@ def metrics_slim(
     All metrics apart from kBET and LISI scores:
 
     Biological conservation
-        HVG overlap
-        Cell type ASW
-        Isolated label ASW
-        Isolated label F1
-        NMI cluster/label
-        ARI cluster/label
-        Cell cycle conservation
+        + HVG overlap
+        + Cell type ASW
+        + Isolated label ASW
+        + Isolated label F1
+        + NMI cluster/label
+        + ARI cluster/label
+        + Cell cycle conservation
 
     Batch conservation
-        Graph connectivity
-        Batch ASW
-        PC regression
+        + Graph connectivity
+        + Batch ASW
+        + PC regression
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs: parameters to pass on to metrics function
-        embed
-        cluster_key
-        cluster_nmi
-        nmi_method
-        nmi_dir
-        si_metric
-        organism
-        n_isolated
+        + embed
+        + cluster_key
+        + cluster_nmi
+        + nmi_method
+        + nmi_dir
+        + si_metric
+        + organism
+        + n_isolated
     """
     return metrics(
         adata,
@@ -127,37 +128,37 @@ def metrics_all(
     All metrics
 
     Biological conservation
-        HVG overlap
-        Cell type ASW
-        Isolated label ASW
-        Isolated label F1
-        NMI cluster/label
-        ARI cluster/label
-        Cell cycle conservation
-        cLISI
+        + HVG overlap
+        + Cell type ASW
+        + Isolated label ASW
+        + Isolated label F1
+        + NMI cluster/label
+        + ARI cluster/label
+        + Cell cycle conservation
+        + cLISI
 
     Batch conservation
-        Graph connectivity
-        Batch ASW
-        PC regression
-        kBET
-        iLISI
+        + Graph connectivity
+        + Batch ASW
+        + PC regression
+        + kBET
+        + iLISI
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs: parameters to pass on to metrics function
-        embed
-        cluster_key
-        cluster_nmi
-        nmi_method
-        nmi_dir
-        si_metric
-        organism
-        n_isolated
-        subsample
-        type_
+        + embed
+        + cluster_key
+        + cluster_nmi
+        + nmi_method
+        + nmi_dir
+        + si_metric
+        + organism
+        + n_isolated
+        + subsample
+        + type\_
     """
     return metrics(
         adata,
@@ -216,16 +217,17 @@ def metrics(
     """
     Master metrics function: Wrapper for all metrics used in the study
     Compute of all metrics given unintegrate and integrated anndata object
+
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param embed: embedding representation of adata_int used for
-        + silhouette scores (label ASW, batch ASW)
-        + PC regression
-        + cell cycle conservation
-        + isolated label scores
-        + kBET
+        silhouette scores (label ASW, batch ASW),
+        PC regression,
+        cell cycle conservation,
+        isolated label scores, and
+        kBET
     :param cluster_key: name of column to store cluster assignments. Will be overwritten if it exists
     :param cluster_nmi: Where to save cluster resolutions and NMI for optimal clustering
         If None, these results will not be saved
@@ -467,16 +469,12 @@ def metrics(
     return pd.DataFrame.from_dict(results, orient='index')
 
 
-# Deprecated
-
+@deprecated
 def measureTM(*args, **kwargs):
     """
-    Deprecated
-    params:
-        *args: function to be tested for time and memory
-        **kwargs: list of function paramters
-    returns:
-        tuple : (memory (MB), time (s), list of *args function outputs)
+    :param *args: function to be tested for time and memory
+    :param **kwargs: list of function parameters
+    :returns: (memory (MB), time (s), list of *args function outputs)
     """
     import cProfile
     from pstats import Stats

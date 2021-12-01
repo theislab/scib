@@ -13,6 +13,7 @@ import rpy2.rinterface_lib.callbacks
 import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
+from deprecate import deprecated
 from scipy.io import mmwrite
 
 from ..utils import check_adata, check_batch
@@ -32,13 +33,12 @@ def lisi(
         verbose=False
 ):
     """
-    Compute lisi score (after integration)
-    params:
-        matrix: matrix from adata to calculate on
-        covariate_key: variable to compute iLISI on
-        cluster_key: variable to compute cLISI on
-    return:
-        pd.DataFrame with median cLISI and median iLISI scores (following the harmony paper)
+    Compute iLISI and cLISI scores
+
+    :param matrix: matrix from adata to calculate on
+    :param covariate_key: variable to compute iLISI on
+    :param cluster_key: variable to compute cLISI on
+    :return: Tuple of  median iLISI and median cLISI scores
     """
 
     check_adata(adata)
@@ -176,13 +176,13 @@ def lisi_graph(
 ):
     """
     Compute cLISI and iLISI scores on precomputed kNN graph
+    https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
-    :param batch_key: batch column name in adata.obs
-    :param label_key: label column name in adata.obs
-    :param **kwargs: arguments to be passed to iLISI and cLISI functions
-    :return:
-        Median cLISI and iLISI scores
+    :param batch_key: batch column name in ``adata.obs``
+    :param label_key: label column name in ``adata.obs``
+    :param \**kwargs: arguments to be passed to iLISI and cLISI functions
+    :return: median cLISI and iLISI scores
     """
     ilisi = ilisi_graph(adata, batch_key=batch_key, **kwargs)
     clisi = clisi_graph(adata, batch_key=batch_key, label_key=label_key, **kwargs)
@@ -201,10 +201,10 @@ def ilisi_graph(
         verbose=False
 ):
     """
-    Compute iLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
+    Compute iLISI score adapted from https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
-    :param batch_key: batch column name in adata.obs
+    :param batch_key: batch column name in ``adata.obs``
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
@@ -212,11 +212,11 @@ def ilisi_graph(
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
-    :param multiprocessing: parallel computation of LISI scores, if None, no parallisation
+    :param multiprocessing: parallel computation of LISI scores, if None, no parallelisation
         via multiprocessing is performed
     :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
         multiprocessing is set to None
-    :return: Median of iLISI score
+    :return: median of iLISI score
     """
 
     check_adata(adata)
@@ -257,11 +257,11 @@ def clisi_graph(
         verbose=False
 ):
     """
-    Compute cLISI score adapted from Harmony paper (Korsunsky et al, Nat Meth, 2019)
+    Compute cLISI score adapted from https://doi.org/10.1038/s41592-019-0619-0
 
     :params adata: adata object to calculate on
-    :param batch_key: batch column name in adata.obs
-    :param label_key: label column name in adata.obs
+    :param batch_key: batch column name in ``adata.obs``
+    :param label_key: label column name in ``adata.obs``
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
@@ -269,7 +269,7 @@ def clisi_graph(
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
-    :param multiprocessing: parallel computation of LISI scores, if None, no parallisation
+    :param multiprocessing: parallel computation of LISI scores, if None, no parallelisation
         via multiprocessing is performed
     :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
         multiprocessing is set to None
@@ -469,16 +469,15 @@ def compute_simpson_index(
         tol=1e-5
 ):
     """
-    Simpson index of batch labels subsetted for each group.
-    params:
-        D: distance matrix n_cells x n_nearest_neighbors
-        knn_idx: index of n_nearest_neighbors of each cell
-        batch_labels: a vector of length n_cells with batch info
-        n_batches: number of unique batch labels
-        perplexity: effective neighborhood size
-        tol: a tolerance for testing effective neighborhood size
-    returns:
-        simpson: the simpson index for the neighborhood of each cell
+    Simpson index of batch labels subset by group.
+
+    :param D: distance matrix ``n_cells x n_nearest_neighbors``
+    :param knn_idx: index of ``n_nearest_neighbors`` of each cell
+    :param batch_labels: a vector of length n_cells with batch info
+    :param n_batches: number of unique batch labels
+    :param perplexity: effective neighborhood size
+    :param tol: a tolerance for testing effective neighborhood size
+    :returns: the simpson index for the neighborhood of each cell
     """
     n = D.shape[0]
     P = np.zeros(D.shape[1])
@@ -545,17 +544,16 @@ def compute_simpson_index_graph(
         tol=1e-5
 ):
     """
-    Simpson index of batch labels subsetted for each group.
-    params:
-        input_path: file_path to pre-computed index and distance files
-        batch_labels: a vector of length n_cells with batch info
-        n_batches: number of unique batch labels
-        n_neighbors: number of nearest neighbors
-        perplexity: effective neighborhood size
-        chunk_no: for parallelisation, chunk id to evaluate
-        tol: a tolerance for testing effective neighborhood size
-    returns:
-        simpson: the simpson index for the neighborhood of each cell
+    Simpson index of batch labels subset by group.
+
+    :param input_path: file_path to pre-computed index and distance files
+    :param batch_labels: a vector of length n_cells with batch info
+    :param n_batches: number of unique batch labels
+    :param n_neighbors: number of nearest neighbors
+    :param perplexity: effective neighborhood size
+    :param chunk_no: for parallelization, chunk id to evaluate
+    :param tol: a tolerance for testing effective neighborhood size
+    :returns: the simpson index for the neighborhood of each cell
     """
 
     # initialize
@@ -663,15 +661,19 @@ def Hbeta(D_row, beta):
 
 def convertToOneHot(vector, num_classes=None):
     """
-    Converts an input 1-D vector of integers into an output
-    2-D array of one-hot vectors, where an i'th input value
-    of j will set a '1' in the i'th row, j'th column of the
+    Converts an input 1-D vector of integers into an output 2-D array of one-hot vectors,
+    where an i'th input value of j will set a '1' in the i'th row, j'th column of the
     output array.
 
     Example:
+
+    .. code-block:: python
+
         v = np.array((1, 0, 4))
         one_hot_v = convertToOneHot(v)
-        print one_hot_v
+        print(one_hot_v)
+
+    .. code-block::
 
         [[0 1 0 0 0]
          [1 0 0 0 0]
@@ -692,7 +694,7 @@ def convertToOneHot(vector, num_classes=None):
     return result.astype(int)
 
 
-# DEPRECATED
+@deprecated
 def scale_lisi(ilisi_score, clisi_score, nbatches):
     # scale iLISI score to 0 bad 1 good
     ilisi_score = (ilisi_score - 1) / (nbatches - 1)
@@ -701,6 +703,7 @@ def scale_lisi(ilisi_score, clisi_score, nbatches):
     return ilisi_score, clisi_score
 
 
+@deprecated
 def lisi_knn(
         adata,
         batch_key,
@@ -709,7 +712,6 @@ def lisi_knn(
         verbose=False
 ):
     """
-    Deprecated
     Compute LISI score on kNN graph provided in the adata object. By default, perplexity
     is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
@@ -797,6 +799,7 @@ def lisi_knn(
     return lisi_estimate
 
 
+@deprecated
 def lisi_matrix(
         adata,
         batch_key,
@@ -805,7 +808,6 @@ def lisi_matrix(
         verbose=False
 ):
     """
-    Deprecated
     Computes the LISI scores for a given data matrix in adata.X. The scoring function of the
     LISI R package is called with default parameters. This function takes a data matrix and
     recomputes nearest neighbours.

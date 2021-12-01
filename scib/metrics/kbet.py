@@ -22,11 +22,12 @@ def kBET_single(
         verbose=False
 ):
     """
-    params:
-        matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
-        batch: series or list of batch assignemnts
-    returns:
-        kBET observed rejection rate
+    Compute k-nearest neighbour batch effect test (kBET) score as described in
+    https://doi.org/10.1038/s41592-018-0254-1
+
+    :param matrix: expression matrix (at the moment: a PCA matrix, so ``do.pca`` is set to ``FALSE``)
+    :param batch: series or list of batch assignments
+    :returns: kBET observed rejection rate
     """
     anndata2ri.activate()
     ro.r("library(kBET)")
@@ -76,6 +77,8 @@ def kBET(
         verbose=False
 ):
     """
+    Compute average of k-nearest neighbour batch effect test (kBET) score as described in
+    https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
@@ -83,9 +86,10 @@ def kBET(
     :param scaled: whether to scale between 0 and 1
         with 0 meaning low batch mixing and 1 meaning optimal batch mixing
         if scaled=False, 0 means optimal batch mixing and 1 means low batch mixing
-    return:
-        kBET score (average of kBET per label) based on observed rejection rate
-        return_df=True: pd.DataFrame with kBET observed rejection rates per cluster for batch
+    :return:
+        kBET score (average of kBET per label) based on observed rejection rate.
+        If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
+        rejection rate per cluster
     """
 
     check_adata(adata)

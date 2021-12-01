@@ -264,18 +264,26 @@ def scale_batch(adata, batch):
     return adata_scaled
 
 
-def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False, n_stop=8000,
-                  min_genes=500, step_size=1000):
-    ### Feature Selection
+def hvg_intersect(
+        adata,
+        batch,
+        target_genes=2000,
+        flavor='cell_ranger',
+        n_bins=20,
+        adataOut=False,
+        n_stop=8000,
+        min_genes=500,
+        step_size=1000
+):
     """
-    params:
-        adata:
-        batch: adata.obs column
-        target_genes: maximum number of genes (intersection reduces the number of genes)
-        min_genes: minimum number of intersection HVGs targeted
-        step_size: step size to increase HVG selection per dataset
-    return:
-        list of highly variable genes less or equal to `target_genes`
+    Highly variable gene selection
+
+    :param adata: anndata object with preprocessed counts
+    :param batch: adata.obs column
+    :param target_genes: maximum number of genes (intersection reduces the number of genes)
+    :param min_genes: minimum number of intersection HVGs targeted
+    :param step_size: step size to increase HVG selection per dataset
+    :return: list of highly variable genes less or equal to `target_genes`
     """
 
     utils.check_adata(adata)
@@ -290,7 +298,15 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
 
     for i in split:
         sc.pp.filter_genes(i, min_cells=1)  # remove genes unexpressed (otherwise hvg might break)
-        hvg_res.append(sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg, inplace=False))
+        hvg_res.append(
+            sc.pp.highly_variable_genes(
+                i,
+                flavor=flavor,
+                n_top_genes=n_hvg,
+                n_bins=n_bins,
+                inplace=False
+            )
+        )
 
     while not enough:
         genes = []
@@ -324,7 +340,6 @@ def hvg_intersect(adata, batch, target_genes=2000, flavor='cell_ranger', n_bins=
 
 def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
     """
-
     Method to select HVGs based on mean dispersions of genes that are highly 
     variable genes in all batches. Using a the top target_genes per batch by
     average normalize dispersion. If target genes still hasn't been reached, 
@@ -347,8 +362,9 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
                                 n_bins=n_bins,
                                 batch_key=batch_key)
 
-    nbatch1_dispersions = adata_hvg.var['dispersions_norm'][adata_hvg.var.highly_variable_nbatches >
-                                                            len(adata_hvg.obs[batch_key].cat.categories) - 1]
+    nbatch1_dispersions = adata_hvg.var['dispersions_norm'][
+        adata_hvg.var.highly_variable_nbatches > len(adata_hvg.obs[batch_key].cat.categories) - 1
+        ]
 
     nbatch1_dispersions.sort_values(ascending=False, inplace=True)
 
@@ -388,17 +404,36 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
 
 
 ### Feature Reduction
-def reduce_data(adata, batch_key=None, subset=False,
-                filter=True, flavor='cell_ranger', n_top_genes=2000, n_bins=20,
-                pca=True, pca_comps=50, overwrite_hvg=True,
-                neighbors=True, use_rep='X_pca',
-                umap=True):
+def reduce_data(
+        adata,
+        batch_key=None,
+        flavor='cell_ranger',
+        n_top_genes=2000,
+        n_bins=20,
+        pca=True,
+        pca_comps=50,
+        overwrite_hvg=True,
+        neighbors=True,
+        use_rep='X_pca',
+        umap=True
+):
     """
-    overwrite_hvg:
-        if True, ignores any pre-existing 'highly_variable' column in adata.var
+    Wrapper function of feature selection, dimensionality reduction and neighbours computation
+
+    :param adata: anndata object with preprocessed data
+    :param batch_key: column in ``adata.obs``
+    :param flavor: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_top_genes: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_bins: parameter for ``scanpy.pp.highly_variable_genes``
+    :param pca: whether to compute PCA
+    :param pca_comps: number of principal components
+    :param overwrite_hvg: if True, ignores any pre-existing 'highly_variable' column in adata.var
         and recomputes it if `n_top_genes` is specified else calls PCA on full features.
         if False, skips HVG computation even if `n_top_genes` is specified and uses
         pre-existing HVG column for PCA
+    :param neighbors: whether to compute neighbours graph
+    :param use_rep: embedding to use for neighbourhood graph
+    :param umap: whether to compute UMAP representation
     """
 
     utils.check_adata(adata)
@@ -420,10 +455,12 @@ def reduce_data(adata, batch_key=None, subset=False,
 
         else:
             print(f"Calculating {n_top_genes} HVGs for reduce_data.")
-            sc.pp.highly_variable_genes(adata,
-                                        n_top_genes=n_top_genes,
-                                        n_bins=n_bins,
-                                        flavor=flavor)
+            sc.pp.highly_variable_genes(
+                adata,
+                n_top_genes=n_top_genes,
+                n_bins=n_bins,
+                flavor=flavor
+            )
 
         n_hvg = np.sum(adata.var["highly_variable"])
         print(f'Computed {n_hvg} highly variable genes')
@@ -451,9 +488,10 @@ def score_cell_cycle(adata, organism='mouse'):
     """
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
-    return: (s_genes, g2m_genes)
-        s_genes: S-phase genes
-        g2m_genes: G2- and M-phase genes
+
+    :param adata: anndata object
+    :param organism: organism of gene names to match cell cycle genes
+    :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
     import pathlib
     root = pathlib.Path(__file__).parent
