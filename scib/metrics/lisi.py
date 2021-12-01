@@ -13,7 +13,7 @@ import rpy2.rinterface_lib.callbacks
 import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
-from deprecate import deprecated
+from deprecated import deprecated
 from scipy.io import mmwrite
 
 from ..utils import check_adata, check_batch

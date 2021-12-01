@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from deprecate import deprecated
+from deprecated import deprecated
 
 from ..utils import check_adata, check_batch
 from .ari import ari
