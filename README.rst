@@ -8,10 +8,6 @@ we benchmark 16 methods (`see here <##Tools>`__) with 4 combinations of
 preprocessing steps leading to 68 methods combinations on 85 batches of
 gene expression and chromatin accessibility data.
 
-.. figure:: ./figure.png
-   :alt: Workflow
-
-   Workflow
 
 Resources
 ---------
