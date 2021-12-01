@@ -24,7 +24,7 @@ def metrics_fast(
         **kwargs
 ):
     """
-    Only fast metrics:
+    Only metrics with minimal preprocessing and runtime:
 
     Biological conservation
         HVG overlap
@@ -35,6 +35,15 @@ def metrics_fast(
         Graph connectivity
         Batch ASW
         PC regression
+
+    :param adata: unintegrated, preprocessed anndata object
+    :param adata_int: integrated anndata object
+    :param batch_key: name of batch column in adata.obs and adata_int.obs
+    :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
+    :param kwargs: parameters to pass on to metrics function
+        embed
+        si_metric
+        n_isolated
     """
     return metrics(
         adata,
@@ -73,6 +82,20 @@ def metrics_slim(
         Graph connectivity
         Batch ASW
         PC regression
+
+    :param adata: unintegrated, preprocessed anndata object
+    :param adata_int: integrated anndata object
+    :param batch_key: name of batch column in adata.obs and adata_int.obs
+    :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
+    :param kwargs: parameters to pass on to metrics function
+        embed
+        cluster_key
+        cluster_nmi
+        nmi_method
+        nmi_dir
+        si_metric
+        organism
+        n_isolated
     """
     return metrics(
         adata,
@@ -119,6 +142,22 @@ def metrics_all(
         PC regression
         kBET
         iLISI
+
+    :param adata: unintegrated, preprocessed anndata object
+    :param adata_int: integrated anndata object
+    :param batch_key: name of batch column in adata.obs and adata_int.obs
+    :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
+    :param kwargs: parameters to pass on to metrics function
+        embed
+        cluster_key
+        cluster_nmi
+        nmi_method
+        nmi_dir
+        si_metric
+        organism
+        n_isolated
+        subsample
+        type_
     """
     return metrics(
         adata,
@@ -211,7 +250,7 @@ def metrics(
     :param clisi_: whether to compute cLISI
     :param ilisi_: whether to compute iLISI
     :param subsample: subsample fraction for LISI scores
-    :param type_: one of 'full', 'embed' or 'knn'
+    :param type_: one of 'full', 'embed' or 'knn' (used for kBET and LISI scores)
     """
 
     check_adata(adata)
