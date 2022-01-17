@@ -293,12 +293,12 @@ def clisi_graph(
         verbose=verbose
     )
 
-    # cLISI: 1 good, nbatches bad
+    # cLISI: 1 good, nlabs bad
     clisi = np.nanmedian(scores)
 
     if scale:
-        nbatches = adata.obs[batch_key].nunique()
-        clisi = (nbatches - clisi) / (nbatches - 1)
+        nlabs = adata.obs[label_key].nunique()
+        clisi = (nlabs - clisi) / (nlabs - 1)
 
     return clisi
 
@@ -693,11 +693,12 @@ def convertToOneHot(vector, num_classes=None):
 
 
 # DEPRECATED
+# This code scales clisi incorrectly!
 def scale_lisi(ilisi_score, clisi_score, nbatches):
     # scale iLISI score to 0 bad 1 good
     ilisi_score = (ilisi_score - 1) / (nbatches - 1)
     # scale clisi score to 0 bad 1 good
-    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
+    clisi_score = (nbatches - clisi_score) / (nbatches - 1) # Scaled incorrectly by n_batches
     return ilisi_score, clisi_score
 
 
