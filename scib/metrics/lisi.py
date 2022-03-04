@@ -571,15 +571,10 @@ def compute_simpson_index_graph(
         return lists
 
     # read distances and indices with nan value handling
-    indices = pd.read_csv(input_path + '_indices_' + str(chunk_no) + '.txt',
-                          header=None, sep='\n')
-    indices = indices[0].str.split(',', expand=True)
-    indices.set_index(keys=0, drop=True, inplace=True)  # move cell index to DF index
+    indices = pd.read_table(input_path + '_indices_' + str(chunk_no) + '.txt', index_col=0, header=None, sep=',')
     indices = indices.T
-    distances = pd.read_csv(input_path + '_distances_' + str(chunk_no) + '.txt',
-                            header=None, sep='\n')
-    distances = distances[0].str.split(',', expand=True)
-    distances.set_index(keys=0, drop=True, inplace=True)  # move cell index to DF index
+
+    distances = pd.read_table(input_path + '_distances_' + str(chunk_no) + '.txt', index_col=0, header=None, sep=',')
     distances = distances.T
 
     # get cell ids
@@ -592,18 +587,18 @@ def compute_simpson_index_graph(
     for i in enumerate(chunk_ids):
         # get neighbors and distances
         # read line i from indices matrix
-        get_col = indices[str(i[1])]
+        get_col = indices[i[1]]
 
         if get_col.isnull().sum() > 0:
             # not enough neighbors
-            print(str(i[1]) + " has not enough neighbors.")
+            print(i[1] + " has not enough neighbors.")
             simpson[i[0]] = 1  # np.nan #set nan for testing
             continue
         else:
             knn_idx = get_col.astype('int') - 1  # get 0-based indexing
 
         # read line i from distances matrix
-        D_act = distances[str(i[1])].values.astype('float')
+        D_act = distances[i[1]].values.astype('float')
 
         # start lisi estimation
         beta = 1
