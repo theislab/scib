@@ -328,7 +328,7 @@ def metrics(
         kbet_score = np.nan
 
     if lisi_graph_:
-        clisi_ = True,
+        clisi_ = True
         ilisi_ = True
 
     if clisi_:
