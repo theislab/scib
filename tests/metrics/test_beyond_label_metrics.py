@@ -11,11 +11,11 @@ def test_cell_cycle(adata_paul15):
         adata_int,
         batch_key='batch',
         organism='mouse',
-        #recompute_cc=True,
+        # recompute_cc=True,
         verbose=True
     )
     LOGGER.info(f"score: {score}")
-    assert score == 1
+    assert_near_exact(score, 1, diff=1e-12)
 
 
 def test_cell_cycle_all(adata_paul15):
@@ -28,14 +28,14 @@ def test_cell_cycle_all(adata_paul15):
         adata_int,
         batch_key='batch',
         organism='mouse',
-        #recompute_cc=True,
+        # recompute_cc=True,
         agg_func=None,
         verbose=True
     )
     LOGGER.info(f"\nscore: {scores_df}")
     assert isinstance(scores_df, pd.DataFrame)
     for i in scores_df['score']:
-        assert i == 1
+        assert_near_exact(i, 1, diff=1e-12)
 
 
 def test_hvg_overlap(adata):
@@ -47,4 +47,4 @@ def test_hvg_overlap(adata):
         n_hvg=500
     )
     LOGGER.info(f"score: {score}")
-    assert score == 1
+    assert_near_exact(score, 1, diff=1e-12)
