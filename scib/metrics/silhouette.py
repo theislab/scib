@@ -45,10 +45,11 @@ def silhouette_batch(
         verbose=True
 ):
     """
-    Absolute silhouette score of batch labels subsetted for each group.
+    Absolute silhouette score (ASW) of batch labels.
+    The absolute ASW are computed per group label and the final score is the average of these values.
 
-    :param batch_key: batches to be compared against
-    :param group_key: group labels to be subsetted by e.g. cell type
+    :param batch_key: batch labels to be compared against
+    :param group_key: group labels to be subset by e.g. cell type
     :param embed: name of column in adata.obsm
     :param metric: see sklearn silhouette score
     :param scale: if True, scale between 0 and 1
@@ -56,9 +57,9 @@ def silhouette_batch(
         default False: return average width silhouette (ASW)
     :param verbose:
     :return:
-        average width silhouette ASW
-        mean silhouette per group in pd.DataFrame
-        Absolute silhouette scores per group label
+        average silhouette width ASW  (always)
+        mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
+        Absolute silhouette scores per group label (additionally, if return_all=True)
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())

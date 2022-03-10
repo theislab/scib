@@ -118,7 +118,7 @@ the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
 ### Batch removal metrics include:
 
 - Principal component regression `pcr_comparison()`
-- Batch ASW `silhouette()`
+- Batch ASW `silhouette_batch()`
 - K-nearest neighbour batch effect `kBET()`
 - Graph connectivity `graph_connectivity()`
 - Graph iLISI `lisi_graph()`
@@ -127,7 +127,7 @@ the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
 
 - Normalised mutual information `nmi()`
 - Adjusted Rand Index `ari()`
-- Cell type ASW `silhouette_batch()`
+- Cell type ASW `silhouette()`
 - Isolated label score F1 `isolated_labels()`
 - Isolated label score ASW `isolated_labels()`
 - Cell cycle conservation `cell_cycle()`
