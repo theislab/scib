@@ -1,8 +1,5 @@
-scib package
-============
-
 Subpackages
------------
+===========
 
 .. toctree::
    :maxdepth: 1
@@ -10,10 +7,10 @@ Subpackages
    scib.metrics
 
 Submodules
-----------
+===========
 
 scib.integration module
------------------------
+=======================
 
 .. automodule:: scib.integration
    :members:
@@ -21,7 +18,7 @@ scib.integration module
    :show-inheritance:
 
 scib.preprocessing module
--------------------------
+=========================
 
 .. automodule:: scib.preprocessing
    :members:
@@ -30,7 +27,7 @@ scib.preprocessing module
 
 
 Module contents
----------------
+===============
 
 .. automodule:: scib
    :members:
