@@ -269,9 +269,10 @@ def metrics(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
+            use_rep=embed,
             function=nmi,
             plot=False,
-            verbose=False,
+            verbose=verbose,
             inplace=True,
             force=True
         )
