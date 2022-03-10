@@ -22,8 +22,8 @@ def opt_louvain(
     """
     Louvain clustering optimised against a metric over multiple resolutions.
 
-    :params adata: anndata object
-    :params label_key: name of column in adata.obs containing biological labels to be
+    :param adata: anndata object
+    :param label_key: name of column in adata.obs containing biological labels to be
         optimised against
     :param cluster_key: name of column to be added to adata.obs during clustering.
         Will be overwritten if exists and ``force=True``
