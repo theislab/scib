@@ -2,7 +2,7 @@
 
 This repository contains the code for our benchmarking study for data integration tools.
 In [our study](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v1), we benchmark 16
-methods ([see here](##Tools)) with 4 combinations of preprocessing steps leading to 68 methods combinations on 85
+methods ([see Tools](##Tools)) with 4 combinations of preprocessing steps leading to 68 methods combinations on 85
 batches of gene expression and chromatin accessibility data.
 
 ![Workflow](./figure.png)
@@ -20,9 +20,8 @@ batches of gene expression and chromatin accessibility data.
 
 ### Please cite:
 
-**Benchmarking atlas-level data integration in single-cell genomics.**
-MD Luecken, M Büttner, K Chaichoompu, A Danese, M Interlandi, MF Mueller, DC Strobl, L Zappia, M Dugas, M Colomé-Tatché,
-FJ Theis bioRxiv 2020.05.22.111161; doi: https://doi.org/10.1101/2020.05.22.111161_
+Luecken, M.D., Büttner, M., Chaichoompu, K. et al. Benchmarking atlas-level data integration in single-cell genomics.
+Nat Methods 19, 41–50 (2022). https://doi.org/10.1038/s41592-021-01336-8
 
 ## Package: `scib`
 
@@ -37,7 +36,7 @@ evaluate the results. For evaluating the integration quality it provides a numbe
 
 We recommend working with environments such as Conda or virtualenv, so that python and R dependencies are in one place.
 Please also check out [scib pipeline](https://github.com/theislab/scib-pipeline.git) for ready-to-use environments.
-Alternatively, manually install the package on your system using pip, described in the next section. 
+Alternatively, manually install the package on your system using pip, described in the next section.
 
 ### Installation
 
@@ -83,14 +82,14 @@ including R packages, check out the `Tools`.
 The package contains several modules for the different steps of the integration and benchmarking pipeline. Functions for
 the integration methods are in `scib.integration` or for short `scib.ig`. The methods can be called using
 
-```py
+```
 scib.integration.<method>(adata, batch=<batch_key>)
 ```
 
 where `<method>` is the name of the integration method and `<batch_key>` is the name of the batch column in `adata.obs`.
 For example, in order to run Scanorama, on a dataset with batch key 'batch' call
 
-```py
+```
 scib.integration.scanorama(adata, batch='batch')
 ```
 
@@ -100,16 +99,16 @@ scib.integration.scanorama(adata, batch='batch')
 > ```
 > Please use the snake case naming without the `run` prefix.
 
-Some integration methods (`scgen`, `scanvi`) also use cell type labels as input. For these, you need to additionally provide
-the corresponding label column.
+Some integration methods (`scgen`, `scanvi`) also use cell type labels as input. For these, you need to additionally
+provide the corresponding label column.
 
-```py
+```
 scgen(adata, batch=<batch_key>, cell_type=<cell_type>)
 scanvi(adata, batch=<batch_key>, labels=<cell_type>)
 ```
 
-`scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or selecting highly variable genes per batch
-The metrics are under `scib.metrics` (or `scib.me`).
+`scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or selecting highly variable genes per
+batch The metrics are under `scib.metrics` (or `scib.me`).
 
 ## Metrics
 
@@ -137,10 +136,11 @@ the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
 - Graph cLISI `lisi_graph()`
 
 ### Metrics Wrapper Functions
-We provide wrapper functions to run multiple metrics in one function call.
-The `scib.metrics.metrics()` function returns a `pandas.Dataframe` of all metrics specified as parameters.
 
-```py
+We provide wrapper functions to run multiple metrics in one function call. The `scib.metrics.metrics()` function returns
+a `pandas.Dataframe` of all metrics specified as parameters.
+
+```python
 scib.metrics.metrics(adata, adata_int, ari=True, nmi=True)
 ```
 
