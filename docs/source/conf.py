@@ -32,11 +32,14 @@ release = '1.0.0'
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
+    # 'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx_automodapi.automodapi',
+    'sphinx_automodapi.smart_resolver',
     'myst_parser'
 ]
+numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 # templates_path = ['_templates']

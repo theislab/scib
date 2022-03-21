@@ -1,35 +1,14 @@
-Subpackages
-===========
+scib Package
+============
 
-.. toctree::
-   :maxdepth: 1
-
-   scib.metrics
-
-Submodules
-===========
-
-scib.integration module
-=======================
-
-.. automodule:: scib.integration
+.. automodapi:: scib.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:
 
-scib.preprocessing module
-=========================
+.. automodapi:: scib.integration
 
-.. automodule:: scib.preprocessing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
-===============
-
-.. automodule:: scib
+.. automodapi:: scib.metrics
    :members:
    :undoc-members:
    :show-inheritance:

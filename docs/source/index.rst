@@ -11,7 +11,7 @@ Welcome to scib's documentation!
    :caption: Contents:
 
    readme
-   modules
+   scib
 
 Indices and tables
 ==================
