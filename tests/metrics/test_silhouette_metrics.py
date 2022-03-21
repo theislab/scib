@@ -9,7 +9,7 @@ def test_silhouette(adata_pca):
         scale=True
     )
     LOGGER.info(f"score: {score}")
-    assert 0 <= score <= 1
+    assert_near_exact(score, 0.5626532882452011, diff=1e-3)
 
 
 def test_silhouette_batch(adata_pca):
@@ -22,7 +22,7 @@ def test_silhouette_batch(adata_pca):
         verbose=False
     )
     LOGGER.info(f"score: {score}")
-    assert 0 <= score <= 1
+    assert_near_exact(score, 0.9014384369842835, diff=1e-3)
 
 
 def test_isolated_labels_silhouette(adata_pca):
@@ -35,5 +35,4 @@ def test_isolated_labels_silhouette(adata_pca):
         verbose=True
     )
     LOGGER.info(f"score: {score}")
-    assert score <= 1
-    assert score >= 0
+    assert_near_exact(score, 0.6101431176066399, diff=1e-3)

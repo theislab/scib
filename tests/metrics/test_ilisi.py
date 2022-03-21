@@ -10,7 +10,7 @@ def test_ilisi_full(adata):
     )
 
     LOGGER.info(f"score: {score}")
-    assert 0.234 <= score <= 0.235
+    assert_near_exact(score, 0.235, diff=1e-2)
 
 
 def test_ilisi_embed(adata_neighbors):
@@ -22,7 +22,7 @@ def test_ilisi_embed(adata_neighbors):
         type_='embed'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.237 <= score <= 0.238
+    assert_near_exact(score, 0.238, diff=1e-2)
 
 
 def test_ilisi_knn(adata_neighbors):
@@ -33,4 +33,4 @@ def test_ilisi_knn(adata_neighbors):
         type_='graph'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.237 <= score <= 0.238
+    assert_near_exact(score, 0.238, diff=1e-2)

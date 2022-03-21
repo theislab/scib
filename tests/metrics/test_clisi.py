@@ -11,7 +11,7 @@ def test_clisi_full(adata):
     )
 
     LOGGER.info(f"score: {score}")
-    assert 0.974 <= score <= 0.975
+    assert_near_exact(score, 0.975, diff=1e-2)
 
 
 def test_clisi_embed(adata_neighbors):
@@ -24,7 +24,7 @@ def test_clisi_embed(adata_neighbors):
         type_='embed'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.981 <= score <= 0.982
+    assert_near_exact(score, 0.982, diff=1e-2)
 
 
 def test_clisi_knn(adata_neighbors):
@@ -36,4 +36,4 @@ def test_clisi_knn(adata_neighbors):
         type_='graph'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.981 <= score <= 0.982
+    assert_near_exact(score, 0.982, diff=1e-2)
