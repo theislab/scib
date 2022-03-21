@@ -1,14 +1,15 @@
+import numpy as np
 import pandas as pd
-from scIB.utils import *
-from scIB.clustering import opt_louvain
 
+from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
+from .clustering import opt_louvain
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
-from .lisi import ilisi_graph, clisi_graph
+from .lisi import clisi_graph, ilisi_graph
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -178,13 +179,13 @@ def metrics(
     Compute of all metrics given unintegrate and integrated anndata object
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
-    checkAdata(adata_int)
-    checkBatch(batch_key, adata_int.obs)
-    checkBatch(label_key, adata_int.obs)
+    check_adata(adata_int)
+    check_batch(batch_key, adata_int.obs)
+    check_batch(label_key, adata_int.obs)
 
     # clustering
     if nmi_ or ari_:
@@ -192,9 +193,10 @@ def metrics(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
+            use_rep=embed,
             function=nmi,
             plot=False,
-            verbose=False,
+            verbose=verbose,
             inplace=True,
             force=True
         )
@@ -229,25 +231,25 @@ def metrics(
     if silhouette_:
         print('Silhouette score...')
         # global silhouette coefficient
-        sil_global = silhouette(
+        asw_label = silhouette(
             adata_int,
             group_key=label_key,
             embed=embed,
             metric=si_metric
         )
         # silhouette coefficient per batch
-        _, sil_clus = silhouette_batch(
+        asw_batch = silhouette_batch(
             adata_int,
             batch_key=batch_key,
             group_key=label_key,
             embed=embed,
             metric=si_metric,
+            return_all=False,
             verbose=False
         )
-        sil_clus = sil_clus['silhouette_score'].mean()
     else:
-        sil_global = np.nan
-        sil_clus = np.nan
+        asw_label = np.nan
+        asw_batch = np.nan
 
     if pcr_:
         print('PC regression...')
@@ -282,7 +284,7 @@ def metrics(
             batch_key=batch_key,
             embed=embed,
             cluster=True,
-            n=n_isolated,
+            iso_threshold=n_isolated,
             verbose=False
         )
     else:
@@ -296,7 +298,7 @@ def metrics(
             batch_key=batch_key,
             embed=embed,
             cluster=False,
-            n=n_isolated,
+            iso_threshold=n_isolated,
             verbose=False
         ) if silhouette_ else np.nan
     else:
@@ -365,15 +367,20 @@ def metrics(
 
     if trajectory_:
         print('Trajectory conservation score...')
-        trajectory_score = trajectory_conservation(adata, adata_int, label_key=label_key)
+        trajectory_score = trajectory_conservation(
+            adata,
+            adata_int,
+            label_key=label_key,
+            # batch_key=batch_key
+        )
     else:
         trajectory_score = np.nan
 
     results = {
         'NMI_cluster/label': nmi_score,
         'ARI_cluster/label': ari_score,
-        'ASW_label': sil_global,
-        'ASW_label/batch': sil_clus,
+        'ASW_label': asw_label,
+        'ASW_label/batch': asw_batch,
         'PCR_batch': pcr_score,
         'cell_cycle_conservation': cc_score,
         'isolated_label_F1': il_score_f1,
@@ -402,6 +409,7 @@ def measureTM(*args, **kwargs):
     """
     import cProfile
     from pstats import Stats
+
     import memory_profiler
 
     prof = cProfile.Profile()

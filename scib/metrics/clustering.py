@@ -1,8 +1,9 @@
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
 import scanpy as sc
-from . import metrics
+import seaborn as sns
+
+from .nmi import nmi
 
 
 def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
@@ -32,7 +33,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
         print('Clustering...')
 
     if function is None:
-        function = metrics.nmi
+        function = nmi
 
     if cluster_key in adata.obs.columns:
         if force:
@@ -45,7 +46,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
 
     if resolutions is None:
         n = 20
-        resolutions = [2*x/n for x in range(1,n+1)]
+        resolutions = [2 * x / n for x in range(1, n + 1)]
 
     score_max = 0
     res_max = resolutions[0]
@@ -79,7 +80,7 @@ def opt_louvain(adata, label_key, cluster_key, function=None, resolutions=None,
     score_all = pd.DataFrame(zip(resolutions, score_all), columns=('resolution', 'score'))
     if plot:
         # score vs. resolution profile
-        sns.lineplot(data= score_all, x='resolution', y='score').set_title('Optimal cluster resolution profile')
+        sns.lineplot(data=score_all, x='resolution', y='score').set_title('Optimal cluster resolution profile')
         plt.show()
 
     if inplace:

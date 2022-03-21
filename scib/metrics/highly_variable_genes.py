@@ -1,7 +1,7 @@
 import numpy as np
 import scanpy as sc
 
-from scIB.utils import splitBatches
+from ..utils import split_batches
 
 
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
@@ -16,7 +16,7 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
     :return:
         dictionary of batch to HVG list
     """
-    adata_list = splitBatches(adata, batch, hvg=features)
+    adata_list = split_batches(adata, batch, hvg=features)
     hvg_dir = {}
     for i in adata_list:
         sc.pp.filter_genes(i, min_cells=1)
@@ -47,7 +47,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
     """
     hvg_post = adata_post.var_names
 
-    adata_post_list = splitBatches(adata_post, batch)
+    adata_post_list = split_batches(adata_post, batch)
     overlap = []
 
     hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post)

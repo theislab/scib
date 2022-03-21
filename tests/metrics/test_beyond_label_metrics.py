@@ -6,7 +6,7 @@ def test_cell_cycle(adata_paul15):
     adata_int = adata.copy()
 
     # only final score
-    score = scIB.me.cell_cycle(
+    score = scib.me.cell_cycle(
         adata,
         adata_int,
         batch_key='batch',
@@ -23,7 +23,7 @@ def test_cell_cycle_all(adata_paul15):
     adata_int = adata.copy()
 
     # get all intermediate scores
-    scores_df = scIB.me.cell_cycle(
+    scores_df = scib.me.cell_cycle(
         adata,
         adata_int,
         batch_key='batch',
@@ -40,7 +40,7 @@ def test_cell_cycle_all(adata_paul15):
 
 def test_hvg_overlap(adata):
     adata_int = adata.copy()
-    score = scIB.me.hvg_overlap(
+    score = scib.me.hvg_overlap(
         adata_int,
         adata,
         batch='batch',
@@ -48,6 +48,3 @@ def test_hvg_overlap(adata):
     )
     LOGGER.info(f"score: {score}")
     assert score == 1
-
-
-# TODO: trajectory conservation metric

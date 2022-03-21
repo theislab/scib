@@ -2,7 +2,7 @@ from tests.common import *
 
 
 def test_clisi_full(adata):
-    score = scIB.me.clisi_graph(
+    score = scib.me.clisi_graph(
         adata,
         batch_key='batch',
         label_key='celltype',
@@ -11,12 +11,12 @@ def test_clisi_full(adata):
     )
 
     LOGGER.info(f"score: {score}")
-    assert 0.822 <= score <= 0.823
+    assert 0.974 <= score <= 0.975
 
 
 def test_clisi_embed(adata_neighbors):
     adata_neighbors.obsm['X_emb'] = adata_neighbors.obsm['X_pca']
-    score = scIB.me.clisi_graph(
+    score = scib.me.clisi_graph(
         adata_neighbors,
         batch_key='batch',
         label_key='celltype',
@@ -24,11 +24,11 @@ def test_clisi_embed(adata_neighbors):
         type_='embed'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.868 <= score <= 0.869
+    assert 0.981 <= score <= 0.982
 
 
 def test_clisi_knn(adata_neighbors):
-    score = scIB.me.clisi_graph(
+    score = scib.me.clisi_graph(
         adata_neighbors,
         batch_key='batch',
         label_key='celltype',
@@ -36,4 +36,4 @@ def test_clisi_knn(adata_neighbors):
         type_='graph'
     )
     LOGGER.info(f"score: {score}")
-    assert 0.868 <= score <= 0.869
+    assert 0.981 <= score <= 0.982

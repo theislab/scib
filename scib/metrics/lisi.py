@@ -1,20 +1,21 @@
+import itertools
+import logging
+import multiprocessing as mp
 import os
 import pathlib
-import itertools
-import time
+import subprocess
+import tempfile
+
+import anndata2ri
 import numpy as np
 import pandas as pd
+import rpy2.rinterface_lib.callbacks
+import rpy2.robjects as ro
+import scanpy as sc
 import scipy.sparse
 from scipy.io import mmwrite
-import multiprocessing as mp
-import subprocess
-import logging
-import rpy2.robjects as ro
-import rpy2.rinterface_lib.callbacks
-import anndata2ri
-import scanpy as sc
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
@@ -40,9 +41,9 @@ def lisi(
         pd.DataFrame with median cLISI and median iLISI scores (following the harmony paper)
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
     # if type_ != 'knn':
     #    if verbose:
@@ -218,8 +219,8 @@ def ilisi_graph(
     :return: Median of iLISI score
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
 
     adata_tmp = recompute_knn(adata, type_)
     ilisi_score = lisi_graph_py(
@@ -275,9 +276,9 @@ def clisi_graph(
     :return: Median of cLISI score
     """
 
-    checkAdata(adata)
-    checkBatch(batch_key, adata.obs)
-    checkBatch(label_key, adata.obs)
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
     adata_tmp = recompute_knn(adata, type_)
 
@@ -292,12 +293,12 @@ def clisi_graph(
         verbose=verbose
     )
 
-    # cLISI: 1 good, nbatches bad
+    # cLISI: 1 good, nlabs bad
     clisi = np.nanmedian(scores)
 
     if scale:
-        nbatches = adata.obs[batch_key].nunique()
-        clisi = (nbatches - clisi) / (nbatches - 1)
+        nlabs = adata.obs[label_key].nunique()
+        clisi = (nlabs - clisi) / (nlabs - 1)
 
     return clisi
 
@@ -385,17 +386,16 @@ def lisi_graph_py(
         # update numbr of chunks
         n_chunks = n_processes
 
-    # create temporary directory
-    dir_path = "/tmp/lisi_tmp" + str(int(time.time()))
-    while os.path.isdir(dir_path):
-        dir_path += '2'
-    dir_path += '/'
-    os.mkdir(dir_path)
-    # write to temporary directory
+    # temporary file
+    tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
+    dir_path = tmpdir.name + '/'
     mtx_file_path = dir_path + 'input.mtx'
-    mmwrite(mtx_file_path,
-            connectivities,
-            symmetry='general')
+    print(mtx_file_path, dir_path)
+    mmwrite(
+        mtx_file_path,
+        connectivities,
+        symmetry='general'
+    )
     # call knn-graph computation in Cpp
 
     root = pathlib.Path(__file__).parent.parent  # get current root directory
@@ -423,26 +423,33 @@ def lisi_graph_py(
         count = np.arange(0, n_processes)
 
         # create argument list for each worker
-        results = pool.starmap(compute_simpson_index_graph, zip(itertools.repeat(dir_path),
-                                                                itertools.repeat(batch),
-                                                                itertools.repeat(n_batches),
-                                                                itertools.repeat(n_neighbors),
-                                                                itertools.repeat(perplexity),
-                                                                count))
+        results = pool.starmap(
+            compute_simpson_index_graph,
+            zip(itertools.repeat(dir_path),
+                itertools.repeat(batch),
+                itertools.repeat(n_batches),
+                itertools.repeat(n_neighbors),
+                itertools.repeat(perplexity),
+                count)
+        )
         pool.close()
         pool.join()
 
         simpson_est_batch = 1 / np.concatenate(results)
 
     else:
-        simpson_estimate_batch = compute_simpson_index_graph(input_path=dir_path,
-                                                             batch_labels=batch,
-                                                             n_batches=n_batches,
-                                                             perplexity=perplexity,
-                                                             n_neighbors=n_neighbors,
-                                                             chunk_no=None
-                                                             )
+        simpson_estimate_batch = compute_simpson_index_graph(
+            input_path=dir_path,
+            batch_labels=batch,
+            n_batches=n_batches,
+            perplexity=perplexity,
+            n_neighbors=n_neighbors,
+            chunk_no=None
+        )
         simpson_est_batch = 1 / simpson_estimate_batch
+
+    tmpdir.cleanup()
+
     # extract results
     d = {batch_key: simpson_est_batch}
 
@@ -686,11 +693,12 @@ def convertToOneHot(vector, num_classes=None):
 
 
 # DEPRECATED
+# This code scales clisi incorrectly!
 def scale_lisi(ilisi_score, clisi_score, nbatches):
     # scale iLISI score to 0 bad 1 good
     ilisi_score = (ilisi_score - 1) / (nbatches - 1)
     # scale clisi score to 0 bad 1 good
-    clisi_score = (nbatches - clisi_score) / (nbatches - 1)
+    clisi_score = (nbatches - clisi_score) / (nbatches - 1) # Scaled incorrectly by n_batches
     return ilisi_score, clisi_score
 
 

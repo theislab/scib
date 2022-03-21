@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-from scipy import sparse
 import scanpy as sc
+from scipy import sparse
 from sklearn.linear_model import LinearRegression
 
-from scIB.utils import checkAdata, checkBatch
+from ..utils import check_adata, check_batch
 
 
 def pcr_comparison(
@@ -17,34 +17,53 @@ def pcr_comparison(
         verbose=False
 ):
     """
-    Compare the effect before and after integration
+    Compare the explained variance before and after integration
+
     Return either the difference of variance contribution before and after integration
     or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
     and after integration.
-    params:
-        adata_pre: uncorrected adata
-        adata_post: integrated adata
-        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
-                  use the embedding provided in `adata_post.obsm[embed]`
-        scale: if True, return scaled score
-    return:
-        difference of R2Var value of PCR
+
+    :param adata_pre: anndata object before integration
+    :param adata_post: anndata object after integration
+    :param covariate: Key for adata.obs column to regress against
+    :param embed: Embedding to use for principal components.
+        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
+        provided in `adata_post.obsm[embed]`.
+    :param n_comps: Number of principal components to compute
+    :param scale: If True, scale score between 0 and 1 (default)
+    :param verbose:
+    :return:
+        Difference of R2Var value of PCR (scaled between 0 and 1 by default)
     """
 
     if embed == 'X_pca':
         embed = None
 
-    pcr_before = pcr(adata_pre, covariate=covariate, recompute_pca=True,
-                     n_comps=n_comps, verbose=verbose)
-    pcr_after = pcr(adata_post, covariate=covariate, embed=embed, recompute_pca=True,
-                    n_comps=n_comps, verbose=verbose)
+    pcr_before = pcr(
+        adata_pre,
+        covariate=covariate,
+        recompute_pca=True,
+        n_comps=n_comps,
+        verbose=verbose
+    )
+
+    pcr_after = pcr(
+        adata_post,
+        covariate=covariate,
+        embed=embed,
+        recompute_pca=True,
+        n_comps=n_comps,
+        verbose=verbose
+    )
 
     if scale:
         score = (pcr_before - pcr_after) / pcr_before
         if score < 0:
-            print("Variance contribution increased after integration!")
-            print("Setting PCR comparison score to 0.")
+            print(
+                "Variance contribution increased after integration!\n"
+                "Setting PCR comparison score to 0."
+            )
             score = 0
         return score
     else:
@@ -60,23 +79,25 @@ def pcr(
         verbose=False
 ):
     """
-    PCR for Adata object
+    Principal component regression for anndata object
+
     Checks whether to
         + compute PCA on embedding or expression data (set `embed` to name of embedding matrix e.g. `embed='X_emb'`)
         + use existing PCA (only if PCA entry exists)
         + recompute PCA on expression matrix (default)
-    params:
-        adata: Anndata object
-        embed   : if `embed=None`, use the full expression matrix (`adata.X`), otherwise
-                  use the embedding provided in `adata_post.obsm[embed]`
-        n_comps: number of PCs if PCA should be computed
-        covariate: key for adata.obs column to regress against
-    return:
-        R2Var of PCR
+
+    :param adata: Anndata object
+    :param covariate: Key for adata.obs column to regress against
+    :param embed: Embedding to use for principal components.
+        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
+        provided in `adata_post.obsm[embed]`.
+    :param n_comps: Number of PCs, if PCA is recomputed
+    :return:
+        R2Var of regression
     """
 
-    checkAdata(adata)
-    checkBatch(covariate, adata.obs)
+    check_adata(adata)
+    check_batch(covariate, adata.obs)
 
     if verbose:
         print(f"covariate: {covariate}")
@@ -85,7 +106,7 @@ def pcr(
     # use embedding for PCA
     if (embed is not None) and (embed in adata.obsm):
         if verbose:
-            print(f"compute PCR on embedding n_comps: {n_comps}")
+            print(f"Compute PCR on embedding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
 
     # use existing PCA computation
@@ -110,12 +131,17 @@ def pc_regression(
         verbose=False
 ):
     """
-    params:
-        data: expression or PCA matrix. Will be assumed to be PCA values, if pca_sd is given
-        covariate: series or list of batch assignments
-        n_comps: number of PCA components for computing PCA, only when pca_sd is not given. If no pca_sd is given and n_comps=None, comute PCA and don't reduce data
-        pca_var: iterable of variances for `n_comps` components. If `pca_sd` is not `None`, it is assumed that the matrix contains PCA values, else PCA is computed
-    PCA is only computed, if variance contribution is not given (pca_sd).
+    :params data: Expression or PC matrix. Assumed to be PC, if pca_sd is given.
+    :param covariate: series or list of batch assignments
+    :param n_comps: number of PCA components for computing PCA, only when pca_sd is not given.
+        If no pca_sd is not defined and n_comps=None, compute PCA and don't reduce data
+    :param pca_var: Iterable of variances for `n_comps` components.
+        If `pca_sd` is not `None`, it is assumed that the matrix contains PC,
+        otherwise PCA is computed on `data`.
+    :param svd_solver:
+    :param verbose:
+    :return:
+        R2Var of regression
     """
 
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
