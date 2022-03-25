@@ -5,7 +5,7 @@ In [our study](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v1), we 
 methods ([see Tools](##Tools)) with 4 combinations of preprocessing steps leading to 68 methods combinations on 85
 batches of gene expression and chromatin accessibility data.
 
-![Workflow](./figure.png)
+![Workflow](https://raw.githubusercontent.com/theislab/scib/main/figure.png)
 
 ## Resources
 
