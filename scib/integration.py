@@ -21,6 +21,16 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning
 
 
 def scanorama(adata, batch, hvg=None, **kwargs):
+    """ Scanorama wrapper function
+
+    URL: https://github.com/brianhie/scanorama
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
     try:
         import scanorama
     except ModuleNotFoundError as e:
@@ -39,6 +49,16 @@ def scanorama(adata, batch, hvg=None, **kwargs):
 
 
 def trvae(adata, batch, hvg=None):
+    """trVAE wrapper function
+
+    URL: https://github.com/theislab/trVAE
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
     try:
         import trvae
     except ModuleNotFoundError as e:
@@ -85,6 +105,16 @@ def trvae(adata, batch, hvg=None):
 
 
 def trvaep(adata, batch, hvg=None):
+    """trVAE wrapper function (pytorch implementatioon)
+
+    URL: https://github.com/theislab/trvaep
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
     try:
         import trvaep
     except ModuleNotFoundError as e:
@@ -126,9 +156,17 @@ def trvaep(adata, batch, hvg=None):
 
 
 def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwargs):
-    """
+    """scGen wrapper function
+
+    URL: https://github.com/theislab/scgen
+
     Parametrization taken from the tutorial notebook at:
     https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix
     """
     try:
         import scgen
@@ -165,8 +203,19 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwar
 
 
 def scvi(adata, batch, hvg=None):
-    # Use non-normalized (count) data for scvi!
-    # Expects data only on HVGs
+    """scVI wrapper function
+
+    URL: https://github.com/ignasigm/scVI
+
+    Note: Use non-normalized (count) data for scVI!
+    Expects data only on HVGs
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
     try:
         from scvi.dataset import AnnDatasetFromAnnData
         from scvi.inference import UnsupervisedTrainer
@@ -226,7 +275,18 @@ def scvi(adata, batch, hvg=None):
 
 
 def scanvi(adata, batch, labels):
-    # Use non-normalized (count) data for scanvi!
+    """scANVI wrapper function
+
+    URL: https://github.com/scverse/scvi-tools
+
+    Note: Use non-normalized (count) data for scANVI!
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param labels: label key in ``adata.obs``
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
     try:
         from scvi.dataset import AnnDatasetFromAnnData
         from scvi.inference import SemiSupervisedTrainer, UnsupervisedTrainer
@@ -314,6 +374,17 @@ def scanvi(adata, batch, labels):
 
 
 def mnn(adata, batch, hvg=None, **kwargs):
+    """MNN wrapper function (``mnnpy`` implementation)
+
+    https://github.com/chriscainx/mnnpy
+
+    Note: ``mnnpy`` might break with newer versions of ``numpy`` and ``pandas``
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix
+    """
     try:
         import mnnpy
     except ModuleNotFoundError as e:
@@ -335,6 +406,16 @@ def mnn(adata, batch, hvg=None, **kwargs):
 
 
 def bbknn(adata, batch, hvg=None, **kwargs):
+    """BBKNN wrapper function
+
+    https://github.com/Teichlab/bbknn
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :params **kwargs: additional parameters for BBKNN
+    :return: ``anndata`` object containing the corrected graph
+    """
     try:
         import bbknn
     except ModuleNotFoundError as e:
@@ -356,8 +437,13 @@ def bbknn(adata, batch, hvg=None, **kwargs):
 
 
 def saucie(adata, batch):
-    """
+    """SAUCIE wrapper function
+
     parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :return: ``anndata`` object containing the corrected embedding
     """
     try:
         import SAUCIE
@@ -383,16 +469,28 @@ def saucie(adata, batch):
 
 
 def combat(adata, batch):
+    """ComBat wrapper function (``scanpy`` implementation)
+
+    https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.combat.html
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :return: ``anndata`` object containing the corrected feature matrix
+    """
     adata_int = adata.copy()
     sc.pp.combat(adata_int, key=batch)
     return adata_int
 
 
 def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
-    """
-    Convenience function to run DESC. Parametrization was taken from:
-    https://github.com/eleozzr/desc/issues/28
-    as suggested by the developer (rather than from the tutorial notebook).
+    """DESC wrapper function.
+
+    Parametrization was taken from: https://github.com/eleozzr/desc/issues/28 as suggested by the developer (rather
+    than from the tutorial notebook).
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :return: ``anndata`` object containing the corrected embedding
     """
     try:
         import desc
