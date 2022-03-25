@@ -4,7 +4,7 @@ from scipy.sparse.csgraph import connected_components
 
 
 def graph_connectivity(adata, label_key):
-    """"
+    """
     Quantify how connected the subgraph corresponding to each batch cluster is.
     Calculate per label: #cells_in_largest_connected_component/#all_cells
     Final score: Average over labels

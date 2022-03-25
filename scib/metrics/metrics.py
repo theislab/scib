@@ -32,7 +32,7 @@ def metrics_fast(
         + Cell type ASW
         + Isolated label ASW
 
-    Batch conservation
+    Batch correction
         + Graph connectivity
         + Batch ASW
         + PC regression
@@ -79,7 +79,7 @@ def metrics_slim(
         + ARI cluster/label
         + Cell cycle conservation
 
-    Batch conservation
+    Batch correction
         + Graph connectivity
         + Batch ASW
         + PC regression
@@ -137,7 +137,7 @@ def metrics_all(
         + Cell cycle conservation
         + cLISI
 
-    Batch conservation
+    Batch correction
         + Graph connectivity
         + Batch ASW
         + PC regression
