@@ -478,8 +478,12 @@ def score_cell_cycle(adata, organism='mouse'):
 
 def saveSeurat(adata, path, batch, hvgs=None):
     import re
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
+
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        print('\nR problem loading library:', ex)
     anndata2ri.activate()
 
     if sparse.issparse(adata.X):
@@ -510,11 +514,18 @@ def saveSeurat(adata, path, batch, hvgs=None):
 
 
 def read_seurat(path):
+
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        print('\nR problem loading library:', ex)
+
     anndata2ri.activate()
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
+
     ro.r(f'sobj <- readRDS("{path}")')
     adata = ro.r('as.SingleCellExperiment(sobj)')
+
     anndata2ri.deactivate()
 
     # Test for 'X_EMB'
