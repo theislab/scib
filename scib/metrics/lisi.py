@@ -15,6 +15,7 @@ import scanpy as sc
 import scipy.sparse
 from scipy.io import mmwrite
 
+from ..exceptions import RLibraryNotFound
 from ..utils import check_adata, check_batch
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
@@ -762,8 +763,12 @@ def lisi_knn(
         perplexity = np.floor(nn_index.shape[1] / 3)
 
     # run LISI in R
+    try:
+        ro.r("library(lisi)")
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r("library(lisi)")
 
     if verbose:
         print("importing knn-graph")
@@ -815,8 +820,12 @@ def lisi_matrix(
         matrix = matrix.todense()
 
     # run LISI in R
+    try:
+        ro.r("library(lisi)")
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r("library(lisi)")
 
     if verbose:
         print("importing expression matrix")

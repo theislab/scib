@@ -14,6 +14,7 @@ from scipy import sparse
 
 # access to other methods of this module
 from . import utils
+from .exceptions import RLibraryNotFound
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 seaborn.set_context('talk')
@@ -147,7 +148,13 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
 
 
 ### Normalisation
-def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
+def normalize(
+        adata,
+        min_mean=0.1,
+        log=True,
+        precluster=True,
+        sparsify=True
+):
     utils.check_adata(adata)
 
     # Check for 0 count cells
@@ -165,8 +172,12 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
         if not sparse.issparse(adata.X):  # quick fix: HVG doesn't work on dense matrix
             adata.X = sparse.csr_matrix(adata.X)
 
+    try:
+        ro.r('library(scran)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r('library("scran")')
 
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
@@ -478,8 +489,13 @@ def score_cell_cycle(adata, organism='mouse'):
 
 def saveSeurat(adata, path, batch, hvgs=None):
     import re
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
+
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
 
     if sparse.issparse(adata.X):
@@ -510,11 +526,18 @@ def saveSeurat(adata, path, batch, hvgs=None):
 
 
 def read_seurat(path):
+
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r('library(Seurat)')
-    ro.r('library(scater)')
+
     ro.r(f'sobj <- readRDS("{path}")')
     adata = ro.r('as.SingleCellExperiment(sobj)')
+
     anndata2ri.deactivate()
 
     # Test for 'X_EMB'
@@ -539,11 +562,16 @@ def read_conos(inPath, dir_path=None):
         tmpdir = tempfile.TemporaryDirectory()
         dir_path = tmpdir.name + '/'
 
-    ro.r('library(conos)')
+    try:
+        ro.r('library(conos)')
+        ro.r('library(data.table)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
+
     ro.r(f'con <- readRDS("{inPath}")')
     ro.r('meta <- function(sobj) {return(sobj@meta.data)}')
     ro.r('metalist <- lapply(con$samples, meta)')
-    ro.r('library(data.table)')
     ro.r('metaM <- do.call(rbind,unname(metalist))')
     ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
 
