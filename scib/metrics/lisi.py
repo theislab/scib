@@ -381,7 +381,7 @@ def compute_simpson_index(
         # convertToOneHot omits all nan entries.
         # Therefore, we run into errors in np.matmul.
         if len(batch) == len(P):
-            B = convertToOneHot(batch, n_batches)
+            B = convert_to_one_hot(batch, n_batches)
             sumP = np.matmul(P, B)  # sum P per batch
             simpson[i] = np.dot(sumP, sumP)  # sum squares
         else:  # assign worst possible score
@@ -493,7 +493,7 @@ def compute_simpson_index_graph(
             continue
             # then compute Simpson's Index
         batch = batch_labels[knn_idx]
-        B = convertToOneHot(batch, n_batches)
+        B = convert_to_one_hot(batch, n_batches)
         sumP = np.matmul(P, B)  # sum P per batch
         simpson[i[0]] = np.dot(sumP, sumP)  # sum squares
 
@@ -515,7 +515,7 @@ def Hbeta(D_row, beta):
     return H, P
 
 
-def convertToOneHot(vector, num_classes=None):
+def convert_to_one_hot(vector, num_classes=None):
     """
     Converts an input 1-D vector of integers into an output 2-D array of one-hot vectors,
     where an i'th input value of j will set a '1' in the i'th row, j'th column of the
