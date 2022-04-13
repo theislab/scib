@@ -7,7 +7,8 @@ from ..utils import check_adata, check_batch
 
 
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
-    """
+    """Normalized mutual information
+
     Wrapper for normalized mutual information NMI between two different cluster assignments
 
     :param adata: Anndata object

@@ -18,8 +18,7 @@ def cell_cycle(
         recompute_cc=True,
         precompute_pcr_key=None
 ):
-    """
-    Cell cycle score based on principle component regression
+    """Cell cycle conservation score
 
     Compare the variance contribution of S-phase and G2/M-phase cell cycle scores before and
     after integration. Cell cycle scores are computed per batch on the unintegrated data set,

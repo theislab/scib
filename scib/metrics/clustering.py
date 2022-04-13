@@ -19,8 +19,9 @@ def opt_louvain(
         verbose=True,
         **kwargs
 ):
-    """
-    Louvain clustering optimised against a metric over multiple resolutions.
+    """Optimised Louvain clustering
+
+    Louvain clustering with resolution optimised against a metric
 
     :param adata: anndata object
     :param label_key: name of column in adata.obs containing biological labels to be
@@ -29,7 +30,7 @@ def opt_louvain(
         Will be overwritten if exists and ``force=True``
     :param function: function that computes the cost to be optimised over. Must take as
         arguments ``(adata, group1, group2, **kwargs)`` and returns a number for maximising
-    :param resolutions: list if resolutions to be optimised over. If ``resolutions=None``,
+    :param resolutions: list of resolutions to be optimised over. If ``resolutions=None``,
         default resolutions of 20 values ranging between 0.1 and 2 will be used
     :param use_rep: key of embedding to use only if ``adata.uns['neighbors']`` is not
         defined, otherwise will be ignored

@@ -24,8 +24,7 @@ def metrics_fast(
         label_key,
         **kwargs
 ):
-    """
-    Only metrics with minimal preprocessing and runtime:
+    """Only metrics with minimal preprocessing and runtime
 
     Biological conservation
         + HVG overlap
@@ -67,8 +66,7 @@ def metrics_slim(
         label_key,
         **kwargs
 ):
-    """
-    All metrics apart from kBET and LISI scores:
+    """All metrics apart from kBET and LISI scores
 
     Biological conservation
         + HVG overlap
@@ -124,8 +122,7 @@ def metrics_all(
         label_key,
         **kwargs
 ):
-    """
-    All metrics
+    """All metrics
 
     Biological conservation
         + HVG overlap
@@ -214,9 +211,10 @@ def metrics(
         type_=None,
         verbose=False,
 ):
-    """
-    Master metrics function: Wrapper for all metrics used in the study
-    Compute of all metrics given unintegrate and integrated anndata object
+    """Master metrics function
+
+    Wrapper for all metrics used in the study.
+    Compute of all metrics given unintegrated and integrated anndata object
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object

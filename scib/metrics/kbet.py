@@ -14,58 +14,6 @@ from .utils import NeighborsError, diffusion_conn, diffusion_nn
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
 
-def kBET_single(
-        matrix,
-        batch,
-        k0=10,
-        knn=None,
-        verbose=False
-):
-    """
-    Compute k-nearest neighbour batch effect test (kBET) score as described in
-    https://doi.org/10.1038/s41592-018-0254-1
-
-    :param matrix: expression matrix (at the moment: a PCA matrix, so ``do.pca`` is set to ``FALSE``)
-    :param batch: series or list of batch assignments
-    :returns: kBET observed rejection rate
-    """
-    anndata2ri.activate()
-    ro.r("library(kBET)")
-
-    if verbose:
-        print("importing expression matrix")
-    ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['batch'] = batch
-
-    if verbose:
-        print("kBET estimation")
-
-    ro.globalenv['knn_graph'] = knn
-    ro.globalenv['k0'] = k0
-    ro.r(
-        "batch.estimate <- kBET("
-        "  data_mtrx,"
-        "  batch,"
-        "  knn=knn_graph,"
-        "  k0=k0,"
-        "  plot=FALSE,"
-        "  do.pca=FALSE,"
-        "  heuristic=FALSE,"
-        "  adapt=FALSE,"
-        f"  verbose={str(verbose).upper()}"
-        ")"
-    )
-
-    try:
-        score = ro.r("batch.estimate$summary$kBET.observed")[0]
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
-        score = np.nan
-
-    anndata2ri.deactivate()
-
-    return score
-
-
 def kBET(
         adata,
         batch_key,
@@ -76,7 +24,8 @@ def kBET(
         return_df=False,
         verbose=False
 ):
-    """
+    """kBET score
+
     Compute average of k-nearest neighbour batch effect test (kBET) score as described in
     https://doi.org/10.1038/s41592-018-0254-1
 
@@ -208,3 +157,56 @@ def kBET(
 
     final_score = np.nanmean(kBET_scores['kBET'])
     return 1 - final_score if scaled else final_score
+
+
+def kBET_single(
+        matrix,
+        batch,
+        k0=10,
+        knn=None,
+        verbose=False
+):
+    """Single kBET run
+
+    Compute k-nearest neighbour batch effect test (kBET) score as described in
+    https://doi.org/10.1038/s41592-018-0254-1
+
+    :param matrix: expression matrix (at the moment: a PCA matrix, so ``do.pca`` is set to ``FALSE``)
+    :param batch: series or list of batch assignments
+    :returns: kBET observed rejection rate
+    """
+    anndata2ri.activate()
+    ro.r("library(kBET)")
+
+    if verbose:
+        print("importing expression matrix")
+    ro.globalenv['data_mtrx'] = matrix
+    ro.globalenv['batch'] = batch
+
+    if verbose:
+        print("kBET estimation")
+
+    ro.globalenv['knn_graph'] = knn
+    ro.globalenv['k0'] = k0
+    ro.r(
+        "batch.estimate <- kBET("
+        "  data_mtrx,"
+        "  batch,"
+        "  knn=knn_graph,"
+        "  k0=k0,"
+        "  plot=FALSE,"
+        "  do.pca=FALSE,"
+        "  heuristic=FALSE,"
+        "  adapt=FALSE,"
+        f"  verbose={str(verbose).upper()}"
+        ")"
+    )
+
+    try:
+        score = ro.r("batch.estimate$summary$kBET.observed")[0]
+    except rpy2.rinterface_lib.embedded.RRuntimeError:
+        score = np.nan
+
+    anndata2ri.deactivate()
+
+    return score

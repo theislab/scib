@@ -16,7 +16,8 @@ def pcr_comparison(
         scale=True,
         verbose=False
 ):
-    """
+    """Principal component regression score
+
     Compare the explained variance before and after integration
 
     Return either the difference of variance contribution before and after integration

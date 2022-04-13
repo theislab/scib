@@ -9,7 +9,8 @@ def silhouette(
         metric='euclidean',
         scale=True
 ):
-    """
+    """Average silhouette width (ASW)
+
     Wrapper for sklearn silhouette function values range from [-1, 1] with
         * 1 being an ideal fit
         * 0 indicating overlapping clusters and
@@ -44,9 +45,26 @@ def silhouette_batch(
         scale=True,
         verbose=True
 ):
-    """
-    Absolute silhouette score (ASW) of batch labels.
-    The absolute ASW are computed per group label and the final score is the average of these values.
+    """Batch ASW
+
+    Modified average silhouette width (ASW) of batch
+
+    This metric measures the silhouette of a given batch.
+    It assumes that a silhouette width close to 0 represents perfect overlap of the batches, thus the absolute value of
+    the silhouette width is used to measure how well batches are mixed.
+
+    The final score is the average of the absolute silhouette widths computed per group.
+
+    .. code-block:: python
+
+        mean([abs(i) for i in sil_per_group])
+
+    For a scaled metric, the absolute ASW per group is subtracted from 1 before averaging, so that 0 indicates
+    suboptimal label representation and 1 indicates optimal label representation.
+
+    .. code-block:: python
+
+        mean([1 - abs(i) for i in sil_per_group])
 
     :param batch_key: batch labels to be compared against
     :param group_key: group labels to be subset by e.g. cell type
@@ -55,10 +73,10 @@ def silhouette_batch(
     :param scale: if True, scale between 0 and 1
     :param return_all: if True, return all silhouette scores and label means
         default False: return average width silhouette (ASW)
-    :param verbose:
+    :param verbose: print silhouette score per group
     :return:
-        average silhouette width ASW  (always)
-        mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
+        Batch ASW  (always)
+        Mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
         Absolute silhouette scores per group label (additionally, if return_all=True)
     """
     if embed not in adata.obsm.keys():
@@ -99,7 +117,7 @@ def silhouette_batch(
     asw = sil_means['silhouette_score'].mean()
 
     if verbose:
-        print(f'mean silhouette per cell: {sil_means}')
+        print(f'mean silhouette per group: {sil_means}')
 
     if return_all:
         return asw, sil_means, sil_all

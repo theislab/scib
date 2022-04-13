@@ -11,11 +11,12 @@ Biological conservation
     + ARI cluster/label
     + Cell cycle conservation
     + cLISI
+    + Trajectory conservation
 
 Batch correction
     + Graph connectivity
     + Batch ASW
-    + PC regression
+    + Principal component regression
     + kBET
     + iLISI
 

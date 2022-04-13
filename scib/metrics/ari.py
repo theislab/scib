@@ -7,8 +7,8 @@ from ..utils import check_adata, check_batch
 
 
 def ari(adata, group1, group2, implementation=None):
-    """
-    Adjusted Rand Index.
+    """Adjusted Rand Index
+
     The function is symmetric, so group1 and group2 can be switched
     For single cell integration evaluation the comparison is between predicted cluster
     assignments and the ground truth (e.g. cell type)

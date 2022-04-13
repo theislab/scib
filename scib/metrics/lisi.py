@@ -28,7 +28,7 @@ def lisi_graph(
         label_key,
         **kwargs
 ):
-    """Compute cLISI and iLISI scores
+    """cLISI and iLISI scores
 
     This is a reimplementation of the LISI (Local Inverse Simpson’s Index) metrics
     https://doi.org/10.1038/s41592-019-0619-0
@@ -55,7 +55,7 @@ def ilisi_graph(
         nodes=None,
         verbose=False
 ):
-    """Compute iLISI score
+    """Integration LISI (iLISI) score
 
     Adapted from https://doi.org/10.1038/s41592-019-0619-0
 
@@ -112,7 +112,7 @@ def clisi_graph(
         nodes=None,
         verbose=False
 ):
-    """Compute cLISI score
+    """Cell-type LISI (cLISI) score
 
     Adapted from https://doi.org/10.1038/s41592-019-0619-0
 
