@@ -6,9 +6,9 @@ The most relevant preprocessing steps are:
 + scaling wrt batch
 + highly variable gene selection wrt batch
 + cell cycle scoring (for cell cycle metric when applicable)
-
-TODO: move util functions e.g. reader functions elsewhere
 """
+
+# TODO: move util functions e.g. reader functions elsewhere
 
 import logging
 import tempfile
@@ -621,7 +621,7 @@ def score_cell_cycle(adata, organism='mouse'):
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
 
-def saveSeurat(adata, path, batch, hvgs=None):
+def save_seurat(adata, path, batch, hvgs=None):
     """Save an ``anndata`` object to file as a Seurat object
 
     Convert ``anndata`` object to Seurat object through ``rpy2`` and save to file as "RDS" file
