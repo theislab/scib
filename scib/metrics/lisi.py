@@ -21,152 +21,6 @@ from ..utils import check_adata, check_batch
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
 
 
-# Main LISI
-
-def lisi(
-        adata,
-        batch_key,
-        label_key,
-        k0=90,
-        type_=None,
-        scale=True,
-        verbose=False
-):
-    """
-    Compute iLISI and cLISI scores
-
-    :param matrix: matrix from adata to calculate on
-    :param covariate_key: variable to compute iLISI on
-    :param cluster_key: variable to compute cLISI on
-    :return: Tuple of  median iLISI and median cLISI scores
-    """
-
-    check_adata(adata)
-    check_batch(batch_key, adata.obs)
-    check_batch(label_key, adata.obs)
-
-    # if type_ != 'knn':
-    #    if verbose:
-    #        print("recompute kNN graph with {k0} nearest neighbors.")
-    # recompute neighbours
-    if (type_ == 'embed'):
-        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, use_rep='X_emb', copy=True)
-    elif (type_ == 'full'):
-        if 'X_pca' not in adata.obsm.keys():
-            sc.pp.pca(adata, svd_solver='arpack')
-        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
-    else:
-        adata_tmp = adata.copy()
-    # if knn - do not compute a new neighbourhood graph (it exists already)
-
-    # lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
-    lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
-
-    # iLISI: nbatches good, 1 bad
-    ilisi_score = np.nanmedian(lisi_score[batch_key])
-    # cLISI: 1 good, nbatches bad
-    clisi_score = np.nanmedian(lisi_score[label_key])
-
-    if scale:
-        # get number of batches
-        nbatches = len(np.unique(adata.obs[batch_key]))
-        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
-
-    return ilisi_score, clisi_score
-
-
-def lisi_knn_py(
-        adata,
-        batch_key,
-        label_key,
-        perplexity=None,
-        verbose=False
-):
-    """
-    Compute LISI score on kNN graph provided in the adata object. By default, perplexity
-    is chosen as 1/3 * number of nearest neighbours in the knn-graph.
-    """
-
-    if 'neighbors' not in adata.uns:
-        raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
-                             "kNN graph has been computed")
-    elif verbose:
-        print("using precomputed kNN graph")
-
-    # get knn index matrix
-    if verbose:
-        print("Convert nearest neighbor matrix and distances for LISI.")
-    dist_mat = scipy.sparse.find(adata.obsp['distances'])
-    # get number of nearest neighbours parameter
-    if 'params' not in adata.uns['neighbors']:
-        # estimate the number of nearest neighbors as the median
-        # of the distance matrix
-        _, e = np.unique(dist_mat[0], return_counts=True)
-        n_nn = np.nanmedian(e)
-        n_nn = n_nn.astype('int')
-    else:
-        n_nn = adata.uns['neighbors']['params']['n_neighbors'] - 1
-    # initialise index and fill it with NaN values
-    nn_index = np.empty(shape=(adata.obsp['distances'].shape[0],
-                               n_nn))
-    nn_index[:] = np.NaN
-    nn_dists = np.empty(shape=(adata.obsp['distances'].shape[0],
-                               n_nn))
-    nn_dists[:] = np.NaN
-    index_out = []
-    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0]) + 1):
-        get_idx = dist_mat[0] == cell_id
-        num_idx = get_idx.sum()
-        # in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
-        fin_idx = np.min([num_idx, n_nn])
-        nn_index[cell_id, :fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
-        nn_dists[cell_id, :fin_idx] = np.sort(dist_mat[2][get_idx])[:fin_idx]
-        if num_idx < n_nn:
-            index_out.append(cell_id)
-
-    out_cells = len(index_out)
-
-    if out_cells > 0:
-        if verbose:
-            print(f"{out_cells} had less than {n_nn} neighbors.")
-
-    if perplexity is None:
-        # use LISI default
-        perplexity = np.floor(nn_index.shape[1] / 3)
-
-    # run LISI in python
-    if verbose:
-        print("importing knn-graph")
-
-    batch = adata.obs[batch_key].cat.codes.values
-    n_batches = len(np.unique(adata.obs[batch_key]))
-    label = adata.obs[label_key].cat.codes.values
-    n_labels = len(np.unique(adata.obs[label_key]))
-
-    if verbose:
-        print("LISI score estimation")
-
-    simpson_estimate_batch = compute_simpson_index(D=nn_dists,
-                                                   knn_idx=nn_index,
-                                                   batch_labels=batch,
-                                                   n_batches=n_batches,
-                                                   perplexity=perplexity,
-                                                   )
-    simpson_estimate_label = compute_simpson_index(D=nn_dists,
-                                                   knn_idx=nn_index,
-                                                   batch_labels=label,
-                                                   n_batches=n_labels,
-                                                   perplexity=perplexity
-                                                   )
-    simpson_est_batch = 1 / simpson_estimate_batch
-    simpson_est_label = 1 / simpson_estimate_label
-    # extract results
-    d = {batch_key: simpson_est_batch, label_key: simpson_est_label}
-    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0, len(simpson_est_label)))
-
-    return lisi_estimate
-
-
 # Graph LISI (analoguous to lisi function)
 def lisi_graph(
         adata,
@@ -174,8 +28,9 @@ def lisi_graph(
         label_key,
         **kwargs
 ):
-    """
-    Compute cLISI and iLISI scores on precomputed kNN graph
+    """Compute cLISI and iLISI scores
+
+    This is a reimplementation of the LISI (Local Inverse Simpson’s Index) metrics
     https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
@@ -200,8 +55,9 @@ def ilisi_graph(
         nodes=None,
         verbose=False
 ):
-    """
-    Compute iLISI score adapted from https://doi.org/10.1038/s41592-019-0619-0
+    """Compute iLISI score
+
+    Adapted from https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
@@ -256,8 +112,9 @@ def clisi_graph(
         nodes=None,
         verbose=False
 ):
-    """
-    Compute cLISI score adapted from https://doi.org/10.1038/s41592-019-0619-0
+    """Compute cLISI score
+
+    Adapted from https://doi.org/10.1038/s41592-019-0619-0
 
     :params adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
@@ -304,8 +161,7 @@ def clisi_graph(
 
 
 def recompute_knn(adata, type_):
-    """
-    Recompute neighbours
+    """Recompute neighbours
     """
     if type_ == 'embed':
         return sc.pp.neighbors(adata, n_neighbors=15, use_rep='X_emb', copy=True)
@@ -694,12 +550,162 @@ def convertToOneHot(vector, num_classes=None):
     return result.astype(int)
 
 
+# Deprecated functions
+
+@deprecated
+def lisi(
+        adata,
+        batch_key,
+        label_key,
+        k0=90,
+        type_=None,
+        scale=True,
+        verbose=False
+):
+    """Compute iLISI and cLISI scores
+
+    This is a reimplementation of the LISI (Local Inverse Simpson’s Index) metrics
+    https://doi.org/10.1038/s41592-019-0619-0
+
+    :param matrix: matrix from adata to calculate on
+    :param covariate_key: variable to compute iLISI on
+    :param cluster_key: variable to compute cLISI on
+    :return: Tuple of median iLISI and median cLISI scores
+    """
+
+    check_adata(adata)
+    check_batch(batch_key, adata.obs)
+    check_batch(label_key, adata.obs)
+
+    # if type_ != 'knn':
+    #    if verbose:
+    #        print("recompute kNN graph with {k0} nearest neighbors.")
+    # recompute neighbours
+    if (type_ == 'embed'):
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, use_rep='X_emb', copy=True)
+    elif (type_ == 'full'):
+        if 'X_pca' not in adata.obsm.keys():
+            sc.pp.pca(adata, svd_solver='arpack')
+        adata_tmp = sc.pp.neighbors(adata, n_neighbors=k0, copy=True)
+    else:
+        adata_tmp = adata.copy()
+    # if knn - do not compute a new neighbourhood graph (it exists already)
+
+    # lisi_score = lisi_knn(adata=adata, batch_key=batch_key, label_key=label_key, verbose=verbose)
+    lisi_score = lisi_knn_py(adata=adata_tmp, batch_key=batch_key, label_key=label_key, verbose=verbose)
+
+    # iLISI: nbatches good, 1 bad
+    ilisi_score = np.nanmedian(lisi_score[batch_key])
+    # cLISI: 1 good, nbatches bad
+    clisi_score = np.nanmedian(lisi_score[label_key])
+
+    if scale:
+        # get number of batches
+        nbatches = len(np.unique(adata.obs[batch_key]))
+        ilisi_score, clisi_score = scale_lisi(ilisi_score, clisi_score, nbatches)
+
+    return ilisi_score, clisi_score
+
+
+@deprecated
+def lisi_knn_py(
+        adata,
+        batch_key,
+        label_key,
+        perplexity=None,
+        verbose=False
+):
+    """
+    Compute LISI score on kNN graph provided in the adata object. By default, perplexity
+    is chosen as 1/3 * number of nearest neighbours in the knn-graph.
+    """
+
+    if 'neighbors' not in adata.uns:
+        raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
+                             "kNN graph has been computed")
+    elif verbose:
+        print("using precomputed kNN graph")
+
+    # get knn index matrix
+    if verbose:
+        print("Convert nearest neighbor matrix and distances for LISI.")
+    dist_mat = scipy.sparse.find(adata.obsp['distances'])
+    # get number of nearest neighbours parameter
+    if 'params' not in adata.uns['neighbors']:
+        # estimate the number of nearest neighbors as the median
+        # of the distance matrix
+        _, e = np.unique(dist_mat[0], return_counts=True)
+        n_nn = np.nanmedian(e)
+        n_nn = n_nn.astype('int')
+    else:
+        n_nn = adata.uns['neighbors']['params']['n_neighbors'] - 1
+    # initialise index and fill it with NaN values
+    nn_index = np.empty(shape=(adata.obsp['distances'].shape[0],
+                               n_nn))
+    nn_index[:] = np.NaN
+    nn_dists = np.empty(shape=(adata.obsp['distances'].shape[0],
+                               n_nn))
+    nn_dists[:] = np.NaN
+    index_out = []
+    for cell_id in np.arange(np.min(dist_mat[0]), np.max(dist_mat[0]) + 1):
+        get_idx = dist_mat[0] == cell_id
+        num_idx = get_idx.sum()
+        # in case that get_idx contains more than n_nn neighbours, cut away the outlying ones
+        fin_idx = np.min([num_idx, n_nn])
+        nn_index[cell_id, :fin_idx] = dist_mat[1][get_idx][np.argsort(dist_mat[2][get_idx])][:fin_idx]
+        nn_dists[cell_id, :fin_idx] = np.sort(dist_mat[2][get_idx])[:fin_idx]
+        if num_idx < n_nn:
+            index_out.append(cell_id)
+
+    out_cells = len(index_out)
+
+    if out_cells > 0:
+        if verbose:
+            print(f"{out_cells} had less than {n_nn} neighbors.")
+
+    if perplexity is None:
+        # use LISI default
+        perplexity = np.floor(nn_index.shape[1] / 3)
+
+    # run LISI in python
+    if verbose:
+        print("importing knn-graph")
+
+    batch = adata.obs[batch_key].cat.codes.values
+    n_batches = len(np.unique(adata.obs[batch_key]))
+    label = adata.obs[label_key].cat.codes.values
+    n_labels = len(np.unique(adata.obs[label_key]))
+
+    if verbose:
+        print("LISI score estimation")
+
+    simpson_estimate_batch = compute_simpson_index(D=nn_dists,
+                                                   knn_idx=nn_index,
+                                                   batch_labels=batch,
+                                                   n_batches=n_batches,
+                                                   perplexity=perplexity,
+                                                   )
+    simpson_estimate_label = compute_simpson_index(D=nn_dists,
+                                                   knn_idx=nn_index,
+                                                   batch_labels=label,
+                                                   n_batches=n_labels,
+                                                   perplexity=perplexity
+                                                   )
+    simpson_est_batch = 1 / simpson_estimate_batch
+    simpson_est_label = 1 / simpson_estimate_label
+    # extract results
+    d = {batch_key: simpson_est_batch, label_key: simpson_est_label}
+    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0, len(simpson_est_label)))
+
+    return lisi_estimate
+
+
 @deprecated
 def scale_lisi(ilisi_score, clisi_score, nbatches):
     # scale iLISI score to 0 bad 1 good
     ilisi_score = (ilisi_score - 1) / (nbatches - 1)
     # scale clisi score to 0 bad 1 good
-    clisi_score = (nbatches - clisi_score) / (nbatches - 1) # Scaled incorrectly by n_batches
+    clisi_score = (nbatches - clisi_score) / (nbatches - 1)  # Scaled incorrectly by n_batches
     return ilisi_score, clisi_score
 
 
