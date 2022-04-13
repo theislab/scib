@@ -32,6 +32,19 @@ seaborn.set_context('talk')
 
 
 def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
+    """Summarise counts of the given count matrix
+
+    This function is useful for quality control.
+    Aggregates counts per cell and per gene as well as mitochondrial fraction.
+
+    :param count_matrix: count matrix, by default uses ``adata.X``
+    :param mt_gene_regex: regex string for identifying mitochondrial genes
+    :return: Include the following keys in ``adata.obs``
+        'n_counts': number of counts per cell (count depth)
+        'log_counts': ``np.log`` of counts per cell
+        'n_genes': number of counts per gene
+        'mito_frac': percent of mitochondrial gene counts as an indicator of cell viability
+    """
     utils.check_adata(adata)
 
     if count_matrix is None:
@@ -49,7 +62,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
         if sparse.issparse(adata.X):
             mt_sum = mt_sum.A1
             total_sum = total_sum.A1
-        adata.obs['percent_mito'] = mt_sum / total_sum
+        adata.obs['mito_frac'] = mt_sum / total_sum
 
         # mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
         # mt_count = count_matrix[:, mt_gene_mask].sum(1)
@@ -59,21 +72,50 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
 
 
 ### Quality Control
-def plot_qc(adata, color=None, bins=60, legend_loc='right margin', histogram=True,
-            gene_threshold=(0, np.inf),
-            gene_filter_threshold=(0, np.inf),
-            count_threshold=(0, np.inf),
-            count_filter_threshold=(0, np.inf)):
+def plot_qc(
+        adata,
+        color=None,
+        bins=60,
+        legend_loc='right margin',
+        histogram=True,
+        count_threshold=(0, np.inf),
+        count_filter_threshold=(0, np.inf),
+        gene_threshold=(0, np.inf),
+        gene_filter_threshold=(0, np.inf)
+):
+    """Create QC Plots
+
+    Create scatter plot for count depth vs. gene count, and histograms for count depth and gene count.
+    Filtering thresholds are included in all plots for making QC decisions.
+
+    :param adata: ``anndata`` object containing summarised count keys 'n_counts' and 'n_genes' in ``adata.obs``
+    :param color: column in ``adata.obs`` for the scatter plot
+    :param bins: number of bins for the histogram
+    :param legend_loc: location of legend of scatterplot
+    :param histogram: whether to include histograms
+    :param count_threshold: tuple of lower and upper count depth thresholds for zooming into histogram plots.
+        By default, this is unbounded and set to the values of ``count_filter_threshold``.
+    :param count_filter_threshold: tuple of lower and upper count depth thresholds visualised as cutoffs.
+        By default, this is unbounded, so no zoomed in histograms are plotted.
+    :param gene_threshold: tuple of lower and upper gene count thresholds for zooming into histogram plots.
+        By default, this is unbounded, so no zoomed in histograms are plotted.
+    :param gene_filter_threshold: tuple of lower and upper gene count thresholds visualised as cutoffs.
+        By default, this is unbounded and set to the values of ``gene_filter_threshold``.
+    """
     if count_filter_threshold == (0, np.inf):
         count_filter_threshold = count_threshold
     if gene_filter_threshold == (0, np.inf):
         gene_filter_threshold = gene_threshold
 
     # 2D scatter plot
-    plot_scatter(adata, color=color, title=color,
-                 gene_threshold=gene_filter_threshold[0],
-                 count_threshold=count_filter_threshold[0],
-                 legend_loc=legend_loc)
+    plot_scatter(
+        adata,
+        color=color,
+        title=color,
+        gene_threshold=gene_filter_threshold[0],
+        count_threshold=count_filter_threshold[0],
+        legend_loc=legend_loc
+    )
 
     if not histogram:
         return
@@ -81,25 +123,41 @@ def plot_qc(adata, color=None, bins=60, legend_loc='right margin', histogram=Tru
     if count_filter_threshold != (0, np.inf):
         print(f"Counts Threshold: {count_filter_threshold}")
         # count filtering
-        plot_count_filter(adata, obs_col='n_counts', bins=bins,
-                          lower=count_threshold[0],
-                          filter_lower=count_filter_threshold[0],
-                          upper=count_threshold[1],
-                          filter_upper=count_filter_threshold[1])
+        plot_count_filter(
+            adata,
+            obs_col='n_counts',
+            bins=bins,
+            lower=count_threshold[0],
+            filter_lower=count_filter_threshold[0],
+            upper=count_threshold[1],
+            filter_upper=count_filter_threshold[1]
+        )
 
     if gene_filter_threshold != (0, np.inf):
         print(f"Gene Threshold: {gene_filter_threshold}")
         # gene filtering
-        plot_count_filter(adata, obs_col='n_genes', bins=bins,
-                          lower=gene_threshold[0],
-                          filter_lower=gene_filter_threshold[0],
-                          upper=gene_threshold[1],
-                          filter_upper=gene_filter_threshold[1])
+        plot_count_filter(
+            adata,
+            obs_col='n_genes',
+            bins=bins,
+            lower=gene_threshold[0],
+            filter_lower=gene_filter_threshold[0],
+            upper=gene_threshold[1],
+            filter_upper=gene_filter_threshold[1]
+        )
 
 
-def plot_scatter(adata, count_threshold=0, gene_threshold=0,
-                 color=None, title='', lab_size=15, tick_size=11, legend_loc='right margin',
-                 palette=None):
+def plot_scatter(
+        adata,
+        count_threshold=0,
+        gene_threshold=0,
+        color=None,
+        title='Scatter plot of count depth vs gene counts',
+        lab_size=15,
+        tick_size=11,
+        legend_loc='right margin',
+        palette=None
+):
     utils.check_adata(adata)
     if color:
         utils.check_batch(color, adata.obs)
@@ -159,7 +217,15 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
 
 
 ### Normalisation
-def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
+def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
+    """Normalise counts using the ``scran`` normalisation method
+
+    :param adata: ``anndata`` object
+    :param sparsify: whether to convert the count matrix into a sparse matrix
+    :param precluster: whether to perform preliminary clustering for differentiated normalisation
+    :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
+    :param log: whether to performing log1p-transformation after normalisation
+    """
     utils.check_adata(adata)
 
     # Check for 0 count cells
@@ -206,9 +272,15 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
         sc.tl.louvain(adata_pp, key_added='groups', resolution=0.5)
 
         ro.globalenv['input_groups'] = adata_pp.obs['groups']
-        size_factors = ro.r('sizeFactors(computeSumFactors(SingleCellExperiment('
-                            'list(counts=data_mat)), clusters = input_groups,'
-                            f' min.mean = {min_mean}))')
+        size_factors = ro.r(
+            'sizeFactors('
+            '   computeSumFactors('
+            '       SingleCellExperiment(list(counts=data_mat)),'
+            '       clusters = input_groups,'
+            f'       min.mean = {min_mean}'
+            '   )'
+            ')'
+        )
 
         del adata_pp
 
@@ -242,8 +314,12 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
 
 
 def scale_batch(adata, batch):
-    """
-    Function to scale the gene expression values of each batch separately.
+    """Batch-aware scaling of count matrix
+
+    Scaling counts to a mean of 0 and standard deviation of 1 using ``scanpy.pp.scale`` for each batch separately.
+
+    :param adata: ``anndata`` object with normalised and log-transformed counts
+    :param batch: ``adata.obs`` column
     """
 
     utils.check_adata(adata)
@@ -287,15 +363,14 @@ def hvg_intersect(
         min_genes=500,
         step_size=1000
 ):
-    """
-    Highly variable gene selection
+    """Highly variable gene selection
 
-    :param adata: anndata object with preprocessed counts
-    :param batch: adata.obs column
+    :param adata: ``anndata`` object with preprocessed counts
+    :param batch: ``adata.obs`` column
     :param target_genes: maximum number of genes (intersection reduces the number of genes)
     :param min_genes: minimum number of intersection HVGs targeted
     :param step_size: step size to increase HVG selection per dataset
-    :return: list of highly variable genes less or equal to `target_genes`
+    :return: list of maximal ``target_genes`` number of highly variable genes
     """
 
     utils.check_adata(adata)
@@ -351,12 +426,20 @@ def hvg_intersect(
 
 
 def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
-    """
-    Method to select HVGs based on mean dispersions of genes that are highly 
+    """Batch-aware highly variable gene selection
+
+    Method to select HVGs based on mean dispersions of genes that are highly
     variable genes in all batches. Using a the top target_genes per batch by
     average normalize dispersion. If target genes still hasn't been reached, 
     then HVGs in all but one batches are used to fill up. This is continued 
     until HVGs in a single batch are considered.
+
+    :param adata: ``anndata`` object
+    :param batch: ``adata.obs`` column
+    :param target_genes: maximum number of genes (intersection reduces the number of genes)
+    :param flavor: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_bins: parameter for ``scanpy.pp.highly_variable_genes``
+    :param adataOut: whether to return an ``anndata`` object or a list of highly variable genes
     """
 
     utils.check_adata(adata)
@@ -368,11 +451,13 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
     n_batches = len(adata_hvg.obs[batch_key].cat.categories)
 
     # Calculate double target genes per dataset
-    sc.pp.highly_variable_genes(adata_hvg,
-                                flavor=flavor,
-                                n_top_genes=target_genes,
-                                n_bins=n_bins,
-                                batch_key=batch_key)
+    sc.pp.highly_variable_genes(
+        adata_hvg,
+        flavor=flavor,
+        n_top_genes=target_genes,
+        n_bins=n_bins,
+        batch_key=batch_key
+    )
 
     nbatch1_dispersions = adata_hvg.var['dispersions_norm'][
         adata_hvg.var.highly_variable_nbatches > len(adata_hvg.obs[batch_key].cat.categories) - 1
@@ -429,11 +514,15 @@ def reduce_data(
         use_rep='X_pca',
         umap=True
 ):
-    """
-    Wrapper function of feature selection, dimensionality reduction and neighbours computation
+    """Apply feature selection and dimensionality reduction steps.
 
-    :param adata: anndata object with preprocessed data
-    :param batch_key: column in ``adata.obs``
+    Wrapper function of feature selection (highly variable genes), PCA, neighbours computation and dimensionality
+    reduction.
+    Highly variable gene selection is batch-aware, when a batch key is given.
+
+
+    :param adata: ``anndata`` object with normalised and log-transformed data in ``adata.X``
+    :param batch_key: column in ``adata.obs`` containing batch assignment
     :param flavor: parameter for ``scanpy.pp.highly_variable_genes``
     :param n_top_genes: parameter for ``scanpy.pp.highly_variable_genes``
     :param n_bins: parameter for ``scanpy.pp.highly_variable_genes``
@@ -497,11 +586,17 @@ def reduce_data(
 
 ### Cell Cycle
 def score_cell_cycle(adata, organism='mouse'):
-    """
+    """Score cell cycle score given an organism
+
+    Wrapper function for ``scanpy.tl.score_genes_cell_cycle``
+
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
 
-    :param adata: anndata object
+    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
+    well conserved across species.
+
+    :param adata: anndata object containing
     :param organism: organism of gene names to match cell cycle genes
     :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
@@ -527,6 +622,18 @@ def score_cell_cycle(adata, organism='mouse'):
 
 
 def saveSeurat(adata, path, batch, hvgs=None):
+    """Save an ``anndata`` object to file as a Seurat object
+
+    Convert ``anndata`` object to Seurat object through ``rpy2`` and save to file as "RDS" file
+
+    This function only accounts for batch assignments and highly variable genes. All other keys are not transferred to
+    the Seurat object.
+
+    :param adata: anndata object to be saved
+    :param path: file path where the object should be saved
+    :param batch: key in ``adata.obs`` that holds batch assigments
+    :param hvgs: list of highly variable genes
+    """
     import re
     ro.r('library(Seurat)')
     ro.r('library(scater)')
@@ -560,6 +667,12 @@ def saveSeurat(adata, path, batch, hvgs=None):
 
 
 def read_seurat(path):
+    """Read ``Seurat`` object from file and convert to ``anndata`` object
+
+    Using ``rpy2`` for reading an RDS object and converting it into an ``anndata`` object.
+
+    :param path: file path to saved file
+    """
     anndata2ri.activate()
     ro.r('library(Seurat)')
     ro.r('library(scater)')
@@ -578,10 +691,12 @@ def read_seurat(path):
 
 
 def read_conos(inPath, dir_path=None):
-    from os import mkdir, path
-    from shutil import rmtree
-    from time import time
+    """Read ``conos`` object
 
+    :param inPath:
+    :param dir_path:
+    """
+    from shutil import rmtree
     import pandas as pd
     from scipy.io import mmread
 

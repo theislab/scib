@@ -105,7 +105,7 @@ def trvae(adata, batch, hvg=None):
 
 
 def trvaep(adata, batch, hvg=None):
-    """trVAE wrapper function (pytorch implementatioon)
+    """trVAE wrapper function (``pytorch`` implementatioon)
 
     URL: https://github.com/theislab/trvaep
 

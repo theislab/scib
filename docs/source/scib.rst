@@ -12,10 +12,10 @@ Import scib as:
 .. automodapi:: scib.preprocessing
 
     :skip: plot_count_filter
-    :skip: plot_qc
     :skip: plot_scatter
-    :skip: summarize_counts
-
+    :skip: readConos
+    :skip: readSeurat
+    :skip: saveSeurat
 
 .. automodapi:: scib.integration
 
