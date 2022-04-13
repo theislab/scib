@@ -40,10 +40,10 @@ Alternatively, manually install the package on your system using pip, described 
 
 ### Installation
 
-The `scib` python package is in the folder scib. You can simply install it from the root of this repository using
+The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
 ```
-pip install .
+pip install scib
 ```
 
 Alternatively, you can also install the package directly from GitHub via
