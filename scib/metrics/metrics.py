@@ -26,12 +26,14 @@ def metrics_fast(
 ):
     """Only metrics with minimal preprocessing and runtime
 
-    Biological conservation
+    :Biological conservation:
+
         + HVG overlap
         + Cell type ASW
         + Isolated label ASW
 
-    Batch correction
+    :Batch correction:
+
         + Graph connectivity
         + Batch ASW
         + PC regression
@@ -68,7 +70,8 @@ def metrics_slim(
 ):
     """All metrics apart from kBET and LISI scores
 
-    Biological conservation
+    :Biological conservation:
+
         + HVG overlap
         + Cell type ASW
         + Isolated label ASW
@@ -77,7 +80,8 @@ def metrics_slim(
         + ARI cluster/label
         + Cell cycle conservation
 
-    Batch correction
+    :Batch correction:
+
         + Graph connectivity
         + Batch ASW
         + PC regression
@@ -124,7 +128,7 @@ def metrics_all(
 ):
     """All metrics
 
-    Biological conservation
+    :Biological conservation:
         + HVG overlap
         + Cell type ASW
         + Isolated label ASW
@@ -134,7 +138,7 @@ def metrics_all(
         + Cell cycle conservation
         + cLISI
 
-    Batch correction
+    :Batch correction:
         + Graph connectivity
         + Batch ASW
         + PC regression
@@ -216,41 +220,75 @@ def metrics(
     Wrapper for all metrics used in the study.
     Compute of all metrics given unintegrated and integrated anndata object
 
-    :param adata: unintegrated, preprocessed anndata object
-    :param adata_int: integrated anndata object
-    :param batch_key: name of batch column in adata.obs and adata_int.obs
-    :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
-    :param embed: embedding representation of adata_int used for
-        silhouette scores (label ASW, batch ASW),
-        PC regression,
-        cell cycle conservation,
-        isolated label scores, and
-        kBET
-    :param cluster_key: name of column to store cluster assignments. Will be overwritten if it exists
-    :param cluster_nmi: Where to save cluster resolutions and NMI for optimal clustering
+    :param adata:
+        unintegrated, preprocessed anndata object
+    :param adata_int:
+        integrated anndata object
+    :param batch_key:
+        name of batch column in adata.obs and adata_int.obs
+    :param label_key:
+        name of biological label (cell type) column in adata.obs and adata_int.obs
+    :param embed:
+        embedding representation of adata_int
+
+        Used for:
+            + silhouette scores (label ASW, batch ASW),
+            + PC regression,
+            + cell cycle conservation,
+            + isolated label scores, and
+            + kBET
+    :param cluster_key:
+        name of column to store cluster assignments. Will be overwritten if it exists
+    :param cluster_nmi:
+        Where to save cluster resolutions and NMI for optimal clustering
         If None, these results will not be saved
-    :param ari_: whether to compute ARI
-    :param nmi_: whether to compute NMI
-    :param nmi_method: which implementation of NMI to use
-    :param nmi_dir: directory of NMI code for some implementations of NMI
-    :param silhouette_: whether to compute the average silhouette width scores for labels and batch
-    :param si_metric: which metric to use for silhouette scores
-    :param pcr_: whether to compute principal component regression
-    :param cell_cycle_: whether to compute cell cycle score conservation
-    :param organism: organism of the datasets, used for computing cell cycle scores on gene names
-    :param hvg_score_: whether to compute HVG score
-    :param isolated_labels_: whether to compute both isolated label scores
-    :param isolated_labels_f1_: wehther to compute isolated label score based on F1 score of clusters vs labels
-    :param isolated_labels_asw_: whether to compute isolated label score based on ASW
-    :param n_isolated: max number of batches per label for label to be considered as isolated
-    :param graph_conn_: whether to compute graph connectivity score
-    :param trajectory_: whether to compute trajectory score
-    :param kBET_: whether to compute kBET score
-    :param lisi_graph_: whether to compute both cLISI and iLISI
-    :param clisi_: whether to compute cLISI
-    :param ilisi_: whether to compute iLISI
-    :param subsample: subsample fraction for LISI scores
-    :param type_: one of 'full', 'embed' or 'knn' (used for kBET and LISI scores)
+    :param `ari_`:
+        whether to compute ARI using :func:`scib.metrics.ari`
+    :param `nmi_`:
+        whether to compute NMI using :func:`scib.metrics.nmi`
+    :param nmi_method:
+        which implementation of NMI to use
+    :param nmi_dir:
+        directory of NMI code for some implementations of NMI
+    :param `silhouette_`:
+        whether to compute the average silhouette width scores for labels and batch
+        using :func:`scib.metrics.silhouette` and :func:`scib.metrics.silhouette_batch`
+    :param si_metric:
+        which distance metric to use for silhouette scores
+    :param `pcr_`:
+        whether to compute principal component regression using :func:`scib.metrics.pc_comparison`
+    :param `cell_cycle_`:
+        whether to compute cell cycle score conservation using :func:`scib.metrics.cell_cycle`
+    :param organism:
+        organism of the datasets, used for computing cell cycle scores on gene names
+    :param `hvg_score_`:
+        whether to compute highly variable gene conservation using :func:`scib.metrics.hvg_overlap`
+    :param `isolated_labels_`:
+        whether to compute both isolated label scores using :func:`scib.metrics.isolated_labels`
+    :param `isolated_labels_f1_`:
+        whether to compute isolated label score based on F1 score of clusters vs labels using
+        :func:`scib.metrics.isolated_labels`
+    :param `isolated_labels_asw_`:
+        whether to compute isolated label score based on ASW (average silhouette width) using
+        :func:`scib.metrics.isolated_labels`
+    :param `n_isolated`:
+        maximum number of batches per label for label to be considered as isolated
+    :param `graph_conn_`:
+        whether to compute graph connectivity score using :func:`scib.metrics.graph_connectivity`
+    :param `trajectory_`:
+        whether to compute trajectory score using :func:`scib.metrics.trajectory_conservation`
+    :param `kBET_`:
+        whether to compute kBET score using :func:`scib.metrics.kBET`
+    :param `lisi_graph_`:
+        whether to compute both cLISI and iLISI using :func:`scib.metrics.lisi_graph`
+    :param `clisi_`:
+        whether to compute cLISI using :func:`scib.metrics.clisi_graph`
+    :param `ilisi_`:
+        whether to compute iLISI using :func:`scib.metrics.ilisi_graph`
+    :param subsample:
+        subsample fraction for LISI scores
+    :param `type_`:
+        one of 'full', 'embed' or 'knn' (used for kBET and LISI scores)
     """
 
     check_adata(adata)
