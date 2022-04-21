@@ -42,11 +42,11 @@ def metrics_fast(
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to metrics function
+        Parameters to pass on to :func:`scib.metrics.metrics` function:
 
-            + embed
-            + si_metric
-            + n_isolated
+            + ``embed``
+            + ``si_metric``
+            + ``n_isolated``
     """
     return metrics(
         adata,
@@ -91,16 +91,16 @@ def metrics_slim(
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to metrics function
+        Parameters to pass on to :func:`scib.metrics.metrics` function:
 
-            + embed
-            + cluster_key
-            + cluster_nmi
-            + nmi_method
-            + nmi_dir
-            + si_metric
-            + organism
-            + n_isolated
+            + ``embed``
+            + ``cluster_key``
+            + ``cluster_nmi``
+            + ``nmi_method``
+            + ``nmi_dir``
+            + ``si_metric``
+            + ``organism``
+            + ``n_isolated``
     """
     return metrics(
         adata,
@@ -153,18 +153,18 @@ def metrics_all(
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to metrics function:
+        Parameters to pass on to :func:`scib.metrics.metrics` function:
 
-            + embed
-            + cluster_key
-            + cluster_nmi
-            + nmi_method
-            + nmi_dir
-            + si_metric
-            + organism
-            + n_isolated
-            + subsample
-            + type\_
+            + ``embed``
+            + ``cluster_key``
+            + ``cluster_nmi``
+            + ``nmi_method``
+            + ``nmi_dir``
+            + ``si_metric``
+            + ``organism``
+            + ``n_isolated``
+            + ``subsample``
+            + ``type_``
     """
     return metrics(
         adata,
