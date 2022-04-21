@@ -8,14 +8,11 @@ preprocessing steps leading to 68 methods combinations on 85 batches of gene exp
 
 ## Resources
 
-+ The git repository of the [`scib` package](https://github.com/theislab/scib).
-
++ The git repository of the [`scib` package](https://github.com/theislab/scib) and its [documentation](https://scib.readthedocs.io/).
 + The reusable pipeline we used in the study can be found in the
   separate [scib pipeline](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates
   the computation of preprocesssing combinations, integration methods and benchmarking metrics.
-
 + On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
-
 + For reproducibility and visualisation we have a dedicated
   repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
 
