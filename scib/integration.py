@@ -23,7 +23,7 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning
 def scanorama(adata, batch, hvg=None, **kwargs):
     """ Scanorama wrapper function
 
-    URL: https://github.com/brianhie/scanorama
+    Based on `scanorama <https://github.com/brianhie/scanorama>`_ version 1.7.0
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -51,7 +51,7 @@ def scanorama(adata, batch, hvg=None, **kwargs):
 def trvae(adata, batch, hvg=None):
     """trVAE wrapper function
 
-    URL: https://github.com/theislab/trVAE
+    Based on `trVAE <https://github.com/theislab/trVAE>`_ version 1.1.2
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -107,7 +107,9 @@ def trvae(adata, batch, hvg=None):
 def trvaep(adata, batch, hvg=None):
     """trVAE wrapper function (``pytorch`` implementatioon)
 
-    URL: https://github.com/theislab/trvaep
+    Based on `trvaep`_ version 0.1.0
+
+    .. _trvaep: https://github.com/theislab/trvaep
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -158,10 +160,10 @@ def trvaep(adata, batch, hvg=None):
 def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwargs):
     """scGen wrapper function
 
-    URL: https://github.com/theislab/scgen
+    Based on `scgen`_ version 1.1.5 with parametrization taken from the tutorial `notebook`_.
 
-    Parametrization taken from the tutorial notebook at:
-    https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
+    .. _scgen: https://github.com/theislab/scgen
+    .. _notebook: https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -205,10 +207,10 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwar
 def scvi(adata, batch, hvg=None):
     """scVI wrapper function
 
-    URL: https://github.com/ignasigm/scVI
+    Based on scVI version 0.6.7 (available through `conda <https://anaconda.org/bioconda/scvi>`_)
 
-    Note: Use non-normalized (count) data for scVI!
-    Expects data only on HVGs
+    .. note::
+        scVI expects only non-normalized (count) data on highly variable genes!
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -277,9 +279,10 @@ def scvi(adata, batch, hvg=None):
 def scanvi(adata, batch, labels):
     """scANVI wrapper function
 
-    URL: https://github.com/scverse/scvi-tools
+    Based on scVI version 0.6.7 (available through `conda <https://anaconda.org/bioconda/scvi>`_)
 
-    Note: Use non-normalized (count) data for scANVI!
+    .. note::
+        Use non-normalized (count) data for scANVI!
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -376,9 +379,11 @@ def scanvi(adata, batch, labels):
 def mnn(adata, batch, hvg=None, **kwargs):
     """MNN wrapper function (``mnnpy`` implementation)
 
-    https://github.com/chriscainx/mnnpy
+    Based on `mnnpy package <https://github.com/chriscainx/mnnpy>`_ version 0.1.9.5
 
-    Note: ``mnnpy`` might break with newer versions of ``numpy`` and ``pandas``
+    .. note:
+
+        ``mnnpy`` might break with newer versions of ``numpy`` and ``pandas``
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -408,7 +413,7 @@ def mnn(adata, batch, hvg=None, **kwargs):
 def bbknn(adata, batch, hvg=None, **kwargs):
     """BBKNN wrapper function
 
-    https://github.com/Teichlab/bbknn
+    Based on `bbknn package <https://github.com/Teichlab/bbknn>`_ version 1.3.9
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -439,7 +444,8 @@ def bbknn(adata, batch, hvg=None, **kwargs):
 def saucie(adata, batch):
     """SAUCIE wrapper function
 
-    parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
+    Using SAUCIE `source code <https://github.com/KrishnaswamyLab/SAUCIE>`_.
+    Parametrisation from https://github.com/KrishnaswamyLab/SAUCIE/blob/master/scripts/SAUCIE.py
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -471,7 +477,7 @@ def saucie(adata, batch):
 def combat(adata, batch):
     """ComBat wrapper function (``scanpy`` implementation)
 
-    https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.combat.html
+    Using scanpy implementation of `Combat <https://scanpy.readthedocs.io/en/stable/generated/scanpy.pp.combat.html>`_
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -483,8 +489,9 @@ def combat(adata, batch):
 
 
 def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
-    """DESC wrapper function.
+    """DESC wrapper function
 
+    Based on `desc package <https://github.com/eleozzr/desc>`_ version 2.0.3.
     Parametrization was taken from: https://github.com/eleozzr/desc/issues/28 as suggested by the developer (rather
     than from the tutorial notebook).
 

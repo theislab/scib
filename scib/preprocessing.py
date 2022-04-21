@@ -221,6 +221,11 @@ def plot_count_filter(adata, obs_col='n_counts', bins=60, lower=0, upper=np.inf,
 def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     """Normalise counts using the ``scran`` normalisation method
 
+    Using `computeSumFactors`_ function from `scran`_ package.
+
+    .. _scran: https://rdrr.io/bioc/scran/
+    .. _computeSumFactors: https://rdrr.io/bioc/scran/man/computeSumFactors.html
+
     :param adata: ``anndata`` object
     :param sparsify: whether to convert the count matrix into a sparse matrix
     :param precluster: whether to perform preliminary clustering for differentiated normalisation
@@ -369,6 +374,8 @@ def hvg_intersect(
         step_size=1000
 ):
     """Highly variable gene selection
+
+    Legacy approach to HVG selection only using HVG intersections between all batches
 
     :param adata: ``anndata`` object with preprocessed counts
     :param batch: ``adata.obs`` column
@@ -593,7 +600,9 @@ def reduce_data(
 def score_cell_cycle(adata, organism='mouse'):
     """Score cell cycle score given an organism
 
-    Wrapper function for ``scanpy.tl.score_genes_cell_cycle``
+    Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
+
+    .. _scanpy.tl.score_genes_cell_cycle: https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.score_genes_cell_cycle.html
 
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
@@ -709,6 +718,8 @@ def read_seurat(path):
 
 def read_conos(inPath, dir_path=None):
     """Read ``conos`` object
+
+    Using ``rpy2`` for reading an RDS object and converting it into an ``anndata`` object.
 
     :param inPath:
     :param dir_path:
