@@ -11,7 +11,9 @@ Single-cell integration benchmark scib
    :caption: Contents:
 
    installation
-   scib
+   scib_preprocessing
+   scib_integration
+   scib_metrics
 
 .. include:: ../../README.md
     :parser: myst_parser.sphinx_

@@ -21,16 +21,28 @@ preprocessing steps leading to 68 methods combinations on 85 batches of gene exp
 Luecken, M.D., Büttner, M., Chaichoompu, K. et al. Benchmarking atlas-level data integration in single-cell genomics.
 Nat Methods 19, 41–50 (2022). [https://doi.org/10.1038/s41592-021-01336-8](https://doi.org/10.1038/s41592-021-01336-8)
 
-## `scib` Package
+## Package: scib
 
 We created the python package called `scib` that uses `scanpy` to streamline the integration of single-cell datasets
 and evaluate the results.
-For evaluating the integration quality it provides a number of metrics.
+The package contains several modules for preprocessing an ``anndata`` object, running integration methods and
+evaluating the resulting using a number of metrics.
+For preprocessing, ``scib.preprocessing`` (or ``scib.pp``) contains functions for normalising, scaling or batch-aware
+selection of highly variable genes.
+Functions for the integration methods are in ``scib.integration`` or for short ``scib.ig`` and metrics are under
+``scib.metrics`` (or ``scib.me``).
 
 The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
 ```
 pip install scib
+```
+
+
+Import `scib` in python:
+
+```python
+import scib
 ```
 
 ## Metrics
