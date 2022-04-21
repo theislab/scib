@@ -26,26 +26,27 @@ def metrics_fast(
 ):
     """Only metrics with minimal preprocessing and runtime
 
-    :Biological conservation:
 
-        + HVG overlap
-        + Cell type ASW
-        + Isolated label ASW
+    :Biological conservation:
+        + HVG overlap :func:`scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`scib.metrics.silhouette`
+        + Isolated label ASW :func:`scib.metrics.isolated_labels`
 
     :Batch correction:
-
-        + Graph connectivity
-        + Batch ASW
-        + PC regression
+        + Graph connectivity :func:`scib.metrics.graph_connectivity`
+        + Batch ASW :func:`scib.metrics.silhouette_batch`
+        + Principal component regression :func:`scib.metrics.pcr_comparison`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
-    :param kwargs: parameters to pass on to metrics function
-        + embed
-        + si_metric
-        + n_isolated
+    :param kwargs:
+        Parameters to pass on to metrics function
+
+            + embed
+            + si_metric
+            + n_isolated
     """
     return metrics(
         adata,
@@ -71,34 +72,35 @@ def metrics_slim(
     """All metrics apart from kBET and LISI scores
 
     :Biological conservation:
-
-        + HVG overlap
-        + Cell type ASW
-        + Isolated label ASW
-        + Isolated label F1
-        + NMI cluster/label
-        + ARI cluster/label
-        + Cell cycle conservation
+        + HVG overlap :func:`scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`scib.metrics.silhouette`
+        + Isolated label ASW :func:`scib.metrics.isolated_labels`
+        + Isolated label F1 :func:`scib.metrics.isolated_labels`
+        + NMI cluster/label :func:`scib.metrics.nmi`
+        + ARI cluster/label :func:`scib.metrics.ari`
+        + Cell cycle conservation :func:`scib.metrics.cell_cycle`
+        + Trajectory conservation :func:`scib.metrics.trajectory_conservation`
 
     :Batch correction:
-
-        + Graph connectivity
-        + Batch ASW
-        + PC regression
+        + Graph connectivity :func:`scib.metrics.graph_connectivity`
+        + Batch ASW :func:`scib.metrics.silhouette_batch`
+        + Principal component regression :func:`scib.metrics.pcr_comparison`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
-    :param kwargs: parameters to pass on to metrics function
-        + embed
-        + cluster_key
-        + cluster_nmi
-        + nmi_method
-        + nmi_dir
-        + si_metric
-        + organism
-        + n_isolated
+    :param kwargs:
+        Parameters to pass on to metrics function
+
+            + embed
+            + cluster_key
+            + cluster_nmi
+            + nmi_method
+            + nmi_dir
+            + si_metric
+            + organism
+            + n_isolated
     """
     return metrics(
         adata,
@@ -129,37 +131,40 @@ def metrics_all(
     """All metrics
 
     :Biological conservation:
-        + HVG overlap
-        + Cell type ASW
-        + Isolated label ASW
-        + Isolated label F1
-        + NMI cluster/label
-        + ARI cluster/label
-        + Cell cycle conservation
-        + cLISI
+        + HVG overlap :func:`scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`scib.metrics.silhouette`
+        + Isolated label ASW :func:`scib.metrics.isolated_labels`
+        + Isolated label F1 :func:`scib.metrics.isolated_labels`
+        + NMI cluster/label :func:`scib.metrics.nmi`
+        + ARI cluster/label :func:`scib.metrics.ari`
+        + Cell cycle conservation :func:`scib.metrics.cell_cycle`
+        + cLISI (cell type Local Inverse Simpson's Index) :func:`scib.metrics.clisi_graph`
+        + Trajectory conservation :func:`scib.metrics.trajectory_conservation`
 
     :Batch correction:
-        + Graph connectivity
-        + Batch ASW
-        + PC regression
-        + kBET
-        + iLISI
+        + Graph connectivity :func:`scib.metrics.graph_connectivity`
+        + Batch ASW :func:`scib.metrics.silhouette_batch`
+        + Principal component regression :func:`scib.metrics.pcr_comparison`
+        + kBET (k-nearest neighbour batch effect test) :func:`scib.metrics.kBET`
+        + iLISI (integration Local Inverse Simpson's Index) :func:`scib.metrics.ilisi_graph`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
-    :param kwargs: parameters to pass on to metrics function
-        + embed
-        + cluster_key
-        + cluster_nmi
-        + nmi_method
-        + nmi_dir
-        + si_metric
-        + organism
-        + n_isolated
-        + subsample
-        + type\_
+    :param kwargs:
+        Parameters to pass on to metrics function:
+
+            + embed
+            + cluster_key
+            + cluster_nmi
+            + nmi_method
+            + nmi_dir
+            + si_metric
+            + organism
+            + n_isolated
+            + subsample
+            + type\_
     """
     return metrics(
         adata,

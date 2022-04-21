@@ -51,9 +51,10 @@ Metrics
 .. automodule:: scib.metrics
 
 
-Biological Conservation Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+Biological Conservation Metrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Biological conservation metrics return a value ranging from 0 to 1, in which larger scores represent better conservation
+of the biological aspect that the metric addresses.
 
 .. autosummary::
     :toctree: api/
@@ -68,9 +69,9 @@ Biological Conservation Functions
     clisi_graph
 
 
-Batch Correction Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+Batch Correction Metrics
+^^^^^^^^^^^^^^^^^^^^^^^^
+Batch correction metrics return a value ranging from 0 to 1, in which larger scores represent better batch removal.
 
 .. autosummary::
     :toctree: api/
@@ -85,7 +86,10 @@ Batch Correction Functions
 Metrics Wrapper Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Wrapper functions are available that compute multiple metrics and return them as a ``pandas.Dataframe``.
+For convenience, ``scib`` provides wrapper functions that, given integrated and unintegrated adata objects, apply
+multiple metrics and return all the results in a ``pandas.Dataframe``.
+The main function is :func:`scib.metrics.metrics`, that provides all the parameters for the different metrics.
+The remaining functions call the :func:`scib.metrics.metrics` for preconfigured subsets of metrics based on runtime.
 
 .. autosummary::
     :toctree: api/
