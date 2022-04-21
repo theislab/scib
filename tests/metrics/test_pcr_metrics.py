@@ -14,13 +14,13 @@ def test_pcr_batch(adata):
         scale=True
     )
     LOGGER.info(f"no PCA precomputed: {score}")
-    assert 0 <= score < 1e-6
+    assert_near_exact(score, 0, diff=1e-6)
 
 
 def test_pcr_batch_precomputed(adata_pca):
     score = scib.me.pcr_comparison(adata_pca, adata_pca, covariate='batch', scale=True)
     LOGGER.info(f"precomputed PCA: {score}")
-    assert 0 <= score < 1e-6
+    assert_near_exact(score, 0, diff=1e-6)
 
 
 def test_pcr_batch_embedding(adata):
@@ -34,4 +34,4 @@ def test_pcr_batch_embedding(adata):
         scale=True
     )
     LOGGER.info(f"using embedding: {score}")
-    assert 0 <= score < 1e-6
+    assert_near_exact(score, 0, diff=1e-6)

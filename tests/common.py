@@ -5,12 +5,17 @@ import numpy as np
 import pandas as pd
 import os
 import warnings
+
 warnings.filterwarnings('ignore')
 import subprocess
 import logging
 
 CORES = "1"
 LOGGER = logging.getLogger(__name__)
+
+
+def assert_near_exact(x, y, diff=1e-5):
+    assert abs(x - y) <= diff
 
 
 def create_if_missing(dir):

@@ -8,6 +8,7 @@ import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
 
+from ..exceptions import RLibraryNotFound
 from ..utils import check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
@@ -175,8 +176,12 @@ def kBET_single(
     :param batch: series or list of batch assignments
     :returns: kBET observed rejection rate
     """
+    try:
+        ro.r("library(kBET)")
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r("library(kBET)")
 
     if verbose:
         print("importing expression matrix")
