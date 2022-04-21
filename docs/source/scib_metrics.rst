@@ -1,6 +1,10 @@
 Metrics
 =======
 
+For a detailed description of the metrics implemented in this package, please see our
+[publication](https://doi.org/10.1038/s41592-021-01336-8).
+
+
 .. currentmodule:: scib.metrics
 
 .. automodule:: scib.metrics

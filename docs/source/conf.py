@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import scib
 
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -20,9 +21,10 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'scib'
 copyright = '2021, Malte D. Luecken, Maren Buettner, Daniel C. Strobl, Michaela F. Mueller'
 author = 'Malte D. Luecken, Maren Buettner, Daniel C. Strobl, Michaela F. Mueller'
+github_url = 'https://github.com/theislab/scib'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = scib.__version__
 
 # -- General configuration ---------------------------------------------------
 
