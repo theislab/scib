@@ -315,12 +315,11 @@ def lisi_graph_py(
         )
         simpson_est_batch = 1 / simpson_estimate_batch
 
-    tmpdir.cleanup()
 
     # extract results
     d = {batch_key: simpson_est_batch}
-
     lisi_estimate = pd.DataFrame(data=d, index=np.arange(0, len(simpson_est_batch)))
+    tmpdir.cleanup()
 
     return lisi_estimate
 
