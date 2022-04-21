@@ -1,7 +1,7 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
 This repository contains the code for our benchmarking study for data integration tools.
-In [our study](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v1), we benchmark 16
+In [our study](https://doi.org/10.1038/s41592-021-01336-8), we benchmark 16
 methods ([see Tools](##Tools)) with 4 combinations of preprocessing steps leading to 68 methods combinations on 85
 batches of gene expression and chromatin accessibility data.
 
@@ -121,7 +121,7 @@ batch The metrics are under `scib.metrics` (or `scib.me`).
 ## Metrics
 
 For a detailed description of the metrics implemented in this package, please see
-the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
+the [manuscript](https://doi.org/10.1038/s41592-021-01336-8).
 
 ### Batch removal metrics include:
 
