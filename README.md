@@ -46,7 +46,7 @@ The `scib` python package is available on [PyPI](https://pypi.org/) and can be i
 pip install scib
 ```
 
-Alternatively, you can also install the package directly from GitHub via
+Alternatively, you can also install the package directly from GitHub directly via
 
 ```
 pip install git+https://github.com/theislab/scib.git
@@ -69,10 +69,16 @@ wrapper functions, we recommend to work with different environments for differen
 installation of `scib`. You can install optional Python dependencies via pip as follows:
 
 ```
-pip install .[bbknn]  # using BBKNN
-pip install .[scanorama]  # using Scanorama
-pip install .[bbknn,scanorama]  # Multiple methods in one go
+pip install scib[bbknn]  # using BBKNN
+pip install scib[scanorama]  # using Scanorama
+pip install scib[bbknn,scanorama]  # Multiple methods in one go
 ```
+> **Note:** Zsh often doesn't like square brackets. If you are a zsh user, use quotation marks around any statements
+> containing square brackets. For example:
+> ```
+> pip install 'scib[bbknn]'
+> ```
+
 
 The `setup.cfg` for a full list of Python dependencies. For a comprehensive list of supported integration methods,
 including R packages, check out the `Tools`.
@@ -80,17 +86,19 @@ including R packages, check out the `Tools`.
 ## Usage
 
 The package contains several modules for the different steps of the integration and benchmarking pipeline. Functions for
-the integration methods are in `scib.integration` or for short `scib.ig`. The methods can be called using
+the integration methods are in `scib.integration` or for short `scib.ig` and require the preprocessed `anndata` object
+(here `adata`) and the name of the batch column in `adata.obs` (here `'batch'`).
+The methods can be called using
 
-```
-scib.integration.<method>(adata, batch=<batch_key>)
+```py
+scib.ig.<method>(adata, batch='batch')
 ```
 
-where `<method>` is the name of the integration method and `<batch_key>` is the name of the batch column in `adata.obs`.
-For example, in order to run Scanorama, on a dataset with batch key 'batch' call
+where `<method>` is the name of the integration method.
+For example, in order to run Scanorama, on a dataset, call:
 
-```
-scib.integration.scanorama(adata, batch='batch')
+```py
+scib.ig.scanorama(adata, batch='batch')
 ```
 
 > **Warning:** the following notation is deprecated.
@@ -100,11 +108,11 @@ scib.integration.scanorama(adata, batch='batch')
 > Please use the snake case naming without the `run` prefix.
 
 Some integration methods (`scgen`, `scanvi`) also use cell type labels as input. For these, you need to additionally
-provide the corresponding label column.
+provide the corresponding label column of `adata.obs` (here `'cell_type'`).
 
-```
-scgen(adata, batch=<batch_key>, cell_type=<cell_type>)
-scanvi(adata, batch=<batch_key>, labels=<cell_type>)
+```py
+scib.ig.scgen(adata, batch='batch', cell_type ='cell_type')
+scib.ig.scanvi(adata, batch='batch', labels ='cell_type')
 ```
 
 `scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or selecting highly variable genes per
