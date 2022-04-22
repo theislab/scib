@@ -1,13 +1,13 @@
 Metrics
 =======
 
-For a detailed description of the metrics implemented in this package, please see our
-[publication](https://doi.org/10.1038/s41592-021-01336-8).
-
-
 .. currentmodule:: scib.metrics
 
 .. automodule:: scib.metrics
+
+
+For a detailed description of the metrics implemented in this package, please see our
+`publication`_.
 
 
 Biological Conservation Metrics
@@ -73,3 +73,5 @@ based on expected computation time:
     metrics_fast
     metrics_slim
     metrics_all
+
+.. _publication: https://doi.org/10.1038/s41592-021-01336-8
