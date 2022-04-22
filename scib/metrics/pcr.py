@@ -18,7 +18,7 @@ def pcr_comparison(
 ):
     """Principal component regression score
 
-    Compare the explained variance before and after integration
+    Compare the explained variance before and after integration using :func:`scib.metrics.pc_regression`.
 
     Return either the difference of variance contribution before and after integration
     or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't
@@ -79,11 +79,11 @@ def pcr(
         recompute_pca=True,
         verbose=False
 ):
-    """
-    Principal component regression for anndata object
+    """Principal component regression for anndata object
 
-    Checks whether to
-        + compute PCA on embedding or expression data (set `embed` to name of embedding matrix e.g. `embed='X_emb'`)
+    Wraps :func:`scib.metrics.pc_regression` while checking whether to:
+
+        + compute PCA on embedding or expression data (set ``embed`` to name of embedding matrix e.g. ``embed='X_emb'``)
         + use existing PCA (only if PCA entry exists)
         + recompute PCA on expression matrix (default)
 
@@ -131,8 +131,20 @@ def pc_regression(
         svd_solver='arpack',
         verbose=False
 ):
-    """
-    :params data: Expression or PC matrix. Assumed to be PC, if pca_sd is given.
+    """Principal component regression
+
+    Compute the overall variance contribution given a covariate according to the following formula:
+
+    .. math::
+
+        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \cdot R^2(PC_i|B)
+
+    for :math:`G` principal components (:math:`PC_i`), where :math:`Var(C|PC_i)` is the variance of the data matrix
+    :math:`C` explained by the i-th principal component, and :math:`R^2(PC_i|B)` is the :math:`R^2` of the i-th
+    principal component regressed against a covariate :math:`B`.
+
+
+    :param data: Expression or PC matrix. Assumed to be PC, if pca_sd is given.
     :param covariate: series or list of batch assignments
     :param n_comps: number of PCA components for computing PCA, only when pca_sd is not given.
         If no pca_sd is not defined and n_comps=None, compute PCA and don't reduce data

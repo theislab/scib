@@ -9,6 +9,8 @@ Metrics
 For a detailed description of the metrics implemented in this package, please see our
 `publication`_.
 
+.. _publication: https://doi.org/10.1038/s41592-021-01336-8
+
 
 Biological Conservation Metrics
 -------------------------------
@@ -74,4 +76,14 @@ based on expected computation time:
     metrics_slim
     metrics_all
 
-.. _publication: https://doi.org/10.1038/s41592-021-01336-8
+
+.. raw:: html
+
+    <h2>Auxiliary Functions</h2>
+
+.. autosummary::
+    :toctree: api/
+
+    lisi_graph
+    pc_regression
+    pcr

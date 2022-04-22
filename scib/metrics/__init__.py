@@ -29,3 +29,4 @@ The metrics can be classified into biological conservation and batch removal met
 
 from .metrics import *
 from .lisi import lisi_graph
+from .pcr import pc_regression, pcr

@@ -24,8 +24,12 @@ def cell_cycle(
     after integration. Cell cycle scores are computed per batch on the unintegrated data set,
     eliminating the batch effect confounded by the `batch_key` variable.
 
-    This score can be calculated on full corrected feature spaces and latent embeddings as
-    variance contributions of a fixed score can be obtained via PC regression here.
+    .. math:
+
+        CC conservation = 1 - \\frac { |Var_{{after} - Var_{before}| } {Var_{before}}
+
+    Variance contribution is obtained through principal component regression using :func:`scib.metrics.pc_regression`.
+    The score can be computed on full corrected feature spaces and latent embeddings.
 
     :param adata_pre: adata before integration
     :param adata_post: adata after integration
