@@ -1,13 +1,3 @@
-"""
-This module contains helper functions for preparing anndata objects for integration.
-The most relevant preprocessing steps are:
-
-+ normalization
-+ scaling wrt batch
-+ highly variable gene selection wrt batch
-+ cell cycle scoring (for cell cycle metric when applicable)
-"""
-
 # TODO: move util functions e.g. reader functions elsewhere
 
 import logging

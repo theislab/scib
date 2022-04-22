@@ -1,8 +1,3 @@
-"""
-This module provides a toolkit for running a large range of single cell data integration
-methods as well as tools and metrics to benchmark them.
-"""
-
 import logging
 import os
 import tempfile
