@@ -85,5 +85,5 @@ based on expected computation time:
     :toctree: api/
 
     lisi_graph
-    pc_regression
     pcr
+    pc_regression

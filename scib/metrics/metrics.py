@@ -237,6 +237,7 @@ def metrics(
         embedding representation of adata_int
 
         Used for:
+
             + silhouette scores (label ASW, batch ASW),
             + PC regression,
             + cell cycle conservation,

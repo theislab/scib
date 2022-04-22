@@ -51,7 +51,7 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
     adata_post_list = split_batches(adata_post, batch)
     overlap = []
 
-    hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post)
+    hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post, n_hvg=n_hvg)
 
     for ad_post in adata_post_list:  # range(len(adata_pre_list)):
         # remove genes unexpressed (otherwise hvg might break)

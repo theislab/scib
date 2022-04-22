@@ -12,8 +12,8 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     Wrapper for normalized mutual information NMI between two different cluster assignments
 
     :param adata: Anndata object
-    :param group1: column name of `adata.obs`
-    :param group2: column name of `adata.obs`
+    :param group1: column name of ``adata.obs``
+    :param group2: column name of ``adata.obs``
     :param method: NMI implementation.
         'max': scikit method with ``average_method='max'``;
         'min': scikit method with ``average_method='min'``;
@@ -21,7 +21,7 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
         'arithmetic': scikit method with ``average_method='arithmetic'``;
         'Lancichinetti': implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
         'ONMI': implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
-    :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as `method`.
+    :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as ``method``.
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
     """

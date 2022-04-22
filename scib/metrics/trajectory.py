@@ -16,10 +16,20 @@ def trajectory_conservation(
 ):
     """Trajectory conservation score
 
+    Trajectory conservation is measured by  spearman’s rank correlation coefficient :math:`s`, between the pseudotime
+    values before and after integration.
+    The final score was scaled to a value between 0 and 1 using the equation
+
+     .. math::
+
+        trajectory \\, conservation = \\frac {s + 1} {2}
+
+    This function Expects pseudotime values to be precomputed.
+
     :param adata_pre: unintegrated adata
     :param adata_post: integrated adata
-    :param label_key: column in `adata_pre.obs` of the groups used to precompute the trajectory
-    :param pseudotime_key: column in `adata_pre.obs` in which the pseudotime is saved in.
+    :param label_key: column in ``adata_pre.obs`` of the groups used to precompute the trajectory
+    :param pseudotime_key: column in ``adata_pre.obs`` in which the pseudotime is saved in.
         Column can contain empty entries, the dataset will be subset to the cells with scores.
     :param batch_key: set to batch key if if you want to compute the trajectory metric by batch
     """
@@ -78,8 +88,8 @@ def get_root(
 
     :param adata_pre: unintegrated adata
     :param adata_post: integrated adata
-    :param label_key: column in `adata_pre.obs` of the groups used to precompute the trajectory
-    :param pseudotime_key: column in `adata_pre.obs` in which the pseudotime is saved in.
+    :param label_key: column in ``adata_pre.obs`` of the groups used to precompute the trajectory
+    :param pseudotime_key: column in ``adata_pre.obs`` in which the pseudotime is saved in.
         Column can contain empty entries, the dataset will be subset to the cells with scores.
     :param dpt_dim: number of diffmap dimensions used to determine root
     """

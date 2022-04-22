@@ -18,6 +18,7 @@ def isolated_labels(
     """Isolated label score
 
     Score how well labels of isolated labels are distiguished in the dataset by either
+
         1. clustering-based approach F1 score, or
         2. average-width silhouette score (ASW) on isolated label vs all other labels
 

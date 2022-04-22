@@ -22,11 +22,11 @@ def cell_cycle(
 
     Compare the variance contribution of S-phase and G2/M-phase cell cycle scores before and
     after integration. Cell cycle scores are computed per batch on the unintegrated data set,
-    eliminating the batch effect confounded by the `batch_key` variable.
+    eliminating the batch effect confounded by the ``batch_key`` variable.
 
-    .. math:
+    .. math::
 
-        CC conservation = 1 - \\frac { |Var_{{after} - Var_{before}| } {Var_{before}}
+        CC \\, conservation = 1 - \\frac { |Var_{after} - Var_{before}| } {Var_{before}}
 
     Variance contribution is obtained through principal component regression using :func:`scib.metrics.pc_regression`.
     The score can be computed on full corrected feature spaces and latent embeddings.
@@ -34,10 +34,10 @@ def cell_cycle(
     :param adata_pre: adata before integration
     :param adata_post: adata after integration
     :param embed: Name of embedding in adata_post.obsm.
-        If `embed=None`, use the full expression matrix (`adata.X`), otherwise use the
-        embedding provided in `adata_post.obsm[embed]`
+        If ``embed=None``, use the full expression matrix (``adata.X``), otherwise use the
+        embedding provided in ``adata_post.obsm[embed]``
     :param agg_func: any function that takes a list of numbers and aggregates them into
-        a single value. If `agg_func=None`, all results will be returned
+        a single value. If ``agg_func=None``, all results will be returned
     :param organism: 'mouse' or 'human' for choosing cell cycle genes
     :param recompute_cc: If True, force recompute cell cycle score, otherwise use
         precomputed scores if available as 'S_score' and 'G2M_score' in adata.obs
@@ -128,8 +128,8 @@ def get_pcr_before_after(
     :param adata_pre: adata before integration
     :param adata_post: adata after integration
     :param embed: Name of embedding in adata_post.obsm.
-        If `embed=None`, use the full expression matrix (`adata.X`), otherwise use the
-        embedding provided in `adata_post.obsm[embed]`
+        If ``embed=None``, use the full expression matrix (``adata.X``), otherwise use the
+        embedding provided in ``adata_post.obsm[embed]``
     :param organism: 'mouse' or 'human' for choosing cell cycle genes
     :param recompute_cc: If True, force recompute cell cycle score, otherwise use
         precomputed scores if available as 'S_score' and 'G2M_score' in adata.obs

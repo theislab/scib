@@ -19,9 +19,8 @@ def pcr_comparison(
     """Principal component regression score
 
     Compare the explained variance before and after integration using :func:`scib.metrics.pc_regression`.
-
     Return either the difference of variance contribution before and after integration
-    or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't
+    or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
     and after integration.
 
@@ -29,8 +28,8 @@ def pcr_comparison(
     :param adata_post: anndata object after integration
     :param covariate: Key for adata.obs column to regress against
     :param embed: Embedding to use for principal components.
-        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
-        provided in `adata_post.obsm[embed]`.
+        If None, use the full expression matrix (``adata.X``), otherwise use the embedding
+        provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
     :param scale: If True, scale score between 0 and 1 (default)
     :param verbose:
@@ -90,8 +89,8 @@ def pcr(
     :param adata: Anndata object
     :param covariate: Key for adata.obs column to regress against
     :param embed: Embedding to use for principal components.
-        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
-        provided in `adata_post.obsm[embed]`.
+        If None, use the full expression matrix (``adata.X``), otherwise use the embedding
+        provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of PCs, if PCA is recomputed
     :return:
         Variance contribution of regression
@@ -148,9 +147,9 @@ def pc_regression(
     :param covariate: series or list of batch assignments
     :param n_comps: number of PCA components for computing PCA, only when pca_sd is not given.
         If no pca_sd is not defined and n_comps=None, compute PCA and don't reduce data
-    :param pca_var: Iterable of variances for `n_comps` components.
-        If `pca_sd` is not `None`, it is assumed that the matrix contains PC,
-        otherwise PCA is computed on `data`.
+    :param pca_var: Iterable of variances for ``n_comps`` components.
+        If ``pca_sd`` is not ``None``, it is assumed that the matrix contains PC,
+        otherwise PCA is computed on ``data``.
     :param svd_solver:
     :param verbose:
     :return:
