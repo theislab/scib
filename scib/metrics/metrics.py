@@ -340,7 +340,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=True,
+            multiprocessing=False,
             verbose=verbose
         )
     else:
@@ -354,7 +354,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=True,
+            multiprocessing=False,
             verbose=verbose
         )
     else:
