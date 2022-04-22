@@ -34,11 +34,13 @@ def lisi_graph(
     This is a reimplementation of the LISI (Local Inverse Simpson’s Index) metrics
     https://doi.org/10.1038/s41592-019-0619-0
 
+    see :func:`scib.metrics.clisi_graph` and :func:`scib.metrics.ilisi_graph`
+
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
     :param label_key: label column name in ``adata.obs``
-    :param \**kwargs: arguments to be passed to iLISI and cLISI functions
-    :return: median cLISI and iLISI scores
+    :params \*\*kwargs: arguments to be passed to :func:`scib.metrics.clisi_graph` and :func:`scib.metrics.ilisi_graph`
+    :return: Overall cLISI and iLISI scores
     """
     ilisi = ilisi_graph(adata, batch_key=batch_key, **kwargs)
     clisi = clisi_graph(adata, batch_key=batch_key, label_key=label_key, **kwargs)
@@ -58,7 +60,11 @@ def ilisi_graph(
 ):
     """Integration LISI (iLISI) score
 
-    Adapted from https://doi.org/10.1038/s41592-019-0619-0
+    Local Inverse Simpson’s Index metrics adapted from https://doi.org/10.1038/s41592-019-0619-0 to run on all full
+    feature, embedding and kNN integration outputs via shortest path-based distance computation on single-cell kNN
+    graphs.
+    By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
+    number of batches.
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
@@ -73,7 +79,7 @@ def ilisi_graph(
         via multiprocessing is performed
     :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
         multiprocessing is set to None
-    :return: median of iLISI score
+    :return: Median of iLISI scores per batch labels
     """
 
     check_adata(adata)
@@ -103,7 +109,7 @@ def ilisi_graph(
 
 def clisi_graph(
         adata,
-        batch_key,
+        batch_key,  # TODO: remove
         label_key,
         k0=90,
         type_=None,
@@ -115,9 +121,13 @@ def clisi_graph(
 ):
     """Cell-type LISI (cLISI) score
 
-    Adapted from https://doi.org/10.1038/s41592-019-0619-0
+    Local Inverse Simpson’s Index metrics adapted from https://doi.org/10.1038/s41592-019-0619-0 to run on all full
+    feature, embedding and kNN integration outputs via shortest path-based distance computation on single-cell kNN
+    graphs.
+    By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
+    number of labels.
 
-    :params adata: adata object to calculate on
+    :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
     :param label_key: label column name in ``adata.obs``
     :param k0: number of nearest neighbors to compute lisi score
@@ -131,11 +141,11 @@ def clisi_graph(
         via multiprocessing is performed
     :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
         multiprocessing is set to None
-    :return: Median of cLISI score
+    :return: Median of cLISI scores per cell type labels
     """
 
     check_adata(adata)
-    check_batch(batch_key, adata.obs)
+    check_batch(batch_key, adata.obs)  # TODO: remove
     check_batch(label_key, adata.obs)
 
     adata_tmp = recompute_knn(adata, type_)
