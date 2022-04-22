@@ -2,7 +2,7 @@ from tests.common import *
 
 
 def test_pc_regression(adata):
-    scib.me.pcr.pc_regression(adata.X, adata.obs["batch"])
+    scib.me.pc_regression(adata.X, adata.obs["batch"])
 
 
 def test_pcr_batch(adata):
