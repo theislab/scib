@@ -35,7 +35,7 @@ def pcr_comparison(
     :param scale: If True, scale score between 0 and 1 (default)
     :param verbose:
     :return:
-        Difference of R2Var value of PCR (scaled between 0 and 1 by default)
+        Difference of variance contribution of PCR (scaled between 0 and 1 by default)
     """
 
     if embed == 'X_pca':
@@ -94,7 +94,7 @@ def pcr(
         provided in `adata_post.obsm[embed]`.
     :param n_comps: Number of PCs, if PCA is recomputed
     :return:
-        R2Var of regression
+        Variance contribution of regression
     """
 
     check_adata(adata)
@@ -154,7 +154,7 @@ def pc_regression(
     :param svd_solver:
     :param verbose:
     :return:
-        R2Var of regression
+        Variance contribution of regression
     """
 
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
