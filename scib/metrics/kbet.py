@@ -27,8 +27,9 @@ def kBET(
 ):
     """kBET score
 
-    Compute average of k-nearest neighbour batch effect test (kBET) score as described in
-    https://doi.org/10.1038/s41592-018-0254-1
+    Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
+
+    .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
