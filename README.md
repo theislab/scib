@@ -47,28 +47,45 @@ import scib
 
 ## Metrics
 
-For a detailed description of the metrics implemented in this package, please see
-our [publication](https://doi.org/10.1038/s41592-021-01336-8).
+We implemented different metrics for evaluating batch correction and biological conservation in the `scib.metrics`
+module.
 
-### Batch removal metrics include:
+<table class="docutils align-default">
+  <colgroup>
+    <col style="width: 50%" />
+    <col style="width: 50%" />
+  </colgroup>
+  <thead>
+    <tr class="row-odd"><th class="head"><p>Biological Conservation</p></th>
+      <th class="head"><p>Batch Correction</p></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="row-even" >
+      <td><ul class="simple">
+        <li><p>Cell type ASW</p></li>
+        <li><p>Cell cycle conservation</p></li>
+        <li><p>Graph cLISI</p></li>
+        <li><p>Adjusted rand index (ARI) for cell label</p></li>
+        <li><p>Normalised mutual information (NMI) for cell label</p></li>
+        <li><p>Highly variable gene conservation</p></li>
+        <li><p>Isolated label ASW</p></li>
+        <li><p>Isolated label F1</p></li>
+        <li><p>Trajectory conservation</p></li>
+      </ul></td>
+      <td><ul class="simple">
+        <li><p>Batch ASW</p></li>
+        <li><p>Principal component regression</p></li>
+        <li><p>Graph iLISI</p></li>
+        <li><p>Graph connectivity</p></li>
+        <li><p>kBET (K-nearest neighbour batch effect)</p></li>
+      </ul></td>
+    </tr>
+  </tbody>
+</table>
 
-- Principal component regression `scib.metrics.pcr_comparison()`
-- Batch ASW `scib.metrics.silhouette_batch()`
-- K-nearest neighbour batch effect `scib.metrics.kBET()`
-- Graph connectivity `scib.metrics.graph_connectivity()`
-- Graph iLISI `scib.metrics.ilisi_graph()`
-
-### Biological conservation metrics include:
-
-- Normalised mutual information `scib.metrics.nmi()`
-- Adjusted Rand Index `scib.metrics.ari()`
-- Cell type ASW `scib.metrics.silhouette()`
-- Isolated label score F1 `scib.metrics.isolated_labels()`
-- Isolated label score ASW `scib.metrics.isolated_labels()`
-- Cell cycle conservation `scib.metrics.cell_cycle()`
-- Highly variable gene conservation `scib.metrics.hvg_overlap()`
-- Trajectory conservation `scib.metrics.trajectory_conservation()`
-- Graph cLISI `scib.metrics.clisi_graph()`
+For a detailed description of the metrics implemented in this package, please see our
+[publication](https://doi.org/10.1038/s41592-021-01336-8).
 
 ## Integration Tools
 
