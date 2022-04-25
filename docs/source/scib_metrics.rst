@@ -85,9 +85,9 @@ The remaining functions call the :func:`scib.metrics.metrics` for
 Furthermore, :func:`scib.metrics.metrics()` is wrapped by convenience functions with preconfigured subsets of metrics
 based on expected computation time:
 
-+ :func:`scib.me.metrics_fast()` only computes metrics that require little preprocessing
-+ :func:`scib.me.metrics_slim()` includes all functions of :func:`scib.me.metrics_fast()` and adds clustering-based metrics
-+ :func:`scib.me.metrics_all()` includes all metrics
++ :func:`scib.metrics.metrics_fast()` only computes metrics that require little preprocessing
++ :func:`scib.metrics.metrics_slim()` includes all functions of :func:`scib.metrics.metrics_fast()` and adds clustering-based metrics
++ :func:`scib.metrics.metrics_all()` includes all metrics
 
 
 .. autosummary::
