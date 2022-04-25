@@ -18,7 +18,7 @@ def pcr_comparison(
 ):
     """Principal component regression score
 
-    Compare the explained variance before and after integration using :func:`scib.metrics.pc_regression`.
+    Compare the explained variance before and after integration using :func:`~scib.metrics.pc_regression`.
     Return either the difference of variance contribution before and after integration
     or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
@@ -80,7 +80,7 @@ def pcr(
 ):
     """Principal component regression for anndata object
 
-    Wraps :func:`scib.metrics.pc_regression` while checking whether to:
+    Wraps :func:`~scib.metrics.pc_regression` while checking whether to:
 
         + compute PCA on embedding or expression data (set ``embed`` to name of embedding matrix e.g. ``embed='X_emb'``)
         + use existing PCA (only if PCA entry exists)

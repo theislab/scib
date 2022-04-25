@@ -34,12 +34,12 @@ def lisi_graph(
     This is a reimplementation of the LISI (Local Inverse Simpson’s Index) metrics
     https://doi.org/10.1038/s41592-019-0619-0
 
-    see :func:`scib.metrics.clisi_graph` and :func:`scib.metrics.ilisi_graph`
+    see :func:`~scib.metrics.clisi_graph` and :func:`~scib.metrics.ilisi_graph`
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
     :param label_key: label column name in ``adata.obs``
-    :params \*\*kwargs: arguments to be passed to :func:`scib.metrics.clisi_graph` and :func:`scib.metrics.ilisi_graph`
+    :params \\**kwargs: arguments to be passed to :func:`~scib.metrics.clisi_graph` and :func:`~scib.metrics.ilisi_graph`
     :return: Overall cLISI and iLISI scores
     """
     ilisi = ilisi_graph(adata, batch_key=batch_key, **kwargs)

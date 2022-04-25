@@ -52,21 +52,21 @@ Metrics Wrapper Functions
 
 For convenience, ``scib`` provides wrapper functions that, given integrated and unintegrated adata objects, apply
 multiple metrics and return all the results in a ``pandas.Dataframe``.
-The main function is :func:`scib.metrics.metrics`, that provides all the parameters for the different metrics.
+The main function is :func:`~scib.metrics.metrics`, that provides all the parameters for the different metrics.
 
 .. code-block:: python
 
     scib.metrics.metrics(adata, adata_int, ari=True, nmi=True)
 
 
-The remaining functions call the :func:`scib.metrics.metrics` for
+The remaining functions call the :func:`~scib.metrics.metrics` for
 
-Furthermore, :func:`scib.metrics.metrics()` is wrapped by convenience functions with preconfigured subsets of metrics
+Furthermore, :func:`~scib.metrics.metrics()` is wrapped by convenience functions with preconfigured subsets of metrics
 based on expected computation time:
 
-+ :func:`scib.metrics.metrics_fast()` only computes metrics that require little preprocessing
-+ :func:`scib.metrics.metrics_slim()` includes all functions of :func:`scib.metrics.metrics_fast()` and adds clustering-based metrics
-+ :func:`scib.metrics.metrics_all()` includes all metrics
++ :func:`~scib.metrics.metrics_fast()` only computes metrics that require little preprocessing
++ :func:`~scib.metrics.metrics_slim()` includes all functions of :func:`~scib.metrics.metrics_fast()` and adds clustering-based metrics
++ :func:`~scib.metrics.metrics_all()` includes all metrics
 
 
 .. autosummary::

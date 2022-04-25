@@ -28,7 +28,7 @@ def cell_cycle(
 
         CC \\, conservation = 1 - \\frac { |Var_{after} - Var_{before}| } {Var_{before}}
 
-    Variance contribution is obtained through principal component regression using :func:`scib.metrics.pc_regression`.
+    Variance contribution is obtained through principal component regression using :func:`~scib.metrics.pc_regression`.
     The score can be computed on full corrected feature spaces and latent embeddings.
 
     :param adata_pre: adata before integration

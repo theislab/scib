@@ -26,8 +26,9 @@ For example, in order to run Scanorama, on a dataset, call:
 
     Please use the snake_case naming without the ``run`` prefix.
 
-Some integration methods (``scgen``, ``scanvi``) also use cell type labels as input. For these, you need to additionally
-provide the corresponding label column of ``adata.obs`` (here ``cell_type``).
+Some integration methods (e.g. :func:`~scib.integration.scgen`, :func:`~scib.integration.scanvi`) also use cell type
+labels as input.
+For these, you need to additionally provide the corresponding label column of ``adata.obs`` (here ``cell_type``).
 
 .. code-block:: python
 

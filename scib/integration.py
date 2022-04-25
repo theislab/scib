@@ -413,7 +413,7 @@ def bbknn(adata, batch, hvg=None, **kwargs):
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
     :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
-    :params \*\*kwargs: additional parameters for BBKNN
+    :params \\**kwargs: additional parameters for BBKNN
     :return: ``anndata`` object containing the corrected graph
     """
     try:

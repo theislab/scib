@@ -28,21 +28,21 @@ def metrics_fast(
 
 
     :Biological conservation:
-        + HVG overlap :func:`scib.metrics.hvg_overlap`
-        + Cell type ASW :func:`scib.metrics.silhouette`
-        + Isolated label ASW :func:`scib.metrics.isolated_labels`
+        + HVG overlap :func:`~scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`~scib.metrics.silhouette`
+        + Isolated label ASW :func:`~scib.metrics.isolated_labels`
 
     :Batch correction:
-        + Graph connectivity :func:`scib.metrics.graph_connectivity`
-        + Batch ASW :func:`scib.metrics.silhouette_batch`
-        + Principal component regression :func:`scib.metrics.pcr_comparison`
+        + Graph connectivity :func:`~scib.metrics.graph_connectivity`
+        + Batch ASW :func:`~scib.metrics.silhouette_batch`
+        + Principal component regression :func:`~scib.metrics.pcr_comparison`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to :func:`scib.metrics.metrics` function:
+        Parameters to pass on to :func:`~scib.metrics.metrics` function:
 
             + ``embed``
             + ``si_metric``
@@ -72,26 +72,26 @@ def metrics_slim(
     """All metrics apart from kBET and LISI scores
 
     :Biological conservation:
-        + HVG overlap :func:`scib.metrics.hvg_overlap`
-        + Cell type ASW :func:`scib.metrics.silhouette`
-        + Isolated label ASW :func:`scib.metrics.isolated_labels`
-        + Isolated label F1 :func:`scib.metrics.isolated_labels`
-        + NMI cluster/label :func:`scib.metrics.nmi`
-        + ARI cluster/label :func:`scib.metrics.ari`
-        + Cell cycle conservation :func:`scib.metrics.cell_cycle`
-        + Trajectory conservation :func:`scib.metrics.trajectory_conservation`
+        + HVG overlap :func:`~scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`~scib.metrics.silhouette`
+        + Isolated label ASW :func:`~scib.metrics.isolated_labels`
+        + Isolated label F1 :func:`~scib.metrics.isolated_labels`
+        + NMI cluster/label :func:`~scib.metrics.nmi`
+        + ARI cluster/label :func:`~scib.metrics.ari`
+        + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
+        + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
 
     :Batch correction:
-        + Graph connectivity :func:`scib.metrics.graph_connectivity`
-        + Batch ASW :func:`scib.metrics.silhouette_batch`
-        + Principal component regression :func:`scib.metrics.pcr_comparison`
+        + Graph connectivity :func:`~scib.metrics.graph_connectivity`
+        + Batch ASW :func:`~scib.metrics.silhouette_batch`
+        + Principal component regression :func:`~scib.metrics.pcr_comparison`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to :func:`scib.metrics.metrics` function:
+        Parameters to pass on to :func:`~scib.metrics.metrics` function:
 
             + ``embed``
             + ``cluster_key``
@@ -131,29 +131,29 @@ def metrics_all(
     """All metrics
 
     :Biological conservation:
-        + HVG overlap :func:`scib.metrics.hvg_overlap`
-        + Cell type ASW :func:`scib.metrics.silhouette`
-        + Isolated label ASW :func:`scib.metrics.isolated_labels`
-        + Isolated label F1 :func:`scib.metrics.isolated_labels`
-        + NMI cluster/label :func:`scib.metrics.nmi`
-        + ARI cluster/label :func:`scib.metrics.ari`
-        + Cell cycle conservation :func:`scib.metrics.cell_cycle`
-        + cLISI (cell type Local Inverse Simpson's Index) :func:`scib.metrics.clisi_graph`
-        + Trajectory conservation :func:`scib.metrics.trajectory_conservation`
+        + HVG overlap :func:`~scib.metrics.hvg_overlap`
+        + Cell type ASW :func:`~scib.metrics.silhouette`
+        + Isolated label ASW :func:`~scib.metrics.isolated_labels`
+        + Isolated label F1 :func:`~scib.metrics.isolated_labels`
+        + NMI cluster/label :func:`~scib.metrics.nmi`
+        + ARI cluster/label :func:`~scib.metrics.ari`
+        + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
+        + cLISI (cell type Local Inverse Simpson's Index) :func:`~scib.metrics.clisi_graph`
+        + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
 
     :Batch correction:
-        + Graph connectivity :func:`scib.metrics.graph_connectivity`
-        + Batch ASW :func:`scib.metrics.silhouette_batch`
-        + Principal component regression :func:`scib.metrics.pcr_comparison`
-        + kBET (k-nearest neighbour batch effect test) :func:`scib.metrics.kBET`
-        + iLISI (integration Local Inverse Simpson's Index) :func:`scib.metrics.ilisi_graph`
+        + Graph connectivity :func:`~scib.metrics.graph_connectivity`
+        + Batch ASW :func:`~scib.metrics.silhouette_batch`
+        + Principal component regression :func:`~scib.metrics.pcr_comparison`
+        + kBET (k-nearest neighbour batch effect test) :func:`~scib.metrics.kBET`
+        + iLISI (integration Local Inverse Simpson's Index) :func:`~scib.metrics.ilisi_graph`
 
     :param adata: unintegrated, preprocessed anndata object
     :param adata_int: integrated anndata object
     :param batch_key: name of batch column in adata.obs and adata_int.obs
     :param label_key: name of biological label (cell type) column in adata.obs and adata_int.obs
     :param kwargs:
-        Parameters to pass on to :func:`scib.metrics.metrics` function:
+        Parameters to pass on to :func:`~scib.metrics.metrics` function:
 
             + ``embed``
             + ``cluster_key``
@@ -249,48 +249,48 @@ def metrics(
         Where to save cluster resolutions and NMI for optimal clustering
         If None, these results will not be saved
     :param `ari_`:
-        whether to compute ARI using :func:`scib.metrics.ari`
+        whether to compute ARI using :func:`~scib.metrics.ari`
     :param `nmi_`:
-        whether to compute NMI using :func:`scib.metrics.nmi`
+        whether to compute NMI using :func:`~scib.metrics.nmi`
     :param nmi_method:
         which implementation of NMI to use
     :param nmi_dir:
         directory of NMI code for some implementations of NMI
     :param `silhouette_`:
         whether to compute the average silhouette width scores for labels and batch
-        using :func:`scib.metrics.silhouette` and :func:`scib.metrics.silhouette_batch`
+        using :func:`~scib.metrics.silhouette` and :func:`~scib.metrics.silhouette_batch`
     :param si_metric:
         which distance metric to use for silhouette scores
     :param `pcr_`:
-        whether to compute principal component regression using :func:`scib.metrics.pc_comparison`
+        whether to compute principal component regression using :func:`~scib.metrics.pc_comparison`
     :param `cell_cycle_`:
-        whether to compute cell cycle score conservation using :func:`scib.metrics.cell_cycle`
+        whether to compute cell cycle score conservation using :func:`~scib.metrics.cell_cycle`
     :param organism:
         organism of the datasets, used for computing cell cycle scores on gene names
     :param `hvg_score_`:
-        whether to compute highly variable gene conservation using :func:`scib.metrics.hvg_overlap`
+        whether to compute highly variable gene conservation using :func:`~scib.metrics.hvg_overlap`
     :param `isolated_labels_`:
-        whether to compute both isolated label scores using :func:`scib.metrics.isolated_labels`
+        whether to compute both isolated label scores using :func:`~scib.metrics.isolated_labels`
     :param `isolated_labels_f1_`:
         whether to compute isolated label score based on F1 score of clusters vs labels using
-        :func:`scib.metrics.isolated_labels`
+        :func:`~scib.metrics.isolated_labels`
     :param `isolated_labels_asw_`:
         whether to compute isolated label score based on ASW (average silhouette width) using
-        :func:`scib.metrics.isolated_labels`
+        :func:`~scib.metrics.isolated_labels`
     :param `n_isolated`:
         maximum number of batches per label for label to be considered as isolated
     :param `graph_conn_`:
-        whether to compute graph connectivity score using :func:`scib.metrics.graph_connectivity`
+        whether to compute graph connectivity score using :func:`~scib.metrics.graph_connectivity`
     :param `trajectory_`:
-        whether to compute trajectory score using :func:`scib.metrics.trajectory_conservation`
+        whether to compute trajectory score using :func:`~scib.metrics.trajectory_conservation`
     :param `kBET_`:
-        whether to compute kBET score using :func:`scib.metrics.kBET`
+        whether to compute kBET score using :func:`~scib.metrics.kBET`
     :param `lisi_graph_`:
-        whether to compute both cLISI and iLISI using :func:`scib.metrics.lisi_graph`
+        whether to compute both cLISI and iLISI using :func:`~scib.metrics.lisi_graph`
     :param `clisi_`:
-        whether to compute cLISI using :func:`scib.metrics.clisi_graph`
+        whether to compute cLISI using :func:`~scib.metrics.clisi_graph`
     :param `ilisi_`:
-        whether to compute iLISI using :func:`scib.metrics.ilisi_graph`
+        whether to compute iLISI using :func:`~scib.metrics.ilisi_graph`
     :param subsample:
         subsample fraction for LISI scores
     :param `type_`:
