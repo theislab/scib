@@ -13,8 +13,10 @@ For a detailed description of the metrics implemented in this package, please se
 Biological Conservation Metrics
 -------------------------------
 
-Biological conservation metrics return a value ranging from 0 to 1, in which larger scores represent better conservation
-of the biological aspect that the metric addresses.
+Biological conservation metrics quantify either the integrity of cluster-based metrics based on clustering results of
+the integration output, or the difference in the feature spaces of integrated and unintegrated data.
+Each metric is scaled to a value ranging from 0 to 1 by default, where larger scores represent better conservation of
+the biological aspect that the metric addresses.
 
 .. autosummary::
     :toctree: api/
@@ -32,7 +34,8 @@ of the biological aspect that the metric addresses.
 Batch Correction Metrics
 ------------------------
 
-Batch correction metrics return a value ranging from 0 to 1, in which larger scores represent better batch removal.
+Batch correction metrics values are scaled by default between 0 and 1, in which larger scores represent better batch
+removal.
 
 .. autosummary::
     :toctree: api/
