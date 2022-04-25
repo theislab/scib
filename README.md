@@ -85,7 +85,7 @@ module.
 </table>
 
 For a detailed description of the metrics implemented in this package, please see our
-[publication](https://doi.org/10.1038/s41592-021-01336-8).
+[publication](https://doi.org/10.1038/s41592-021-01336-8) and package the [documentation](https://scib.readthedocs.io/).
 
 ## Integration Tools
 
