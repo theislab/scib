@@ -22,8 +22,9 @@ alias_func_map = {
     'runSaucie': integration.saucie,
     'runCombat': integration.combat,
     'runDESC': integration.desc,
-    'readSeurat': preprocessing.read_seurat,
     'readConos': preprocessing.read_conos,
+    'readSeurat': preprocessing.read_seurat,
+    'saveSeurat': preprocessing.save_seurat,
 }
 
 for alias, func in alias_func_map.items():

@@ -4,10 +4,17 @@ from scipy.sparse.csgraph import connected_components
 
 
 def graph_connectivity(adata, label_key):
-    """"
-    Quantify how connected the subgraph corresponding to each batch cluster is.
-    Calculate per label: #cells_in_largest_connected_component/#all_cells
-    Final score: Average over labels
+    """Graph Connectivity
+
+    Quantify the connectivity of the subgraph per cell type label.
+    The final score is the average for all cell type labels :math:`C`, according to the equation:
+
+    .. math::
+
+        GC = \\frac {1} {|C|} \\sum_{c \\in C} \\frac {|{LCC(subgraph_c)}|} {|c|}
+
+    where :math:`|LCC(subgraph_c)|` stands for all cells in the largest connected component and :math:`|c|` stands for all cells of
+    cell type :math:`c`.
 
     :param adata: adata with computed neighborhood graph
     :param label_key: name in adata.obs containing the cell identity labels

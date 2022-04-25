@@ -9,12 +9,15 @@ def silhouette(
         metric='euclidean',
         scale=True
 ):
-    """
+    """Average silhouette width (ASW)
+
     Wrapper for sklearn silhouette function values range from [-1, 1] with
-        1 being an ideal fit
-        0 indicating overlapping clusters and
-        -1 indicating misclassified cells
-    By default, the score is scaled between 0 and 1. This is controlled `scale=True`
+
+        * 1 indicates distinct, compact clusters
+        * 0 indicates overlapping clusters
+        * -1 indicates core-periphery (non-cluster) structure
+
+    By default, the score is scaled between 0 and 1 (``scale=True``).
 
     :param group_key: key in adata.obs of cell labels
     :param embed: embedding key in adata.obsm, default: 'X_pca'
@@ -43,21 +46,45 @@ def silhouette_batch(
         scale=True,
         verbose=True
 ):
-    """
-    Absolute silhouette score of batch labels subsetted for each group.
+    """Batch ASW
 
-    :param batch_key: batches to be compared against
-    :param group_key: group labels to be subsetted by e.g. cell type
+    Modified average silhouette width (ASW) of batch
+
+    This metric measures the silhouette of a given batch.
+    It assumes that a silhouette width close to 0 represents perfect overlap of the batches, thus the absolute value of
+    the silhouette width is used to measure how well batches are mixed.
+    For all cells :math:`i` of a cell type :math:`C_j`, the batch ASW of that cell type is:
+
+    .. math::
+
+        batch \\, ASW_j = \\frac{1}{|C_j|} \\sum_{i \\in C_j} |silhouette(i)|
+
+    The final score is the average of the absolute silhouette widths computed per cell type :math:`M`.
+
+    .. math::
+
+        batch \\, ASW = \\frac{1}{|M|} \\sum_{i \\in M} batch \\, ASW_j
+
+    For a scaled metric (which is the default), the absolute ASW per group is subtracted from 1 before averaging, so that
+    0 indicates suboptimal label representation and 1 indicates optimal label representation.
+
+    .. math::
+
+        batch \\, ASW_j = \\frac{1}{|C_j|} \\sum_{i \\in C_j} 1 - |silhouette(i)|
+
+
+    :param batch_key: batch labels to be compared against
+    :param group_key: group labels to be subset by e.g. cell type
     :param embed: name of column in adata.obsm
     :param metric: see sklearn silhouette score
     :param scale: if True, scale between 0 and 1
     :param return_all: if True, return all silhouette scores and label means
         default False: return average width silhouette (ASW)
-    :param verbose:
+    :param verbose: print silhouette score per group
     :return:
-        average width silhouette ASW
-        mean silhouette per group in pd.DataFrame
-        Absolute silhouette scores per group label
+        Batch ASW  (always)
+        Mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
+        Absolute silhouette scores per group label (additionally, if return_all=True)
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
@@ -97,7 +124,7 @@ def silhouette_batch(
     asw = sil_means['silhouette_score'].mean()
 
     if verbose:
-        print(f'mean silhouette per cell: {sil_means}')
+        print(f'mean silhouette per group: {sil_means}')
 
     if return_all:
         return asw, sil_means, sil_all

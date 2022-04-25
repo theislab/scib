@@ -7,23 +7,23 @@ from ..utils import check_adata, check_batch
 
 
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
-    """
+    """Normalized mutual information
+
     Wrapper for normalized mutual information NMI between two different cluster assignments
 
     :param adata: Anndata object
-    :param group1: column name of `adata.obs`
-    :param group2: column name of `adata.obs`
-    :param method: NMI implementation
-        'max': scikit method with `average_method='max'`
-        'min': scikit method with `average_method='min'`
-        'geometric': scikit method with `average_method='geometric'`
-        'arithmetic': scikit method with `average_method='arithmetic'`
-        'Lancichinetti': implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual
+    :param group1: column name of ``adata.obs``
+    :param group2: column name of ``adata.obs``
+    :param method: NMI implementation.
+        'max': scikit method with ``average_method='max'``;
+        'min': scikit method with ``average_method='min'``;
+        'geometric': scikit method with ``average_method='geometric'``;
+        'arithmetic': scikit method with ``average_method='arithmetic'``;
+        'Lancichinetti': implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
         'ONMI': implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
-    :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as `method`.
+    :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as ``method``.
         These packages need to be compiled as specified in the corresponding READMEs.
-    :return:
-        Normalized mutual information NMI value
+    :return: Normalized mutual information NMI value
     """
 
     check_adata(adata)
@@ -55,8 +55,10 @@ def onmi(group1, group2, nmi_dir=None, verbose=True):
     """
     Based on implementation https://github.com/aaronmcdaid/Overlapping-NMI
     publication: Aaron F. McDaid, Derek Greene, Neil Hurley 2011
-    params:
-        nmi_dir: directory of compiled C code
+
+    :param group1: list or series of cell assignments
+    :param group2: list or series of cell assignments
+    :param nmi_dir: directory of compiled C code
     """
 
     if nmi_dir is None:
@@ -122,8 +124,9 @@ def write_tmp_labels(group_assignments, to_int=False, delim='\n'):
     """
     write the values of a specific obs column into a temporary file in text format
     needed for external C NMI implementations (onmi and nmi_Lanc functions), because they require files as input
-    params:
-        to_int: rename the unique column entries by integers in range(1,len(group_assignments)+1)
+
+    :param group_assignments: list or series of cell assignments
+    :param to_int: rename the unique column entries by integers in range(1,len(group_assignments)+1)
     """
     import tempfile
 
