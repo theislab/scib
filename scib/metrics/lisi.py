@@ -284,7 +284,7 @@ def lisi_graph_py(
         pool.close()
         pool.join()
 
-        simpson_est_batch = 1 / np.concatenate(results)
+        simpson_estimate_batch = np.concatenate(results)
 
     else:
         simpson_estimate_batch = compute_simpson_index_graph(
@@ -294,15 +294,10 @@ def lisi_graph_py(
             perplexity=perplexity,
             n_neighbors=n_neighbors
         )
-        simpson_est_batch = 1 / simpson_estimate_batch
 
-
-    # extract results
-    d = {batch_key: simpson_est_batch}
-    lisi_estimate = pd.DataFrame(data=d, index=np.arange(0, len(simpson_est_batch)))
     tmpdir.cleanup()
 
-    return lisi_estimate
+    return 1 / simpson_estimate_batch
 
 
 # LISI core functions
