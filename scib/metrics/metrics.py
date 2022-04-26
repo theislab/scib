@@ -217,6 +217,7 @@ def metrics(
         ilisi_=False,
         clisi_=False,
         subsample=0.5,
+        n_cores=1,
         type_=None,
         verbose=False,
 ):
@@ -456,7 +457,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=None,
+            n_cores=n_cores,
             verbose=verbose
         )
     else:
@@ -470,7 +471,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=None,
+            n_cores=n_cores,
             verbose=verbose
         )
     else:

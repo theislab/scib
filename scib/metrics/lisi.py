@@ -54,8 +54,7 @@ def ilisi_graph(
         type_=None,
         subsample=None,
         scale=True,
-        multiprocessing=None,
-        nodes=None,
+        n_cores=1,
         verbose=False
 ):
     """Integration LISI (iLISI) score
@@ -75,10 +74,7 @@ def ilisi_graph(
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
-    :param multiprocessing: parallel computation of LISI scores, if None, no parallelisation
-        via multiprocessing is performed
-    :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
-        multiprocessing is set to None
+    :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of iLISI scores per batch labels
     """
 
@@ -92,8 +88,7 @@ def ilisi_graph(
         n_neighbors=k0,
         perplexity=None,
         subsample=subsample,
-        multiprocessing=multiprocessing,
-        nodes=nodes,
+        n_cores=n_cores,
         verbose=verbose
     )
 
@@ -115,8 +110,7 @@ def clisi_graph(
         type_=None,
         subsample=None,
         scale=True,
-        multiprocessing=None,
-        nodes=None,
+        n_cores=1,
         verbose=False
 ):
     """Cell-type LISI (cLISI) score
@@ -137,10 +131,7 @@ def clisi_graph(
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
-    :param multiprocessing: parallel computation of LISI scores, if None, no parallelisation
-        via multiprocessing is performed
-    :param nodes: number of nodes (i.e. CPUs to use for multiprocessing); ignored, if
-        multiprocessing is set to None
+    :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of cLISI scores per cell type labels
     """
 
@@ -156,8 +147,7 @@ def clisi_graph(
         n_neighbors=k0,
         perplexity=None,
         subsample=subsample,
-        multiprocessing=multiprocessing,
-        nodes=nodes,
+        n_cores=n_cores,
         verbose=verbose
     )
 
@@ -191,8 +181,7 @@ def lisi_graph_py(
         n_neighbors=90,
         perplexity=None,
         subsample=None,
-        multiprocessing=None,
-        nodes=None,
+        n_cores=1,
         verbose=False
 ):
     """
@@ -239,20 +228,6 @@ def lisi_graph_py(
             print(connectivities.data[large_enough == False])
     connectivities.data[large_enough == False] = 3e-308
 
-    # define number of chunks
-    n_chunks = 1
-
-    if multiprocessing is not None:
-        # set up multiprocessing
-        if nodes is None:
-            # take all but one CPU and 1 CPU, if there's only 1 CPU.
-            n_cpu = mp.cpu_count()
-            n_processes = np.max([n_cpu, np.ceil(n_cpu / 2)]).astype('int')
-        else:
-            n_processes = nodes
-        # update numbr of chunks
-        n_chunks = n_processes
-
     # temporary file
     tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
     dir_path = tmpdir.name + '/'
@@ -269,8 +244,16 @@ def lisi_graph_py(
     cpp_file_path = root / 'knn_graph/knn_graph.o'  # create POSIX path to file to execute compiled cpp-code
     # comment: POSIX path needs to be converted to string - done below with 'as_posix()'
     # create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
-    n_splits = n_chunks - 1
-    args_int = [cpp_file_path.as_posix(), mtx_file_path, dir_path, str(n_neighbors), str(n_splits), str(subset)]
+    args_int = [
+        cpp_file_path.as_posix(),
+        mtx_file_path,
+        dir_path,
+        str(n_neighbors),
+        str(n_cores - 1),  # number of splits
+        str(subset)
+    ]
+    if verbose:
+        print(f'call {" ".join(args_int)}')
     try:
         subprocess.run(args_int)
     except Exception as e:
@@ -281,13 +264,12 @@ def lisi_graph_py(
     if verbose:
         print("LISI score estimation")
 
-    # do the simpson call
-    if multiprocessing is not None:
+    if n_cores > 1:
 
         if verbose:
-            print(f"{n_processes} processes started.")
-        pool = mp.Pool(processes=n_processes)
-        count = np.arange(0, n_processes)
+            print(f"{n_cores} processes started.")
+        pool = mp.Pool(processes=n_cores)
+        count = np.arange(0, n_cores)
 
         # create argument list for each worker
         results = pool.starmap(
@@ -310,8 +292,7 @@ def lisi_graph_py(
             batch_labels=batch,
             n_batches=n_batches,
             perplexity=perplexity,
-            n_neighbors=n_neighbors,
-            chunk_no=None
+            n_neighbors=n_neighbors
         )
         simpson_est_batch = 1 / simpson_estimate_batch
 
@@ -426,8 +407,6 @@ def compute_simpson_index_graph(
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
 
-    if chunk_no is None:
-        chunk_no = 0
     # check if the target file is not empty
     if os.stat(input_path + '_indices_' + str(chunk_no) + '.txt').st_size == 0:
         print("File has no entries. Doing nothing.")
