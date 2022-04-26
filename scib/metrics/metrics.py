@@ -294,6 +294,7 @@ def metrics(
         whether to compute iLISI using :func:`~scib.metrics.ilisi_graph`
     :param subsample:
         subsample fraction for LISI scores
+    :param n_cores: number of cores to be used for LISI functions
     :param `type_`:
         one of 'full', 'embed' or 'knn' (used for kBET and LISI scores)
     """
