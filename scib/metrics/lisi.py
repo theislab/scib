@@ -230,9 +230,9 @@ def lisi_graph_py(
 
     # temporary file
     tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
-    dir_path = tmpdir.name + '/'
-    mtx_file_path = dir_path + 'input.mtx'
-    print(mtx_file_path, dir_path)
+    prefix = tmpdir.name + '/graph_lisi'
+    mtx_file_path = prefix + '_input.mtx'
+
     mmwrite(
         mtx_file_path,
         connectivities,
@@ -247,7 +247,7 @@ def lisi_graph_py(
     args_int = [
         cpp_file_path.as_posix(),
         mtx_file_path,
-        dir_path,
+        prefix,
         str(n_neighbors),
         str(n_cores),  # number of splits
         str(subset)
@@ -269,17 +269,19 @@ def lisi_graph_py(
         if verbose:
             print(f"{n_cores} processes started.")
         pool = mp.Pool(processes=n_cores)
-        count = np.arange(0, n_cores)
+        chunk_no = np.arange(0, n_cores)
 
         # create argument list for each worker
         results = pool.starmap(
             compute_simpson_index_graph,
-            zip(itertools.repeat(dir_path),
+            zip(
+                itertools.repeat(prefix),
                 itertools.repeat(batch),
                 itertools.repeat(n_batches),
                 itertools.repeat(n_neighbors),
                 itertools.repeat(perplexity),
-                count)
+                chunk_no
+            )
         )
         pool.close()
         pool.join()
@@ -288,7 +290,7 @@ def lisi_graph_py(
 
     else:
         simpson_estimate_batch = compute_simpson_index_graph(
-            input_path=dir_path,
+            file_prefix=prefix,
             batch_labels=batch,
             n_batches=n_batches,
             perplexity=perplexity,
@@ -377,7 +379,7 @@ def compute_simpson_index(
 
 
 def compute_simpson_index_graph(
-        input_path=None,
+        file_prefix=None,
         batch_labels=None,
         n_batches=None,
         n_neighbors=90,
@@ -388,7 +390,7 @@ def compute_simpson_index_graph(
     """
     Simpson index of batch labels subset by group.
 
-    :param input_path: file_path to pre-computed index and distance files
+    :param file_prefix: file_path to pre-computed index and distance files
     :param batch_labels: a vector of length n_cells with batch info
     :param n_batches: number of unique batch labels
     :param n_neighbors: number of nearest neighbors
@@ -397,22 +399,24 @@ def compute_simpson_index_graph(
     :param tol: a tolerance for testing effective neighborhood size
     :returns: the simpson index for the neighborhood of each cell
     """
+    index_file = file_prefix + '_indices_' + str(chunk_no) + '.txt'
+    distance_file = file_prefix + '_distances_' + str(chunk_no) + '.txt'
 
     # initialize
     P = np.zeros(n_neighbors)
     logU = np.log(perplexity)
 
     # check if the target file is not empty
-    if os.stat(input_path + '_indices_' + str(chunk_no) + '.txt').st_size == 0:
+    if os.stat(index_file).st_size == 0:
         print("File has no entries. Doing nothing.")
         lists = np.zeros(0)
         return lists
 
     # read distances and indices with nan value handling
-    indices = pd.read_table(input_path + '_indices_' + str(chunk_no) + '.txt', index_col=0, header=None, sep=',')
+    indices = pd.read_table(index_file, index_col=0, header=None, sep=',')
     indices = indices.T
 
-    distances = pd.read_table(input_path + '_distances_' + str(chunk_no) + '.txt', index_col=0, header=None, sep=',')
+    distances = pd.read_table(distance_file, index_col=0, header=None, sep=',')
     distances = distances.T
 
     # get cell ids
