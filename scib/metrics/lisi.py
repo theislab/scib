@@ -249,7 +249,7 @@ def lisi_graph_py(
         mtx_file_path,
         dir_path,
         str(n_neighbors),
-        str(n_cores - 1),  # number of splits
+        str(n_cores),  # number of splits
         str(subset)
     ]
     if verbose:
