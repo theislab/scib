@@ -191,6 +191,9 @@ def lisi_graph_py(
     By default, perplexity is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
 
+    # use no more than the available cores
+    n_cores = max(1, min(n_cores, mp.cpu_count()))
+
     if 'neighbors' not in adata.uns:
         raise AttributeError(f"key 'neighbors' not found. Please make sure that a " +
                              "kNN graph has been computed")
