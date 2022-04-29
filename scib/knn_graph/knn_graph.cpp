@@ -359,11 +359,11 @@ int main(int argc, char* argv[]) {
    unsigned limit = matrix.getRowCount();  
    unsigned len_ch;
    if (n_chunks <= 1){
-	   n_chunks = 0;
+	   n_chunks = 1;
 	   len_ch = limit;
    }
    else{
-   	len_ch = limit/n_chunks;
+   	len_ch = limit / (n_chunks - 1);
    }
    //get percentage to which should be subsampled
    unsigned sub = stoi(argv[5]);
@@ -384,7 +384,7 @@ int main(int argc, char* argv[]) {
    unsigned lower;
    unsigned upper;
 
-   for (unsigned n_ch = 0; n_ch <= n_chunks; ++n_ch){   
+   for (unsigned n_ch = 0; n_ch < n_chunks; ++n_ch){
    // Find the top k elements for all nodes. Computes the sum of all the weights, just to have some result to show
    // write all neighbors and weights to two files
     dist = output_prefix + "_distances_" + to_string(n_ch) + ".txt";

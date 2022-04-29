@@ -217,6 +217,7 @@ def metrics(
         ilisi_=False,
         clisi_=False,
         subsample=0.5,
+        n_cores=1,
         type_=None,
         verbose=False,
 ):
@@ -293,6 +294,7 @@ def metrics(
         whether to compute iLISI using :func:`~scib.metrics.ilisi_graph`
     :param subsample:
         subsample fraction for LISI scores
+    :param n_cores: number of cores to be used for LISI functions
     :param `type_`:
         one of 'full', 'embed' or 'knn' (used for kBET and LISI scores)
     """
@@ -456,7 +458,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=True,
+            n_cores=n_cores,
             verbose=verbose
         )
     else:
@@ -470,7 +472,7 @@ def metrics(
             type_=type_,
             subsample=subsample * 100,
             scale=True,
-            multiprocessing=True,
+            n_cores=n_cores,
             verbose=verbose
         )
     else:
