@@ -430,43 +430,42 @@ def compute_simpson_index_graph(
     simpson = np.zeros(len(chunk_ids))
 
     # loop over all cells in chunk
-    for i in enumerate(chunk_ids):
+    for i, chunk_id in enumerate(chunk_ids):
         # get neighbors and distances
         # read line i from indices matrix
-        get_col = indices[i[1]]
+        get_col = indices[chunk_id]
 
         if get_col.isnull().sum() > 0:
             # not enough neighbors
-            print(i[1] + " has not enough neighbors.")
-            simpson[i[0]] = 1  # np.nan #set nan for testing
+            print(f'Chunk {chunk_id} does not have enough neighbors. Skipping...')
+            simpson[i] = 1  # np.nan #set nan for testing
             continue
-        else:
-            knn_idx = get_col.astype('int') - 1  # get 0-based indexing
+
+        knn_idx = get_col.astype('int') - 1  # get 0-based indexing
 
         # read line i from distances matrix
-        D_act = distances[i[1]].values.astype('float')
+        D_act = distances[chunk_id].values.astype('float')
 
         # start lisi estimation
         beta = 1
-        # negative infinity
         betamin = -np.inf
-        # positive infinity
         betamax = np.inf
 
         H, P = Hbeta(D_act, beta)
         Hdiff = H - logU
         tries = 0
+
         # first get neighbor probabilities
-        while (np.logical_and(np.abs(Hdiff) > tol, tries < 50)):
-            if (Hdiff > 0):
+        while np.logical_and(np.abs(Hdiff) > tol, tries < 50):
+            if Hdiff > 0:
                 betamin = beta
-                if (betamax == np.inf):
+                if betamax == np.inf:
                     beta *= 2
                 else:
                     beta = (beta + betamax) / 2
             else:
                 betamax = beta
-                if (betamin == -np.inf):
+                if betamin == -np.inf:
                     beta /= 2
                 else:
                     beta = (beta + betamin) / 2
@@ -475,14 +474,14 @@ def compute_simpson_index_graph(
             Hdiff = H - logU
             tries += 1
 
-        if (H == 0):
-            simpson[i[0]] = -1
+        if H == 0:
+            simpson[i] = -1
             continue
             # then compute Simpson's Index
         batch = batch_labels[knn_idx]
         B = convert_to_one_hot(batch, n_batches)
         sumP = np.matmul(P, B)  # sum P per batch
-        simpson[i[0]] = np.dot(sumP, sumP)  # sum squares
+        simpson[i] = np.dot(sumP, sumP)  # sum squares
 
     return simpson
 
