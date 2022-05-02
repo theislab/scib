@@ -10,7 +10,8 @@ __all__ = [
     "nmi",
     "pcr",
     "silhouette",
-    "trajectory"
+    "trajectory",
+    "morans_i",
 ]
 
 from .metrics import *
