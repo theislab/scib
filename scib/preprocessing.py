@@ -1,5 +1,3 @@
-# TODO: move util functions e.g. reader functions elsewhere
-
 import logging
 import tempfile
 
@@ -14,7 +12,7 @@ from matplotlib import pyplot as plt
 from scipy import sparse
 
 # access to other methods of this module
-from . import utils
+from . import utils  # TODO: move util functions
 from .exceptions import RLibraryNotFound
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(
