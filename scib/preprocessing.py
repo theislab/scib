@@ -509,6 +509,12 @@ def hvg_batch(
         hvg = nbatch1_dispersions.index[:]
         not_n_batches = 1
 
+        # Check that target_genes is not greater than total number of genes
+        if not target_genes <= adata_hvg.n_vars:
+            raise ValueError(
+                f"Number of HVGs ({target_genes=}) has to be smaller than total number of genes ({adata.n_vars=})"
+            )
+
         while not enough:
             target_genes_diff = target_genes - len(hvg)
 
