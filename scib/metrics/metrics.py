@@ -11,6 +11,7 @@ from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -68,6 +69,7 @@ def metrics_slim(adata, adata_int, batch_key, label_key, **kwargs):
         + ARI cluster/label :func:`~scib.metrics.ari`
         + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
         + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
+        + Moran's I autocorrelation :func:`~scib.metrics.morans_i`
 
     :Batch correction:
         + Graph connectivity :func:`~scib.metrics.graph_connectivity`
@@ -102,6 +104,7 @@ def metrics_slim(adata, adata_int, batch_key, label_key, **kwargs):
         pcr_=True,
         isolated_labels_f1_=True,
         trajectory_=True,
+        morans_i_=True,
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
@@ -122,6 +125,7 @@ def metrics_all(adata, adata_int, batch_key, label_key, **kwargs):
         + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
         + cLISI (cell type Local Inverse Simpson's Index) :func:`~scib.metrics.clisi_graph`
         + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
+        + Moran's I autocorrelation :func:`~scib.metrics.morans_i`
 
     :Batch correction:
         + Graph connectivity :func:`~scib.metrics.graph_connectivity`
@@ -160,6 +164,7 @@ def metrics_all(adata, adata_int, batch_key, label_key, **kwargs):
         pcr_=True,
         isolated_labels_f1_=True,
         trajectory_=True,
+        morans_i_=True,
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
@@ -194,6 +199,7 @@ def metrics(
     n_isolated=None,
     graph_conn_=False,
     trajectory_=False,
+    morans_i_=False,
     kBET_=False,
     lisi_graph_=False,
     ilisi_=False,
@@ -266,6 +272,8 @@ def metrics(
         whether to compute graph connectivity score using :func:`~scib.metrics.graph_connectivity`
     :param `trajectory_`:
         whether to compute trajectory score using :func:`~scib.metrics.trajectory_conservation`
+    :param `morans_i_`:
+        whether to compute Moran's I score using :func:`~scib.metrics.morans_i`
     :param `kBET_`:
         whether to compute kBET score using :func:`~scib.metrics.kBET`
     :param `lisi_graph_`:
@@ -466,6 +474,16 @@ def metrics(
     else:
         trajectory_score = np.nan
 
+    if morans_i_:
+        print("Moran's I score...")
+        morans_i_score = morans_i(
+            adata,
+            adata_int,
+            batch_key=batch_key,
+        )
+    else:
+        morans_i_score = np.nan
+
     results = {
         "NMI_cluster/label": nmi_score,
         "ARI_cluster/label": ari_score,
@@ -481,6 +499,7 @@ def metrics(
         "cLISI": clisi,
         "hvg_overlap": hvg_score,
         "trajectory": trajectory_score,
+        "morans_i": morans_i_score,
     }
 
     return pd.DataFrame.from_dict(results, orient="index")
