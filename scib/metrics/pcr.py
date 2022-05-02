@@ -16,11 +16,11 @@ def pcr_comparison(
         scale=True,
         verbose=False
 ):
-    """
-    Compare the explained variance before and after integration
+    """Principal component regression score
 
+    Compare the explained variance before and after integration using :func:`~scib.metrics.pc_regression`.
     Return either the difference of variance contribution before and after integration
-    or a score between 0 and 1 (`scaled=True`) with 0 if the variance contribution hasn't
+    or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
     and after integration.
 
@@ -28,13 +28,13 @@ def pcr_comparison(
     :param adata_post: anndata object after integration
     :param covariate: Key for adata.obs column to regress against
     :param embed: Embedding to use for principal components.
-        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
-        provided in `adata_post.obsm[embed]`.
+        If None, use the full expression matrix (``adata.X``), otherwise use the embedding
+        provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
     :param scale: If True, scale score between 0 and 1 (default)
     :param verbose:
     :return:
-        Difference of R2Var value of PCR (scaled between 0 and 1 by default)
+        Difference of variance contribution of PCR (scaled between 0 and 1 by default)
     """
 
     if embed == 'X_pca':
@@ -78,22 +78,22 @@ def pcr(
         recompute_pca=True,
         verbose=False
 ):
-    """
-    Principal component regression for anndata object
+    """Principal component regression for anndata object
 
-    Checks whether to
-        + compute PCA on embedding or expression data (set `embed` to name of embedding matrix e.g. `embed='X_emb'`)
+    Wraps :func:`~scib.metrics.pc_regression` while checking whether to:
+
+        + compute PCA on embedding or expression data (set ``embed`` to name of embedding matrix e.g. ``embed='X_emb'``)
         + use existing PCA (only if PCA entry exists)
         + recompute PCA on expression matrix (default)
 
     :param adata: Anndata object
     :param covariate: Key for adata.obs column to regress against
     :param embed: Embedding to use for principal components.
-        If None, use the full expression matrix (`adata.X`), otherwise use the embedding
-        provided in `adata_post.obsm[embed]`.
+        If None, use the full expression matrix (``adata.X``), otherwise use the embedding
+        provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of PCs, if PCA is recomputed
     :return:
-        R2Var of regression
+        Variance contribution of regression
     """
 
     check_adata(adata)
@@ -130,18 +130,30 @@ def pc_regression(
         svd_solver='arpack',
         verbose=False
 ):
-    """
-    :params data: Expression or PC matrix. Assumed to be PC, if pca_sd is given.
+    """Principal component regression
+
+    Compute the overall variance contribution given a covariate according to the following formula:
+
+    .. math::
+
+        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \cdot R^2(PC_i|B)
+
+    for :math:`G` principal components (:math:`PC_i`), where :math:`Var(C|PC_i)` is the variance of the data matrix
+    :math:`C` explained by the i-th principal component, and :math:`R^2(PC_i|B)` is the :math:`R^2` of the i-th
+    principal component regressed against a covariate :math:`B`.
+
+
+    :param data: Expression or PC matrix. Assumed to be PC, if pca_sd is given.
     :param covariate: series or list of batch assignments
     :param n_comps: number of PCA components for computing PCA, only when pca_sd is not given.
         If no pca_sd is not defined and n_comps=None, compute PCA and don't reduce data
-    :param pca_var: Iterable of variances for `n_comps` components.
-        If `pca_sd` is not `None`, it is assumed that the matrix contains PC,
-        otherwise PCA is computed on `data`.
+    :param pca_var: Iterable of variances for ``n_comps`` components.
+        If ``pca_sd`` is not ``None``, it is assumed that the matrix contains PC,
+        otherwise PCA is computed on ``data``.
     :param svd_solver:
     :param verbose:
     :return:
-        R2Var of regression
+        Variance contribution of regression
     """
 
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):

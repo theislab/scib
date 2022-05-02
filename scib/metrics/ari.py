@@ -7,15 +7,16 @@ from ..utils import check_adata, check_batch
 
 
 def ari(adata, group1, group2, implementation=None):
-    """ Adjusted Rand Index
+    """Adjusted Rand Index
+
     The function is symmetric, so group1 and group2 can be switched
-    For single cell integration evaluation the scenario is:
-        predicted cluster assignments vs. ground-truth (e.g. cell type) assignments
+    For single cell integration evaluation the comparison is between predicted cluster
+    assignments and the ground truth (e.g. cell type)
 
     :param adata: anndata object
     :param group1: string of column in adata.obs containing labels
     :param group2: string of column in adata.obs containing labels
-    :params implementation: of set to 'sklearn', uses sklearns implementation,
+    :param implementation: if set to 'sklearn', uses sklearn's implementation,
         otherwise native implementation is taken
     """
 

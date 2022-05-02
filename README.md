@@ -1,156 +1,93 @@
 # Benchmarking atlas-level data integration in single-cell genomics
 
-This repository contains the code for our benchmarking study for data integration tools.
-In [our study](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v1), we benchmark 16
-methods ([see here](##Tools)) with 4 combinations of preprocessing steps leading to 68 methods combinations on 85
-batches of gene expression and chromatin accessibility data.
+This repository contains the code for the `scib` package used in our benchmarking study for data integration tools.
+In [our study](https://doi.org/10.1038/s41592-021-01336-8), we benchmark 16 methods (see Tools) with 4 combinations of
+preprocessing steps leading to 68 methods combinations on 85 batches of gene expression and chromatin accessibility data.
 
-![Workflow](./figure.png)
+![Workflow](https://raw.githubusercontent.com/theislab/scib/main/figure.png)
 
 ## Resources
 
-+ On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
-
++ The git repository of the [`scib` package](https://github.com/theislab/scib) and its [documentation](https://scib.readthedocs.io/).
 + The reusable pipeline we used in the study can be found in the
   separate [scib pipeline](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates
   the computation of preprocesssing combinations, integration methods and benchmarking metrics.
-
++ On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
 + For reproducibility and visualisation we have a dedicated
   repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
 
 ### Please cite:
 
-**Benchmarking atlas-level data integration in single-cell genomics.**
-MD Luecken, M Büttner, K Chaichoompu, A Danese, M Interlandi, MF Mueller, DC Strobl, L Zappia, M Dugas, M Colomé-Tatché,
-FJ Theis bioRxiv 2020.05.22.111161; doi: https://doi.org/10.1101/2020.05.22.111161_
+Luecken, M.D., Büttner, M., Chaichoompu, K. et al. Benchmarking atlas-level data integration in single-cell genomics.
+Nat Methods 19, 41–50 (2022). [https://doi.org/10.1038/s41592-021-01336-8](https://doi.org/10.1038/s41592-021-01336-8)
 
-## Package: `scib`
+## Package: scib
 
-We created the python package called `scib` that uses `scanpy` to streamline the integration of single-cell datasets and
-evaluate the results. For evaluating the integration quality it provides a number of metrics.
+We created the python package called `scib` that uses `scanpy` to streamline the integration of single-cell datasets
+and evaluate the results.
+The package contains several modules for preprocessing an ``anndata`` object, running integration methods and
+evaluating the resulting using a number of metrics.
+For preprocessing, ``scib.preprocessing`` (or ``scib.pp``) contains functions for normalising, scaling or batch-aware
+selection of highly variable genes.
+Functions for the integration methods are in ``scib.integration`` or for short ``scib.ig`` and metrics are under
+``scib.metrics`` (or ``scib.me``).
 
-### Requirements
-
-+ Linux or UNIX system
-+ Python >= 3.7
-+ 3.6 <= R <= 4.0
-
-We recommend working with environments such as Conda or virtualenv, so that python and R dependencies are in one place.
-Please also check out [scib pipeline](https://github.com/theislab/scib-pipeline.git) for ready-to-use environments.
-Alternatively, manually install the package on your system using pip, described in the next section. 
-
-### Installation
-
-The `scib` python package is in the folder scib. You can simply install it from the root of this repository using
+The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
 ```
-pip install .
+pip install scib
 ```
 
-Alternatively, you can also install the package directly from GitHub via
 
+Import `scib` in python:
+
+```python
+import scib
 ```
-pip install git+https://github.com/theislab/scib.git
-```
-
-Additionally, in order to run the R package `kBET`, you need to install it through R.
-
-```R
-devtools::install_github('theislab/kBET')
-```
-
-> **Note:** By default dependencies for integration methods are not installed due to dependency clashes.
-> In order to use integration methods, see the next section
-
-### Installing additional packages
-
-This package contains code for running integration methods as well as for evaluating their output. However, due to
-dependency clashes, `scib` is only installed with the packages needed for the metrics. In order to use the integration
-wrapper functions, we recommend to work with different environments for different methods, each with their own
-installation of `scib`. You can install optional Python dependencies via pip as follows:
-
-```
-pip install .[bbknn]  # using BBKNN
-pip install .[scanorama]  # using Scanorama
-pip install .[bbknn,scanorama]  # Multiple methods in one go
-```
-
-The `setup.cfg` for a full list of Python dependencies. For a comprehensive list of supported integration methods,
-including R packages, check out the `Tools`.
-
-## Usage
-
-The package contains several modules for the different steps of the integration and benchmarking pipeline. Functions for
-the integration methods are in `scib.integration` or for short `scib.ig`. The methods can be called using
-
-```py
-scib.integration.<method>(adata, batch=<batch_key>)
-```
-
-where `<method>` is the name of the integration method and `<batch_key>` is the name of the batch column in `adata.obs`.
-For example, in order to run Scanorama, on a dataset with batch key 'batch' call
-
-```py
-scib.integration.scanorama(adata, batch='batch')
-```
-
-> **Warning:** the following notation is deprecated.
-> ```
-> scib.integration.run<method>(adata, batch=<batch_key>)
-> ```
-> Please use the snake case naming without the `run` prefix.
-
-Some integration methods (`scgen`, `scanvi`) also use cell type labels as input. For these, you need to additionally provide
-the corresponding label column.
-
-```py
-scgen(adata, batch=<batch_key>, cell_type=<cell_type>)
-scanvi(adata, batch=<batch_key>, labels=<cell_type>)
-```
-
-`scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or selecting highly variable genes per batch
-The metrics are under `scib.metrics` (or `scib.me`).
 
 ## Metrics
 
-For a detailed description of the metrics implemented in this package, please see
-the [manuscript](https://www.biorxiv.org/content/10.1101/2020.05.22.111161v2).
+We implemented different metrics for evaluating batch correction and biological conservation in the `scib.metrics`
+module.
 
-### Batch removal metrics include:
+<table class="docutils align-default">
+  <colgroup>
+    <col style="width: 50%" />
+    <col style="width: 50%" />
+  </colgroup>
+  <thead>
+    <tr class="row-odd"><th class="head"><p>Biological Conservation</p></th>
+      <th class="head"><p>Batch Correction</p></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="row-even" >
+      <td><ul class="simple">
+        <li><p>Cell type ASW</p></li>
+        <li><p>Cell cycle conservation</p></li>
+        <li><p>Graph cLISI</p></li>
+        <li><p>Adjusted rand index (ARI) for cell label</p></li>
+        <li><p>Normalised mutual information (NMI) for cell label</p></li>
+        <li><p>Highly variable gene conservation</p></li>
+        <li><p>Isolated label ASW</p></li>
+        <li><p>Isolated label F1</p></li>
+        <li><p>Trajectory conservation</p></li>
+      </ul></td>
+      <td><ul class="simple">
+        <li><p>Batch ASW</p></li>
+        <li><p>Principal component regression</p></li>
+        <li><p>Graph iLISI</p></li>
+        <li><p>Graph connectivity</p></li>
+        <li><p>kBET (K-nearest neighbour batch effect)</p></li>
+      </ul></td>
+    </tr>
+  </tbody>
+</table>
 
-- Principal component regression `pcr_comparison()`
-- Batch ASW `silhouette()`
-- K-nearest neighbour batch effect `kBET()`
-- Graph connectivity `graph_connectivity()`
-- Graph iLISI `lisi_graph()`
+For a detailed description of the metrics implemented in this package, please see our
+[publication](https://doi.org/10.1038/s41592-021-01336-8) and the package [documentation](https://scib.readthedocs.io/).
 
-### Biological conservation metrics include:
-
-- Normalised mutual information `nmi()`
-- Adjusted Rand Index `ari()`
-- Cell type ASW `silhouette_batch()`
-- Isolated label score F1 `isolated_labels()`
-- Isolated label score ASW `isolated_labels()`
-- Cell cycle conservation `cell_cycle()`
-- Highly variable gene conservation `hvg_overlap()`
-- Trajectory conservation `trajectory_conservation()`
-- Graph cLISI `lisi_graph()`
-
-### Metrics Wrapper Functions
-We provide wrapper functions to run multiple metrics in one function call.
-The `scib.metrics.metrics()` function returns a `pandas.Dataframe` of all metrics specified as parameters.
-
-```py
-scib.metrics.metrics(adata, adata_int, ari=True, nmi=True)
-```
-
-Furthermore, `scib.metrics.metrics()` is wrapped by convenience functions that only select certain metrics:
-
-+ `scib.me.metrics_fast()` only computes metrics that require little preprocessing
-+ `scib.me.metrics_slim()` includes all functions of `scib.me.metrics_fast()` and adds clustering-based metrics
-+ `scib.me.metrics_all()` includes all metrics
-
-## Tools
+## Integration Tools
 
 Tools that are compared include:
 

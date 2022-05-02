@@ -1,3 +1,5 @@
+# TODO: move util functions e.g. reader functions elsewhere
+
 import logging
 import tempfile
 
@@ -15,6 +17,7 @@ from scipy import sparse
 
 # access to other methods of this module
 from . import utils
+from .exceptions import RLibraryNotFound
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(
     logging.ERROR
@@ -22,7 +25,20 @@ rpy2.rinterface_lib.callbacks.logger.setLevel(
 seaborn.set_context("talk")
 
 
-def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
+def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
+    """Summarise counts of the given count matrix
+
+    This function is useful for quality control.
+    Aggregates counts per cell and per gene as well as mitochondrial fraction.
+
+    :param count_matrix: count matrix, by default uses ``adata.X``
+    :param mt_gene_regex: regex string for identifying mitochondrial genes
+    :return: Include the following keys in ``adata.obs``
+        'n_counts': number of counts per cell (count depth)
+        'log_counts': ``np.log`` of counts per cell
+        'n_genes': number of counts per gene
+        'mito_frac': percent of mitochondrial gene counts as an indicator of cell viability
+    """
     utils.check_adata(adata)
 
     if count_matrix is None:
@@ -40,7 +56,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
         if sparse.issparse(adata.X):
             mt_sum = mt_sum.A1
             total_sum = total_sum.A1
-        adata.obs["percent_mito"] = mt_sum / total_sum
+        adata.obs['mito_frac'] = mt_sum / total_sum
 
         # mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
         # mt_count = count_matrix[:, mt_gene_mask].sum(1)
@@ -51,16 +67,35 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
 
 ### Quality Control
 def plot_qc(
-    adata,
-    color=None,
-    bins=60,
-    legend_loc="right margin",
-    histogram=True,
-    gene_threshold=(0, np.inf),
-    gene_filter_threshold=(0, np.inf),
-    count_threshold=(0, np.inf),
-    count_filter_threshold=(0, np.inf),
+        adata,
+        color=None,
+        bins=60,
+        legend_loc='right margin',
+        histogram=True,
+        count_threshold=(0, np.inf),
+        count_filter_threshold=(0, np.inf),
+        gene_threshold=(0, np.inf),
+        gene_filter_threshold=(0, np.inf)
 ):
+    """Create QC Plots
+
+    Create scatter plot for count depth vs. gene count, and histograms for count depth and gene count.
+    Filtering thresholds are included in all plots for making QC decisions.
+
+    :param adata: ``anndata`` object containing summarised count keys 'n_counts' and 'n_genes' in ``adata.obs``
+    :param color: column in ``adata.obs`` for the scatter plot
+    :param bins: number of bins for the histogram
+    :param legend_loc: location of legend of scatterplot
+    :param histogram: whether to include histograms
+    :param count_threshold: tuple of lower and upper count depth thresholds for zooming into histogram plots.
+        By default, this is unbounded and set to the values of ``count_filter_threshold``.
+    :param count_filter_threshold: tuple of lower and upper count depth thresholds visualised as cutoffs.
+        By default, this is unbounded, so no zoomed in histograms are plotted.
+    :param gene_threshold: tuple of lower and upper gene count thresholds for zooming into histogram plots.
+        By default, this is unbounded, so no zoomed in histograms are plotted.
+    :param gene_filter_threshold: tuple of lower and upper gene count thresholds visualised as cutoffs.
+        By default, this is unbounded and set to the values of ``gene_filter_threshold``.
+    """
     if count_filter_threshold == (0, np.inf):
         count_filter_threshold = count_threshold
     if gene_filter_threshold == (0, np.inf):
@@ -73,7 +108,7 @@ def plot_qc(
         title=color,
         gene_threshold=gene_filter_threshold[0],
         count_threshold=count_filter_threshold[0],
-        legend_loc=legend_loc,
+        legend_loc=legend_loc
     )
 
     if not histogram:
@@ -84,12 +119,12 @@ def plot_qc(
         # count filtering
         plot_count_filter(
             adata,
-            obs_col="n_counts",
+            obs_col='n_counts',
             bins=bins,
             lower=count_threshold[0],
             filter_lower=count_filter_threshold[0],
             upper=count_threshold[1],
-            filter_upper=count_filter_threshold[1],
+            filter_upper=count_filter_threshold[1]
         )
 
     if gene_filter_threshold != (0, np.inf):
@@ -97,25 +132,25 @@ def plot_qc(
         # gene filtering
         plot_count_filter(
             adata,
-            obs_col="n_genes",
+            obs_col='n_genes',
             bins=bins,
             lower=gene_threshold[0],
             filter_lower=gene_filter_threshold[0],
             upper=gene_threshold[1],
-            filter_upper=gene_filter_threshold[1],
+            filter_upper=gene_filter_threshold[1]
         )
 
 
 def plot_scatter(
-    adata,
-    count_threshold=0,
-    gene_threshold=0,
-    color=None,
-    title="",
-    lab_size=15,
-    tick_size=11,
-    legend_loc="right margin",
-    palette=None,
+        adata,
+        count_threshold=0,
+        gene_threshold=0,
+        color=None,
+        title='Scatter plot of count depth vs gene counts',
+        lab_size=15,
+        tick_size=11,
+        legend_loc='right margin',
+        palette=None
 ):
     utils.check_adata(adata)
     if color:
@@ -192,7 +227,20 @@ def plot_count_filter(
 
 
 ### Normalisation
-def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
+def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
+    """Normalise counts using the ``scran`` normalisation method
+
+    Using `computeSumFactors`_ function from `scran`_ package.
+
+    .. _scran: https://rdrr.io/bioc/scran/
+    .. _computeSumFactors: https://rdrr.io/bioc/scran/man/computeSumFactors.html
+
+    :param adata: ``anndata`` object
+    :param sparsify: whether to convert the count matrix into a sparse matrix
+    :param precluster: whether to perform preliminary clustering for differentiated normalisation
+    :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
+    :param log: whether to performing log1p-transformation after normalisation
+    """
     utils.check_adata(adata)
 
     # Check for 0 count cells
@@ -214,8 +262,12 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
         if not sparse.issparse(adata.X):  # quick fix: HVG doesn't work on dense matrix
             adata.X = sparse.csr_matrix(adata.X)
 
+    try:
+        ro.r('library(scran)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r('library("scran")')
 
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
@@ -242,11 +294,15 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
         sc.pp.neighbors(adata_pp)
         sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
 
-        ro.globalenv["input_groups"] = adata_pp.obs["groups"]
+        ro.globalenv['input_groups'] = adata_pp.obs['groups']
         size_factors = ro.r(
-            "sizeFactors(computeSumFactors(SingleCellExperiment("
-            "list(counts=data_mat)), clusters = input_groups,"
-            f" min.mean = {min_mean}))"
+            'sizeFactors('
+            '   computeSumFactors('
+            '       SingleCellExperiment(list(counts=data_mat)),'
+            '       clusters = input_groups,'
+            f'       min.mean = {min_mean}'
+            '   )'
+            ')'
         )
 
         del adata_pp
@@ -285,8 +341,12 @@ def normalize(adata, min_mean=0.1, log=True, precluster=True, sparsify=True):
 
 
 def scale_batch(adata, batch):
-    """
-    Function to scale the gene expression values of each batch separately.
+    """Batch-aware scaling of count matrix
+
+    Scaling counts to a mean of 0 and standard deviation of 1 using ``scanpy.pp.scale`` for each batch separately.
+
+    :param adata: ``anndata`` object with normalised and log-transformed counts
+    :param batch: ``adata.obs`` column
     """
 
     utils.check_adata(adata)
@@ -320,26 +380,26 @@ def scale_batch(adata, batch):
 
 
 def hvg_intersect(
-    adata,
-    batch,
-    target_genes=2000,
-    flavor="cell_ranger",
-    n_bins=20,
-    adataOut=False,
-    n_stop=8000,
-    min_genes=500,
-    step_size=1000,
+        adata,
+        batch,
+        target_genes=2000,
+        flavor='cell_ranger',
+        n_bins=20,
+        adataOut=False,
+        n_stop=8000,
+        min_genes=500,
+        step_size=1000
 ):
-    ### Feature Selection
-    """
-    params:
-        adata:
-        batch: adata.obs column
-        target_genes: maximum number of genes (intersection reduces the number of genes)
-        min_genes: minimum number of intersection HVGs targeted
-        step_size: step size to increase HVG selection per dataset
-    return:
-        list of highly variable genes less or equal to `target_genes`
+    """Highly variable gene selection
+
+    Legacy approach to HVG selection only using HVG intersections between all batches
+
+    :param adata: ``anndata`` object with preprocessed counts
+    :param batch: ``adata.obs`` column
+    :param target_genes: maximum number of genes (intersection reduces the number of genes)
+    :param min_genes: minimum number of intersection HVGs targeted
+    :param step_size: step size to increase HVG selection per dataset
+    :return: list of maximal ``target_genes`` number of highly variable genes
     """
 
     utils.check_adata(adata)
@@ -353,12 +413,14 @@ def hvg_intersect(
     hvg_res = []
 
     for i in split:
-        sc.pp.filter_genes(
-            i, min_cells=1
-        )  # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(i, min_cells=1)  # remove genes unexpressed (otherwise hvg might break)
         hvg_res.append(
             sc.pp.highly_variable_genes(
-                i, flavor="cell_ranger", n_top_genes=n_hvg, inplace=False
+                i,
+                flavor=flavor,
+                n_top_genes=n_hvg,
+                n_bins=n_bins,
+                inplace=False
             )
         )
 
@@ -394,21 +456,21 @@ def hvg_intersect(
     return list(intersect)
 
 
-def hvg_batch(
-    adata,
-    batch_key=None,
-    target_genes=2000,
-    flavor="cell_ranger",
-    n_bins=20,
-    adataOut=False,
-):
-    """
+def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
+    """Batch-aware highly variable gene selection
 
     Method to select HVGs based on mean dispersions of genes that are highly
     variable genes in all batches. Using a the top target_genes per batch by
     average normalize dispersion. If target genes still hasn't been reached,
     then HVGs in all but one batches are used to fill up. This is continued
     until HVGs in a single batch are considered.
+
+    :param adata: ``anndata`` object
+    :param batch: ``adata.obs`` column
+    :param target_genes: maximum number of genes (intersection reduces the number of genes)
+    :param flavor: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_bins: parameter for ``scanpy.pp.highly_variable_genes``
+    :param adataOut: whether to return an ``anndata`` object or a list of highly variable genes
     """
 
     utils.check_adata(adata)
@@ -483,26 +545,39 @@ def hvg_batch(
 
 ### Feature Reduction
 def reduce_data(
-    adata,
-    batch_key=None,
-    subset=False,
-    filter=True,
-    flavor="cell_ranger",
-    n_top_genes=2000,
-    n_bins=20,
-    pca=True,
-    pca_comps=50,
-    overwrite_hvg=True,
-    neighbors=True,
-    use_rep="X_pca",
-    umap=True,
+        adata,
+        batch_key=None,
+        flavor='cell_ranger',
+        n_top_genes=2000,
+        n_bins=20,
+        pca=True,
+        pca_comps=50,
+        overwrite_hvg=True,
+        neighbors=True,
+        use_rep='X_pca',
+        umap=True
 ):
-    """
-    overwrite_hvg:
-        if True, ignores any pre-existing 'highly_variable' column in adata.var
+    """Apply feature selection and dimensionality reduction steps.
+
+    Wrapper function of feature selection (highly variable genes), PCA, neighbours computation and dimensionality
+    reduction.
+    Highly variable gene selection is batch-aware, when a batch key is given.
+
+
+    :param adata: ``anndata`` object with normalised and log-transformed data in ``adata.X``
+    :param batch_key: column in ``adata.obs`` containing batch assignment
+    :param flavor: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_top_genes: parameter for ``scanpy.pp.highly_variable_genes``
+    :param n_bins: parameter for ``scanpy.pp.highly_variable_genes``
+    :param pca: whether to compute PCA
+    :param pca_comps: number of principal components
+    :param overwrite_hvg: if True, ignores any pre-existing 'highly_variable' column in adata.var
         and recomputes it if `n_top_genes` is specified else calls PCA on full features.
         if False, skips HVG computation even if `n_top_genes` is specified and uses
         pre-existing HVG column for PCA
+    :param neighbors: whether to compute neighbours graph
+    :param use_rep: embedding to use for neighbourhood graph
+    :param umap: whether to compute UMAP representation
     """
 
     utils.check_adata(adata)
@@ -527,7 +602,10 @@ def reduce_data(
         else:
             print(f"Calculating {n_top_genes} HVGs for reduce_data.")
             sc.pp.highly_variable_genes(
-                adata, n_top_genes=n_top_genes, n_bins=n_bins, flavor=flavor
+                adata,
+                n_top_genes=n_top_genes,
+                n_bins=n_bins,
+                flavor=flavor
             )
 
         n_hvg = np.sum(adata.var["highly_variable"])
@@ -554,13 +632,22 @@ def reduce_data(
 
 
 ### Cell Cycle
-def score_cell_cycle(adata, organism="mouse"):
-    """
+def score_cell_cycle(adata, organism='mouse'):
+    """Score cell cycle score given an organism
+
+    Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
+
+    .. _scanpy.tl.score_genes_cell_cycle: https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.score_genes_cell_cycle.html
+
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
-    return: (s_genes, g2m_genes)
-        s_genes: S-phase genes
-        g2m_genes: G2- and M-phase genes
+
+    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
+    well conserved across species.
+
+    :param adata: anndata object containing
+    :param organism: organism of gene names to match cell cycle genes
+    :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
     import pathlib
 
@@ -592,11 +679,27 @@ def score_cell_cycle(adata, organism="mouse"):
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
 
-def saveSeurat(adata, path, batch, hvgs=None):
+def save_seurat(adata, path, batch, hvgs=None):
+    """Save an ``anndata`` object to file as a Seurat object
+
+    Convert ``anndata`` object to Seurat object through ``rpy2`` and save to file as "RDS" file
+
+    This function only accounts for batch assignments and highly variable genes. All other keys are not transferred to
+    the Seurat object.
+
+    :param adata: anndata object to be saved
+    :param path: file path where the object should be saved
+    :param batch: key in ``adata.obs`` that holds batch assigments
+    :param hvgs: list of highly variable genes
+    """
     import re
 
-    ro.r("library(Seurat)")
-    ro.r("library(scater)")
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
 
     if sparse.issparse(adata.X):
@@ -627,11 +730,24 @@ def saveSeurat(adata, path, batch, hvgs=None):
 
 
 def read_seurat(path):
+    """Read ``Seurat`` object from file and convert to ``anndata`` object
+
+    Using ``rpy2`` for reading an RDS object and converting it into an ``anndata`` object.
+
+    :param path: file path to saved file
+    """
+
+    try:
+        ro.r('library(Seurat)')
+        ro.r('library(scater)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
     anndata2ri.activate()
-    ro.r("library(Seurat)")
-    ro.r("library(scater)")
+
     ro.r(f'sobj <- readRDS("{path}")')
-    adata = ro.r("as.SingleCellExperiment(sobj)")
+    adata = ro.r('as.SingleCellExperiment(sobj)')
+
     anndata2ri.deactivate()
 
     # Test for 'X_EMB'
@@ -645,10 +761,14 @@ def read_seurat(path):
 
 
 def read_conos(inPath, dir_path=None):
-    from os import mkdir, path
-    from shutil import rmtree
-    from time import time
+    """Read ``conos`` object
 
+    Using ``rpy2`` for reading an RDS object and converting it into an ``anndata`` object.
+
+    :param inPath:
+    :param dir_path:
+    """
+    from shutil import rmtree
     import pandas as pd
     from scipy.io import mmread
 
@@ -656,15 +776,18 @@ def read_conos(inPath, dir_path=None):
         tmpdir = tempfile.TemporaryDirectory()
         dir_path = tmpdir.name + "/"
 
-    ro.r("library(conos)")
+    try:
+        ro.r('library(conos)')
+        ro.r('library(data.table)')
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
+
     ro.r(f'con <- readRDS("{inPath}")')
-    ro.r("meta <- function(sobj) {return(sobj@meta.data)}")
-    ro.r("metalist <- lapply(con$samples, meta)")
-    ro.r("library(data.table)")
-    ro.r("metaM <- do.call(rbind,unname(metalist))")
-    ro.r(
-        f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)'
-    )
+    ro.r('meta <- function(sobj) {return(sobj@meta.data)}')
+    ro.r('metalist <- lapply(con$samples, meta)')
+    ro.r('metaM <- do.call(rbind,unname(metalist))')
+    ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
 
     gene_df = pd.read_csv(dir_path + "genes.csv")
 

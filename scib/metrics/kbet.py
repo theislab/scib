@@ -8,61 +8,11 @@ import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
 
+from ..exceptions import RLibraryNotFound
 from ..utils import check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
-
-
-def kBET_single(
-        matrix,
-        batch,
-        k0=10,
-        knn=None,
-        verbose=False
-):
-    """
-    params:
-        matrix: expression matrix (at the moment: a PCA matrix, so do.pca is set to FALSE
-        batch: series or list of batch assignemnts
-    returns:
-        kBET observed rejection rate
-    """
-    anndata2ri.activate()
-    ro.r("library(kBET)")
-
-    if verbose:
-        print("importing expression matrix")
-    ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['batch'] = batch
-
-    if verbose:
-        print("kBET estimation")
-
-    ro.globalenv['knn_graph'] = knn
-    ro.globalenv['k0'] = k0
-    ro.r(
-        "batch.estimate <- kBET("
-        "  data_mtrx,"
-        "  batch,"
-        "  knn=knn_graph,"
-        "  k0=k0,"
-        "  plot=FALSE,"
-        "  do.pca=FALSE,"
-        "  heuristic=FALSE,"
-        "  adapt=FALSE,"
-        f"  verbose={str(verbose).upper()}"
-        ")"
-    )
-
-    try:
-        score = ro.r("batch.estimate$summary$kBET.observed")[0]
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
-        score = np.nan
-
-    anndata2ri.deactivate()
-
-    return score
 
 
 def kBET(
@@ -75,7 +25,11 @@ def kBET(
         return_df=False,
         verbose=False
 ):
-    """
+    """kBET score
+
+    Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
+
+    .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
@@ -83,9 +37,10 @@ def kBET(
     :param scaled: whether to scale between 0 and 1
         with 0 meaning low batch mixing and 1 meaning optimal batch mixing
         if scaled=False, 0 means optimal batch mixing and 1 means low batch mixing
-    return:
-        kBET score (average of kBET per label) based on observed rejection rate
-        return_df=True: pd.DataFrame with kBET observed rejection rates per cluster for batch
+    :return:
+        kBET score (average of kBET per label) based on observed rejection rate.
+        If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
+        rejection rate per cluster
     """
 
     check_adata(adata)
@@ -204,3 +159,60 @@ def kBET(
 
     final_score = np.nanmean(kBET_scores['kBET'])
     return 1 - final_score if scaled else final_score
+
+
+def kBET_single(
+        matrix,
+        batch,
+        k0=10,
+        knn=None,
+        verbose=False
+):
+    """Single kBET run
+
+    Compute k-nearest neighbour batch effect test (kBET) score as described in
+    https://doi.org/10.1038/s41592-018-0254-1
+
+    :param matrix: expression matrix (at the moment: a PCA matrix, so ``do.pca`` is set to ``FALSE``)
+    :param batch: series or list of batch assignments
+    :returns: kBET observed rejection rate
+    """
+    try:
+        ro.r("library(kBET)")
+    except Exception as ex:
+        RLibraryNotFound(ex)
+
+    anndata2ri.activate()
+
+    if verbose:
+        print("importing expression matrix")
+    ro.globalenv['data_mtrx'] = matrix
+    ro.globalenv['batch'] = batch
+
+    if verbose:
+        print("kBET estimation")
+
+    ro.globalenv['knn_graph'] = knn
+    ro.globalenv['k0'] = k0
+    ro.r(
+        "batch.estimate <- kBET("
+        "  data_mtrx,"
+        "  batch,"
+        "  knn=knn_graph,"
+        "  k0=k0,"
+        "  plot=FALSE,"
+        "  do.pca=FALSE,"
+        "  heuristic=FALSE,"
+        "  adapt=FALSE,"
+        f"  verbose={str(verbose).upper()}"
+        ")"
+    )
+
+    try:
+        score = ro.r("batch.estimate$summary$kBET.observed")[0]
+    except rpy2.rinterface_lib.embedded.RRuntimeError:
+        score = np.nan
+
+    anndata2ri.deactivate()
+
+    return score
