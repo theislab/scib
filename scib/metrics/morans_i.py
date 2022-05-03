@@ -4,13 +4,57 @@ import scanpy as sc
 from scipy.sparse import issparse
 
 from scib.preprocessing import hvg_batch
+from scib.utils import check_sanity
+
+
+def adata_scale_on_copy(adata):
+    adata_scale = adata.copy()
+    # PP each sample: scaling, pca, neighbours
+    sc.pp.scale(adata_scale, max_value=10)
+    sc.pp.pca(
+        adata_scale,
+        n_comps=15,
+        use_highly_variable=True,
+        svd_solver="arpack",
+    )
+    sc.pp.neighbors(adata_scale, n_pcs=15)
+    return adata_scale
+
+
+def morans_i_score(adata, hvgs):
+    """
+    Inplace function for computing Moran's I on non-constant HVGS
+    and adding them to .var
+    :param data: adata, result is added to var
+    :param hvgs: Genes for which to compute Moran's I
+    """
+    # Make sure that genes used for computation are non-constant
+    hvg_data = adata[:, hvgs].X
+    hvg_data = hvg_data.A if issparse(hvg_data) else hvg_data
+    std_hvgs = np.asarray(hvg_data.std(axis=0)).squeeze()
+    hvgs_used = np.array(hvgs)[std_hvgs > 1e-8]
+
+    if len(hvgs) > len(hvgs_used):
+        print(f"Using not-constant subset of hvgs: {hvgs_used}/{hvgs}.")
+
+    # Compute Moran's I
+    morans_i = sc.metrics.morans_i(adata[:, hvgs_used])
+    morans_i = pd.Series(morans_i, index=hvgs_used)
+
+    # Check that values are in correct range
+    if not morans_i.between(-1, 1).all():
+        raise ValueError("Computed Moran's I values are not in [-1,1].")
+
+    # We consider only values > 0 as biologically meaningful
+    morans_i = np.maximum(morans_i, 0)
+    adata.var["morans_i"] = morans_i
 
 
 def morans_i(
     adata_pre,
     adata_post,
     batch_key,
-    n_hvg=1000,
+    n_hvg=100,
     embed="X_pca",
     rescale=True,
     compare_pre=False,
@@ -36,117 +80,69 @@ def morans_i(
         computed across batches).
     :return: The resulting metric.
     """
-    # Prepare adatas
     # Get integrated connectivities for Moran's I
+    check_sanity(adata_pre, batch_key, hvgs)
     adata_post = adata_post.copy()
     sc.pp.neighbors(adata_post, use_rep=embed)
     # Prepare pre data
+    check_sanity(adata_post, batch_key, hvgs)
     adata_pre = adata_pre.copy()
     adata_pre.obs[batch_key] = adata_pre.obs[batch_key].astype("category")
 
     # Get HVGs across samples
     if hvgs is None:
-        hvgs = hvg_batch(
-            adata_pre, batch_key=batch_key, target_genes=n_hvg, flavor="cell_ranger"
-        )
+        hvgs = hvg_batch(adata_pre, batch_key, n_hvg, flavor="cell_ranger")
     else:
         assert adata_pre.var_names.isin(hvgs).sum() == len(hvgs)
 
-    def compute_mi(data, hvgs):
-        """
-        Helper function for computing Moran's I on HVGS that are non-constant
-        and adding them to var
-        :param data: adata, result is added to var
-        :param hvgs: Genes for which to compute Moran's I
-        """
-        # Make sure that genes used for computation are non-constant
-        hvg_data_0 = data[0, hvgs].X
-        hvg_data_0 = hvg_data_0.A if issparse(hvg_data_0) else hvg_data_0
-        hvg_data_0 = hvg_data_0.squeeze()
-        mean_hvgs = np.asarray(data[:, hvgs].X.mean(axis=0)).squeeze()
-
-        hvgs_used = np.array(hvgs)[mean_hvgs != hvg_data_0]
-
-        if len(hvgs) > len(hvgs_used):
-            print(
-                "Using subset (%i) of hvgs (%i) that are not constant in the data"
-                % (len(hvgs_used), len(hvgs))
-            )
-        # Compute Moran's I
-        morans_i = sc.metrics.morans_i(data[:, hvgs_used])
-        morans_i = pd.Series(morans_i, index=hvgs_used)
-        # This should not happen, just in case
-        if (morans_i > 1).any() or (morans_i < -1).any():
-            raise ValueError(
-                "Problems in computing Moran's I, value not between -1 and 1"
-            )
-        data.var["morans_i"] = morans_i
+    # Moran's I on integrated data
+    morans_i_score(adata_post, hvgs)
+    score = adata_post.var["morans_i"].mean()
 
     if compare_pre:
-        # Get per sample connectivities
-        adatas_sample = dict()
-        for sample in adata_pre.obs[batch_key].unique():
+        # Get connectivities per batch
+        adatas_batches = {}
+        for batch in adata_pre.obs[batch_key].unique():
             # Subset only to cells from 1 sample
-            adata_sample = adata_pre[adata_pre.obs[batch_key] == sample, :].copy()
+            adata_batch = adata_pre[adata_pre.obs[batch_key] == batch, :].copy()
+
             # Compute HVG for each sample
             sc.pp.highly_variable_genes(
-                adata_sample,
+                adata_batch,
                 flavor="cell_ranger",
-                batch_key="study_sample",
-                n_top_genes=2000,
+                batch_key=batch_key,
+                n_top_genes=n_hvg,
             )
-            adata_sample_scl = adata_sample.copy()
-            # PP each sample: scaling, pca, neighbours
-            sc.pp.scale(adata_sample_scl, max_value=10)
-            sc.pp.pca(
-                adata_sample_scl,
-                n_comps=15,
-                use_highly_variable=True,
-                svd_solver="arpack",
-            )
-            sc.pp.neighbors(adata_sample_scl, n_pcs=15)
+
+            adata_scale = adata_scale_on_copy(adata_batch)
+
             # Add computed info back to unscaled data
-            adata_sample.uns["neighbors"] = adata_sample_scl.uns["neighbors"]
-            adata_sample.obsp["connectivities"] = adata_sample_scl.obsp[
-                "connectivities"
-            ]
-            adata_sample.obsp["distances"] = adata_sample_scl.obsp["distances"]
-            adata_sample.uns["pca"] = adata_sample_scl.uns["pca"]
-            adata_sample.obsm["X_pca"] = adata_sample_scl.obsm["X_pca"]
+            adata_batch.uns["neighbors"] = adata_scale.uns["neighbors"]
+            adata_batch.uns["pca"] = adata_scale.uns["pca"]
+            adata_batch.obsm["X_pca"] = adata_scale.obsm["X_pca"]
+            adata_batch.obsp["connectivities"] = adata_scale.obsp["connectivities"]
+            adata_batch.obsp["distances"] = adata_scale.obsp["distances"]
+
             # Save adata of sample
-            adatas_sample[sample] = adata_sample
-        del adata_sample
-        del adata_sample_scl
+            adatas_batches[batch] = adata_batch
+        del adata_batch
+        del adata_scale
 
-        # Compute Moran's I across samples and on integrated data
-        for data in list(adatas_sample.values()) + [adata_post]:
-            compute_mi(data, hvgs)
+        # Compute differences in Moran's I of integrated vs. max in unintegrated per hvg
+        batch_scores = []
+        for batch, adata_batch in adatas_batches.items():
+            morans_i_score(adata_batch, hvgs)
+            morans_i_batch = adata_batch.var["morans_i"]
+            morans_i_batch.name = batch
+            batch_scores.append(morans_i_batch)
 
-        # Compute differences in Moran's I
-        # Table of Moran's I-s across batches
-        batch_mis = []
-        for sample, data in adatas_sample.items():
-            mi = data.var["morans_i"]
-            mi.name = sample
-            batch_mis.append(mi)
-        batch_mis = pd.concat(batch_mis, axis=1)
-        # Difference with integrated data
-        mi_diffs = adata_post.var["morans_i"] - batch_mis.max(axis=1)
-        avg_mi_diff = mi_diffs.mean()
+        batch_scores = pd.concat(batch_scores, axis=1)
 
-        # Rescale so that it is between [0,1] where 1 is better
-        # Moran's I will be in [-1,1] and thus difference can be in [-2,2]
-        if rescale:
-            res = (avg_mi_diff + 2) / 4
-        else:
-            res = avg_mi_diff
+        # Difference with integrated data, values between [-1,1]
+        morans_i_difference = batch_scores.max(axis=1) - adata_post.var["morans_i"]
+        # We only consider when the integration made the Moran's I score worse
+        morans_i_difference = np.maximum(morans_i_difference, 0)
 
-    else:
-        # Moran's I on integrated data
-        compute_mi(adata_post, hvgs)
-        res = adata_post.var["morans_i"].mean()
-        if rescale:
-            # Moran's I will be in [-1,1]
-            res = (res + 1) / 2
-
-    return res
+        score = 1 - morans_i_difference.mean()
+        return score
+    return score
