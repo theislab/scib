@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scanpy as sc
+from scipy.sparse import issparse
 
 from scib.preprocessing import hvg_batch
 
@@ -59,10 +60,13 @@ def morans_i(
         :param hvgs: Genes for which to compute Moran's I
         """
         # Make sure that genes used for computation are non-constant
-        cond = (
-            np.array(np.mean(data[:, hvgs].X, axis=0)) != np.array(data[0, hvgs].X.A)
-        ).squeeze()
-        hvgs_used = np.array(hvgs)[cond]
+        hvg_data_0 = data[0, hvgs].X
+        hvg_data_0 = hvg_data_0.A if issparse(hvg_data_0) else hvg_data_0
+        hvg_data_0 = hvg_data_0.squeeze()
+        mean_hvgs = np.asarray(data[:, hvgs].X.mean(axis=0)).squeeze()
+
+        hvgs_used = np.array(hvgs)[mean_hvgs != hvg_data_0]
+
         if len(hvgs) > len(hvgs_used):
             print(
                 "Using subset (%i) of hvgs (%i) that are not constant in the data"
