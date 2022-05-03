@@ -60,8 +60,7 @@ def morans_i(
         """
         # Make sure that genes used for computation are non-constant
         cond = (
-            np.array(np.mean(data[:, hvgs].X, axis=0))
-            != np.array(data[0, hvgs].X.todense())
+            np.array(np.mean(data[:, hvgs].X, axis=0)) != np.array(data[0, hvgs].X.A)
         ).squeeze()
         hvgs_used = np.array(hvgs)[cond]
         if len(hvgs) > len(hvgs_used):
