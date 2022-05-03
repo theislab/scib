@@ -35,6 +35,17 @@ def scanorama(adata, batch, hvg=None, **kwargs):
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
+    cats = ["obs", "var"]
+    for _adata in corrected:
+        for i, df in enumerate([_adata.obs, _adata.var]):
+            duplicate_cols = df.columns[df.columns.duplicated()].unique()
+            if not duplicate_cols.empty:
+                col_vals = duplicate_cols.values
+                print(f"Delete duplicate columns {col_vals} in `.{cats[i]}`.")
+                for key in duplicate_cols:
+                    tmp = df[key].iloc[:, 0]
+                    df.drop(columns=[key], inplace=True)
+                    df[key] = tmp
     corrected = anndata.AnnData.concatenate(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
@@ -413,7 +424,7 @@ def mnn(adata, batch, hvg=None, **kwargs):
         batch_key=batch,
         batch_categories=categories,
         index_unique=None,
-        **kwargs
+        **kwargs,
     )
 
     return corrected
