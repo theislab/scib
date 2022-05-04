@@ -5,9 +5,9 @@ def test_fast(adata_neighbors):
     metrics_df = scib.me.metrics_fast(
         adata_neighbors,
         adata_neighbors,
-        batch_key='batch',
-        label_key='celltype',
-        embed='X_pca',
+        batch_key="batch",
+        label_key="celltype",
+        embed="X_pca",
     )
 
     for score in metrics_df:
@@ -23,9 +23,9 @@ def test_slim(adata_paul15):
     metrics_df = scib.me.metrics_slim(
         adata_paul15,
         adata_paul15,
-        batch_key='batch',
-        label_key='celltype',
-        embed='X_pca',
+        batch_key="batch",
+        label_key="celltype",
+        embed="X_pca",
     )
 
     for score in metrics_df:
