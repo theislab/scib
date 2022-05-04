@@ -35,17 +35,16 @@ def scanorama(adata, batch, hvg=None, **kwargs):
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
-    cats = ["obs", "var"]
+    # Make sure that adatas do not contain duplicate columns
     for _adata in corrected:
-        for i, df in enumerate([_adata.obs, _adata.var]):
-            duplicate_cols = df.columns[df.columns.duplicated()].unique()
-            if not duplicate_cols.empty:
-                col_vals = duplicate_cols.values
-                print(f"Delete duplicate columns {col_vals} in `.{cats[i]}`.")
-                for key in duplicate_cols:
-                    tmp = df[key].iloc[:, 0]
-                    df.drop(columns=[key], inplace=True)
-                    df[key] = tmp
+        for attr in ("obs", "var"):
+            df = getattr(_adata, attr)
+            dup_mask = df.columns.duplicated()
+            if dup_mask.any():
+                print(
+                    f"Deleting duplicated keys `{list(df.columns[dup_mask].unique())}` from `adata.{attr}`."
+                )
+                setattr(_adata, attr, df.loc[:, ~dup_mask])
     corrected = anndata.AnnData.concatenate(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
