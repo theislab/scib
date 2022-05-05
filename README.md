@@ -107,3 +107,14 @@ Tools that are compared include:
 - [Seurat v3](https://github.com/satijalab/seurat) 3.2.0 CCA (default) and RPCA
 - [TrVae](https://github.com/theislab/trvae) 0.0.1
 - [TrVaep](https://github.com/theislab/trvaep) 0.1.0
+
+## Development
+
+For developing this package, please make sure to install additional dependencies so that you can use `pytest` and
+`pre-commit`.
+
+```shell
+pip install -e '.[test,dev]'
+```
+
+Please refer to the `setup.cfg` for more optional dependencies.
