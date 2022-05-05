@@ -1,3 +1,6 @@
+import pandas as pd
+
+import scib
 from tests.common import *
 
 

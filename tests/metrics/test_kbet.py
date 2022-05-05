@@ -1,5 +1,6 @@
 import numpy as np
 
+import scib
 from tests.common import *
 
 

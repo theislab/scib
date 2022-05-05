@@ -1,4 +1,6 @@
-from tests.common import *
+import pandas as pd
+
+import scib
 
 
 def test_cluster(adata_neighbors):

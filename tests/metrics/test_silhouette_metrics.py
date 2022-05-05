@@ -1,3 +1,4 @@
+import scib
 from tests.common import *
 
 
