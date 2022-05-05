@@ -1,6 +1,7 @@
-build/
 scratch/
 
+htmlcov/
+.coverage
 **.h5ad
 *test_output*
 
