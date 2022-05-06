@@ -1,7 +1,11 @@
-[![Build](https://github.com/theislab/scib/actions/workflows/build.yml/badge.svg)](https://github.com/theislab/scib/actions/workflows/build.yml)
-[![Test](https://github.com/theislab/scib/actions/workflows/test.yml/badge.svg)](https://github.com/theislab/scib/actions/workflows/test.yml)
-[![Documentation Status](https://readthedocs.org/projects/scib/badge/?version=latest)](https://scib.readthedocs.io/en/latest/?badge=latest)
+![Stars](https://img.shields.io/github/stars/theislab/scib?logo=GitHub&color=yellow)](https://github.com/theislab/scib/stargazers)
+[![PyPI](https://img.shields.io/pypi/v/scib?logo=PyPI)](https://pypi.org/project/scib)
+[![PyPIDownloads](https://pepy.tech/badge/scib)](https://pepy.tech/project/scib)
+[![Build Status](https://github.com/theislab/scib/actions/workflows/build.yml/badge.svg)](https://github.com/theislab/scib/actions/workflows/build.yml)
+[![Test Status](https://github.com/theislab/scib/actions/workflows/test.yml/badge.svg)](https://github.com/theislab/scib/actions/workflows/test.yml)
+[![Documentation](https://readthedocs.org/projects/scib/badge/?version=latest)](https://scib.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/theislab/scib/branch/main/graph/badge.svg?token=M1nuTpAxyS)](https://codecov.io/gh/theislab/scib)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
 # Benchmarking atlas-level data integration in single-cell genomics
 
