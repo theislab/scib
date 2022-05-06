@@ -1,34 +1,51 @@
 name: Test
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pre-commit
+          key: precommit-${{ env.pythonLocation }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pre-commit
+      - name: Run pre-commit
+        run: |
+          pre-commit run --color=always --show-diff-on-failure --all-files
+
   test:
-
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        python-version: [ '3.7', '3.9' ]
+        python: [ 3.7, 3.9 ]
         os: [ ubuntu-latest, macos-latest ]
-
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install package
-      run: |
-        python -m pip install --upgrade pip
-        pip install .[test]
-        cd tests
-        python -c 'import scib; print(scib.__version__)'
-
-    - name: Test with pytest
-      run: |
-        coverage run --source=scib -m pytest --durations 0 -s
-        coverage report -m
-
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package
+        run: |
+          pip install '.[test]'
+      - name: Test with pytest
+        run: |
+          python -m pytest --cov --cov-append --cov-report=term-missing -vv
+      - name: Upload coverage
+        env:
+          CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
+        run: |
+          codecov --no-color --required --flags unittest
