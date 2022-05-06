@@ -1,5 +1,7 @@
+import scanpy as sc
+
 import scib
-from tests.common import *
+from tests.common import LOGGER
 
 
 def test_fast(adata_neighbors):

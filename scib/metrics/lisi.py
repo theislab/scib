@@ -10,6 +10,7 @@ import anndata2ri
 import numpy as np
 import pandas as pd
 import rpy2.rinterface_lib.callbacks
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
@@ -69,7 +70,7 @@ def ilisi_graph(
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
-    :param type_: type of data integration, either knn, full or embed
+    :param `type_`: type of data integration, either knn, full or embed
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
@@ -126,7 +127,7 @@ def clisi_graph(
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
-    :param type_: type of data integration, either knn, full or embed
+    :param `type_`: type of data integration, either knn, full or embed
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
@@ -193,8 +194,7 @@ def lisi_graph_py(
 
     if "neighbors" not in adata.uns:
         raise AttributeError(
-            f"key 'neighbors' not found. Please make sure that a "
-            + "kNN graph has been computed"
+            "Key 'neighbors' not found. Please make sure that a kNN graph has been computed"
         )
     elif verbose:
         print("using precomputed kNN graph")
@@ -214,24 +214,24 @@ def lisi_graph_py(
     subset = 100  # default, no subsampling
     if subsample is not None:
         subset = subsample  # do not use subsampling
-        if isinstance(subsample, int) == False:  # need to set as integer
+        if isinstance(subsample, int) is False:  # need to set as integer
             subset = int(subsample)
 
     # run LISI in python
     if verbose:
         print("Compute knn on shortest paths")
 
-        # set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
+    # set connectivities to 3e-308 if they are lower than 3e-308 (because cpp can't handle double values smaller than that).
     connectivities = adata.obsp["connectivities"]  # csr matrix format
     large_enough = connectivities.data >= 3e-308
     if verbose:
-        n_too_small = np.sum(large_enough == False)
+        n_too_small = np.sum(large_enough is False)
         if n_too_small:
             print(
                 f"{n_too_small} connectivities are smaller than 3e-308 and will be set to 3e-308"
             )
-            print(connectivities.data[large_enough == False])
-    connectivities.data[large_enough == False] = 3e-308
+            print(connectivities.data[large_enough is False])
+    connectivities.data[large_enough is False] = 3e-308
 
     # temporary file
     tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
@@ -259,9 +259,8 @@ def lisi_graph_py(
         print(f'call {" ".join(args_int)}')
     try:
         subprocess.run(args_int)
-    except Exception as e:
-        print(e)
-        print("Couldn't compute LISI, returning NaN")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+        print(f"Error computing LISI kNN graph {ex}\nSetting value to np.nan")
         return np.nan
 
     if verbose:
@@ -592,8 +591,7 @@ def lisi_knn_py(adata, batch_key, label_key, perplexity=None, verbose=False):
 
     if "neighbors" not in adata.uns:
         raise AttributeError(
-            f"key 'neighbors' not found. Please make sure that a "
-            + "kNN graph has been computed"
+            "key 'neighbors' not found. Please make sure that a kNN graph has been computed"
         )
     elif verbose:
         print("using precomputed kNN graph")
@@ -748,7 +746,7 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     # run LISI in R
     try:
         ro.r("library(lisi)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -765,11 +763,11 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
 
     if verbose:
         print("LISI score estimation")
-    simpson_estimate_batch = ro.r(
-        f"simpson.estimate_batch <- compute_simpson_index(nn_dst, nn_indx, batch, n_batches, perplexity)"
+    ro.r(
+        "simpson.estimate_batch <- compute_simpson_index(nn_dst, nn_indx, batch, n_batches, perplexity)"
     )  # batch_label_keys)")
-    simpson_estimate_label = ro.r(
-        f"simpson.estimate_label <- compute_simpson_index(nn_dst, nn_indx, label, n_labels, perplexity)"
+    ro.r(
+        "simpson.estimate_label <- compute_simpson_index(nn_dst, nn_indx, label, n_labels, perplexity)"
     )  # batch_label_keys)")
     simpson_est_batch = 1 / np.squeeze(ro.r("simpson.estimate_batch"))
     simpson_est_label = 1 / np.squeeze(ro.r("simpson.estimate_label"))
@@ -801,7 +799,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     # run LISI in R
     try:
         ro.r("library(lisi)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -820,7 +818,7 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     if verbose:
         print("LISI score estimation")
     lisi_estimate = ro.r(
-        f"lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)"
+        "lisi.estimate <- compute_lisi(data_mtrx, metadata, batch_label_keys)"
     )  # batch_label_keys)")
     anndata2ri.deactivate()
 

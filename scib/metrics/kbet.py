@@ -4,6 +4,7 @@ import anndata2ri
 import numpy as np
 import pandas as pd
 import rpy2.rinterface_lib.callbacks
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
@@ -63,7 +64,7 @@ def kBET(
         adata_tmp = adata.copy()
         if "diffusion_connectivities" not in adata.uns["neighbors"]:
             if verbose:
-                print(f"Compute: Diffusion neighbours.")
+                print("Compute diffusion neighbours")
             adata_tmp = diffusion_conn(adata, min_k=50, copy=True)
         adata_tmp.obsp["connectivities"] = adata_tmp.uns["neighbors"][
             "diffusion_connectivities"
@@ -181,7 +182,7 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     """
     try:
         ro.r("library(kBET)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -212,7 +213,8 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
 
     try:
         score = ro.r("batch.estimate$summary$kBET.observed")[0]
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+        print(f"Error computing kBET: {ex}\nSetting value to np.nan")
         score = np.nan
 
     anndata2ri.deactivate()

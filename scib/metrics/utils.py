@@ -153,7 +153,7 @@ def get_hvg_indices(adata, verbose=True):
                 f"No highly variable genes computed, continuing with full matrix {adata.shape}"
             )
         return np.array(range(adata.n_vars))
-    return np.where(adata.var["highly_variable"] == True)[0]
+    return np.where(adata.var["highly_variable"] is True)[0]
 
 
 def select_hvg(adata, select=True):

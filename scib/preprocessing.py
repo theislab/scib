@@ -4,6 +4,7 @@ import tempfile
 import anndata2ri
 import numpy as np
 import rpy2.rinterface_lib.callbacks  # rpy2 for running R code
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import seaborn
@@ -41,7 +42,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
     adata.obs["log_counts"] = np.log(adata.obs["n_counts"])
     adata.obs["n_genes"] = (count_matrix > 0).sum(1)
 
-    if mt_gene_regex != None:
+    if mt_gene_regex is not None:
         # for each cell compute fraction of counts in mito genes vs. all genes
         mito_genes = adata.var_names.str.match(mt_gene_regex)
         mt_sum = np.sum(adata[:, mito_genes].X, axis=1)
@@ -258,7 +259,7 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
 
     try:
         ro.r("library(scran)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -687,7 +688,7 @@ def save_seurat(adata, path, batch, hvgs=None):
     try:
         ro.r("library(Seurat)")
         ro.r("library(scater)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -730,7 +731,7 @@ def read_seurat(path):
     try:
         ro.r("library(Seurat)")
         ro.r("library(scater)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -770,7 +771,7 @@ def read_conos(inPath, dir_path=None):
     try:
         ro.r("library(conos)")
         ro.r("library(data.table)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     ro.r(f'con <- readRDS("{inPath}")')

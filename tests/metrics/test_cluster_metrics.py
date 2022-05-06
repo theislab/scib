@@ -1,5 +1,5 @@
 import scib
-from tests.common import *
+from tests.common import LOGGER, assert_near_exact
 
 
 def test_nmi_trivial(adata):

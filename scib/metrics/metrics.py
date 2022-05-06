@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from deprecated import deprecated
 
 from ..utils import check_adata, check_batch
 from .ari import ari
@@ -484,23 +483,3 @@ def metrics(
     }
 
     return pd.DataFrame.from_dict(results, orient="index")
-
-
-@deprecated
-def measureTM(*args, **kwargs):
-    """
-    :param *args: function to be tested for time and memory
-    :param **kwargs: list of function parameters
-    :returns: (memory (MB), time (s), list of *args function outputs)
-    """
-    import cProfile
-    from pstats import Stats
-
-    import memory_profiler
-
-    prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
-    mem = np.max(out[0]) - out[0][0]
-    print(f"memory usage:{round(mem, 0)} MB")
-    print(f"runtime: {round(Stats(prof).total_tt, 0)} s")
-    return mem, Stats(prof).total_tt, out[1:]

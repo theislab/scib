@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
+import scanpy as sc
 
 import scib
-
-from .common import *
 
 
 @pytest.fixture(scope="session")

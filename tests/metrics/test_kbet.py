@@ -1,7 +1,7 @@
 import numpy as np
 
 import scib
-from tests.common import *
+from tests.common import LOGGER
 
 
 def test_kbet(adata_pca):

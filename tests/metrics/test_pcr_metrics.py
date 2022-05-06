@@ -1,5 +1,5 @@
 import scib
-from tests.common import *
+from tests.common import LOGGER, add_embed, assert_near_exact
 
 
 def test_pc_regression(adata):

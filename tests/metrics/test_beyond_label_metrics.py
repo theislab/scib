@@ -1,7 +1,7 @@
 import pandas as pd
 
 import scib
-from tests.common import *
+from tests.common import LOGGER, assert_near_exact
 
 
 def test_cell_cycle(adata_paul15):

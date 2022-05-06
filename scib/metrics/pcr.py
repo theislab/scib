@@ -97,7 +97,7 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
 
     # use existing PCA computation
-    elif (recompute_pca == False) and ("X_pca" in adata.obsm) and ("pca" in adata.uns):
+    elif (recompute_pca is False) and ("X_pca" in adata.obsm) and ("pca" in adata.uns):
         if verbose:
             print("using existing PCA")
         return pc_regression(
