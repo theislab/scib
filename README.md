@@ -1,4 +1,4 @@
-![Stars](https://img.shields.io/github/stars/theislab/scib?logo=GitHub&color=yellow)](https://github.com/theislab/scib/stargazers)
+[![Stars](https://img.shields.io/github/stars/theislab/scib?logo=GitHub&color=yellow)](https://github.com/theislab/scib/stargazers)
 [![PyPI](https://img.shields.io/pypi/v/scib?logo=PyPI)](https://pypi.org/project/scib)
 [![PyPIDownloads](https://pepy.tech/badge/scib)](https://pepy.tech/project/scib)
 [![Build Status](https://github.com/theislab/scib/actions/workflows/build.yml/badge.svg)](https://github.com/theislab/scib/actions/workflows/build.yml)
@@ -126,3 +126,9 @@ pip install -e '.[test,dev]'
 ```
 
 Please refer to the `setup.cfg` for more optional dependencies.
+
+Install `pre-commit` to the repository for running it automatically every time you commit in git.
+
+```shell
+pre-commit install
+```
