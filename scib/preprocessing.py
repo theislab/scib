@@ -59,7 +59,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
         # adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
 
 
-### Quality Control
+# Quality Control
 def plot_qc(
     adata,
     color=None,
@@ -220,7 +220,7 @@ def plot_count_filter(
         plt.show()
 
 
-### Normalisation
+# Normalisation
 def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     """Normalise counts using the ``scran`` normalisation method
 
@@ -536,7 +536,7 @@ def hvg_batch(
         return adata_hvg[:, hvg].copy()
 
 
-### Feature Reduction
+# Feature Reduction
 def reduce_data(
     adata,
     batch_key=None,
@@ -582,7 +582,7 @@ def reduce_data(
 
         overwrite_hvg = False
 
-        ## quick fix: HVG doesn't work on dense matrix
+        # quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
 
@@ -621,7 +621,7 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-### Cell Cycle
+# Cell Cycle
 def score_cell_cycle(adata, organism="mouse"):
     """Score cell cycle score given an organism
 
@@ -654,9 +654,9 @@ def score_cell_cycle(adata, organism="mouse"):
         ],
     }
 
-    with open(cc_files[organism][0], "r") as f:
+    with open(cc_files[organism][0]) as f:
         s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
-    with open(cc_files[organism][1], "r") as f:
+    with open(cc_files[organism][1]) as f:
         g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
 
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
@@ -710,7 +710,7 @@ def save_seurat(adata, path, batch, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")')
     if hvgs is not None:
-        hvg_out = re.sub("\.RDS$", "", path) + "_hvg.RDS"
+        hvg_out = re.sub(r"\.RDS$", "", path) + "_hvg.RDS"
         # hvg_out = path+'_hvg.rds'
         ro.globalenv["hvgs"] = hvgs
         ro.r("unlist(hvgs)")

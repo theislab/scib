@@ -8,13 +8,13 @@ preprocessing steps leading to 68 methods combinations on 85 batches of gene exp
 
 ## Resources
 
-+ The git repository of the [`scib` package](https://github.com/theislab/scib) and its [documentation](https://scib.readthedocs.io/).
-+ The reusable pipeline we used in the study can be found in the
-  separate [scib pipeline](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates
-  the computation of preprocesssing combinations, integration methods and benchmarking metrics.
-+ On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
-+ For reproducibility and visualisation we have a dedicated
-  repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
+-   The git repository of the [`scib` package](https://github.com/theislab/scib) and its [documentation](https://scib.readthedocs.io/).
+-   The reusable pipeline we used in the study can be found in the
+    separate [scib pipeline](https://github.com/theislab/scib-pipeline.git) repository. It is reproducible and automates
+    the computation of preprocesssing combinations, integration methods and benchmarking metrics.
+-   On our [website](https://theislab.github.io/scib-reproducibility) we visualise the results of the study.
+-   For reproducibility and visualisation we have a dedicated
+    repository: [scib-reproducibility](https://github.com/theislab/scib-reproducibility).
 
 ### Please cite:
 
@@ -25,19 +25,18 @@ Nat Methods 19, 41–50 (2022). [https://doi.org/10.1038/s41592-021-01336-8](htt
 
 We created the python package called `scib` that uses `scanpy` to streamline the integration of single-cell datasets
 and evaluate the results.
-The package contains several modules for preprocessing an ``anndata`` object, running integration methods and
+The package contains several modules for preprocessing an `anndata` object, running integration methods and
 evaluating the resulting using a number of metrics.
-For preprocessing, ``scib.preprocessing`` (or ``scib.pp``) contains functions for normalising, scaling or batch-aware
+For preprocessing, `scib.preprocessing` (or `scib.pp`) contains functions for normalising, scaling or batch-aware
 selection of highly variable genes.
-Functions for the integration methods are in ``scib.integration`` or for short ``scib.ig`` and metrics are under
-``scib.metrics`` (or ``scib.me``).
+Functions for the integration methods are in `scib.integration` or for short `scib.ig` and metrics are under
+`scib.metrics` (or `scib.me`).
 
 The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
 ```
 pip install scib
 ```
-
 
 Import `scib` in python:
 
@@ -91,22 +90,22 @@ For a detailed description of the metrics implemented in this package, please se
 
 Tools that are compared include:
 
-- [BBKNN](https://github.com/Teichlab/bbknn) 1.3.9
-- [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
-- [Conos](https://github.com/hms-dbmi/conos) 1.3.0
-- [DESC](https://github.com/eleozzr/desc) 2.0.3
-- [FastMNN](https://bioconductor.org/packages/batchelor/) (batchelor 1.4.0)
-- [Harmony](https://github.com/immunogenomics/harmony) 1.0
-- [LIGER](https://github.com/MacoskoLab/liger) 0.5.0
-- [MNN](https://github.com/chriscainx/mnnpy) 0.1.9.5
-- [SAUCIE](https://github.com/KrishnaswamyLab/SAUCIE)
-- [Scanorama](https://github.com/brianhie/scanorama) 1.7.0
-- [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) (scVI 0.6.7)
-- [scGen](https://github.com/theislab/scgen) 1.1.5
-- [scVI](https://github.com/YosefLab/scVI) 0.6.7
-- [Seurat v3](https://github.com/satijalab/seurat) 3.2.0 CCA (default) and RPCA
-- [TrVae](https://github.com/theislab/trvae) 0.0.1
-- [TrVaep](https://github.com/theislab/trvaep) 0.1.0
+-   [BBKNN](https://github.com/Teichlab/bbknn) 1.3.9
+-   [Combat](https://scanpy.readthedocs.io/en/stable/api/scanpy.pp.combat.html) [paper](https://academic.oup.com/biostatistics/article/8/1/118/252073)
+-   [Conos](https://github.com/hms-dbmi/conos) 1.3.0
+-   [DESC](https://github.com/eleozzr/desc) 2.0.3
+-   [FastMNN](https://bioconductor.org/packages/batchelor/) (batchelor 1.4.0)
+-   [Harmony](https://github.com/immunogenomics/harmony) 1.0
+-   [LIGER](https://github.com/MacoskoLab/liger) 0.5.0
+-   [MNN](https://github.com/chriscainx/mnnpy) 0.1.9.5
+-   [SAUCIE](https://github.com/KrishnaswamyLab/SAUCIE)
+-   [Scanorama](https://github.com/brianhie/scanorama) 1.7.0
+-   [scANVI](https://github.com/chenlingantelope/HarmonizationSCANVI) (scVI 0.6.7)
+-   [scGen](https://github.com/theislab/scgen) 1.1.5
+-   [scVI](https://github.com/YosefLab/scVI) 0.6.7
+-   [Seurat v3](https://github.com/satijalab/seurat) 3.2.0 CCA (default) and RPCA
+-   [TrVae](https://github.com/theislab/trvae) 0.0.1
+-   [TrVaep](https://github.com/theislab/trvaep) 0.1.0
 
 ## Development
 

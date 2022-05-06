@@ -18,14 +18,14 @@ Installation with pip
 
 The ``scib`` python package is available on `PyPI <https://pypi.org/>`_ and can be installed through
 
-.. code-block:: python
+.. code-block:: bash
 
     pip install scib
 
 
 Alternatively, you can also install the package directly from GitHub directly via
 
-.. code-block:: python
+.. code-block:: bash
 
     pip install git+https://github.com/theislab/scib.git
 
@@ -62,7 +62,7 @@ installation of ``scib``. You can install optional Python dependencies via pip a
     Zsh often doesn't like square brackets. If you are a zsh user, use quotation marks around any statements containing
     square brackets. For example:
 
-    .. code-block:: python
+    .. code-block:: bash
 
         pip install 'scib[bbknn]'
 

@@ -120,7 +120,7 @@ def pc_regression(
 
     .. math::
 
-        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \cdot R^2(PC_i|B)
+        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \\cdot R^2(PC_i|B)
 
     for :math:`G` principal components (:math:`PC_i`), where :math:`Var(C|PC_i)` is the variance of the data matrix
     :math:`C` explained by the i-th principal component, and :math:`R^2(PC_i|B)` is the :math:`R^2` of the i-th
@@ -173,7 +173,7 @@ def pc_regression(
         X_pca = matrix
         n_comps = matrix.shape[1]
 
-    ## PC Regression
+    # PC Regression
     if verbose:
         print("fit regression on PCs")
 
