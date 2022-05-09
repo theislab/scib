@@ -354,9 +354,9 @@ int main(int argc, char* argv[]) {
    string output_prefix = argv[2];
    // The number of neighbors we are interested in
    unsigned k = stoi(argv[3]); //convert input char to integer
-   
+
    unsigned n_chunks = stoi(argv[4]);
-   unsigned limit = matrix.getRowCount();  
+   unsigned limit = matrix.getRowCount();
    unsigned len_ch;
    if (n_chunks <= 1){
 	   n_chunks = 1;
@@ -370,12 +370,12 @@ int main(int argc, char* argv[]) {
 
    //ininitialize random number generator
    random_device rd; //used to obtain seed for random number engine
-   mt19937 gen(rd()); //standard merseen_twister_engine seeded with rd() 
-   uniform_int_distribution<> dis(1, 100); //uniform int distribution between 0 and 100  
+   mt19937 gen(rd()); //standard merseen_twister_engine seeded with rd()
+   uniform_int_distribution<> dis(1, 100); //uniform int distribution between 0 and 100
    int rand_res;
    //sanity check
-   //double sum = 0; 
-   
+   //double sum = 0;
+
    //variable declaration
    ofstream distances;
    ofstream indices;
@@ -389,7 +389,7 @@ int main(int argc, char* argv[]) {
    // write all neighbors and weights to two files
     dist = output_prefix + "_distances_" + to_string(n_ch) + ".txt";
     indi = output_prefix + "_indices_" + to_string(n_ch) + ".txt";
-   
+
     distances.open(dist, ios::out | ios::binary);
     indices.open(indi, ios::out | ios::binary);
     lower = n_ch * len_ch + 1;
@@ -397,16 +397,16 @@ int main(int argc, char* argv[]) {
     // don't run over upper limit
     if (upper > limit) {
      upper = limit;
-    } 
+    }
     for (unsigned row = lower; row <= upper; row++) {
       //cout << row << endl;
       // Ignore empty rows
       if (matrix.getRow(row).empty()) {
-	  //distances << row << endl; //add index to distances file to keep order 
+	  //distances << row << endl; //add index to distances file to keep order
 	  //indices << row << endl; //add index to indices file to keep order
 	  continue;
       }
-      // use subsampling 
+      // use subsampling
       rand_res = dis(gen); //generate random number
       if (rand_res> sub){ //skip for 100-sub percent of the data
           continue;
