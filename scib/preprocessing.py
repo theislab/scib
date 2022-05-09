@@ -1,13 +1,10 @@
-# TODO: move util functions e.g. reader functions elsewhere
-
 import logging
 import tempfile
 
 import anndata2ri
 import numpy as np
-
-# rpy2 for running R code
 import rpy2.rinterface_lib.callbacks
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import seaborn
@@ -15,17 +12,15 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy import sparse
 
-# access to other methods of this module
-from . import utils
+from . import utils  # TODO: move util fcns (eg reader) elsewhere
 from .exceptions import RLibraryNotFound
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
+# Ignore R warning messages
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 seaborn.set_context("talk")
 
 
-def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
+def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
     """Summarise counts of the given count matrix
 
     This function is useful for quality control.
@@ -47,7 +42,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
     adata.obs["log_counts"] = np.log(adata.obs["n_counts"])
     adata.obs["n_genes"] = (count_matrix > 0).sum(1)
 
-    if mt_gene_regex != None:
+    if mt_gene_regex is not None:
         # for each cell compute fraction of counts in mito genes vs. all genes
         mito_genes = adata.var_names.str.match(mt_gene_regex)
         mt_sum = np.sum(adata[:, mito_genes].X, axis=1)
@@ -56,7 +51,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
         if sparse.issparse(adata.X):
             mt_sum = mt_sum.A1
             total_sum = total_sum.A1
-        adata.obs['mito_frac'] = mt_sum / total_sum
+        adata.obs["mito_frac"] = mt_sum / total_sum
 
         # mt_gene_mask = [gene.startswith('mt-') for gene in adata.var_names]
         # mt_count = count_matrix[:, mt_gene_mask].sum(1)
@@ -65,17 +60,17 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex='^MT-'):
         # adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
 
 
-### Quality Control
+# Quality Control
 def plot_qc(
-        adata,
-        color=None,
-        bins=60,
-        legend_loc='right margin',
-        histogram=True,
-        count_threshold=(0, np.inf),
-        count_filter_threshold=(0, np.inf),
-        gene_threshold=(0, np.inf),
-        gene_filter_threshold=(0, np.inf)
+    adata,
+    color=None,
+    bins=60,
+    legend_loc="right margin",
+    histogram=True,
+    count_threshold=(0, np.inf),
+    count_filter_threshold=(0, np.inf),
+    gene_threshold=(0, np.inf),
+    gene_filter_threshold=(0, np.inf),
 ):
     """Create QC Plots
 
@@ -108,7 +103,7 @@ def plot_qc(
         title=color,
         gene_threshold=gene_filter_threshold[0],
         count_threshold=count_filter_threshold[0],
-        legend_loc=legend_loc
+        legend_loc=legend_loc,
     )
 
     if not histogram:
@@ -119,12 +114,12 @@ def plot_qc(
         # count filtering
         plot_count_filter(
             adata,
-            obs_col='n_counts',
+            obs_col="n_counts",
             bins=bins,
             lower=count_threshold[0],
             filter_lower=count_filter_threshold[0],
             upper=count_threshold[1],
-            filter_upper=count_filter_threshold[1]
+            filter_upper=count_filter_threshold[1],
         )
 
     if gene_filter_threshold != (0, np.inf):
@@ -132,25 +127,25 @@ def plot_qc(
         # gene filtering
         plot_count_filter(
             adata,
-            obs_col='n_genes',
+            obs_col="n_genes",
             bins=bins,
             lower=gene_threshold[0],
             filter_lower=gene_filter_threshold[0],
             upper=gene_threshold[1],
-            filter_upper=gene_filter_threshold[1]
+            filter_upper=gene_filter_threshold[1],
         )
 
 
 def plot_scatter(
-        adata,
-        count_threshold=0,
-        gene_threshold=0,
-        color=None,
-        title='Scatter plot of count depth vs gene counts',
-        lab_size=15,
-        tick_size=11,
-        legend_loc='right margin',
-        palette=None
+    adata,
+    count_threshold=0,
+    gene_threshold=0,
+    color=None,
+    title="Scatter plot of count depth vs gene counts",
+    lab_size=15,
+    tick_size=11,
+    legend_loc="right margin",
+    palette=None,
 ):
     utils.check_adata(adata)
     if color:
@@ -179,7 +174,7 @@ def plot_scatter(
     fig = plt.gcf()
     cbar_ax = fig.axes[-1]
     cbar_ax.tick_params(labelsize=tick_size)
-    f1 = ax.get_figure()
+    ax.get_figure()
     plt.show()
 
 
@@ -226,7 +221,7 @@ def plot_count_filter(
         plt.show()
 
 
-### Normalisation
+# Normalisation
 def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     """Normalise counts using the ``scran`` normalisation method
 
@@ -263,8 +258,8 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
             adata.X = sparse.csr_matrix(adata.X)
 
     try:
-        ro.r('library(scran)')
-    except Exception as ex:
+        ro.r("library(scran)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -278,7 +273,7 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     if sparse.issparse(X):
         is_sparse = True
 
-        if X.nnz > 2 ** 31 - 1:
+        if X.nnz > np.power(2, 31) - 1:
             X = X.tocoo()
         else:
             X = X.tocsc()
@@ -294,15 +289,15 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
         sc.pp.neighbors(adata_pp)
         sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
 
-        ro.globalenv['input_groups'] = adata_pp.obs['groups']
+        ro.globalenv["input_groups"] = adata_pp.obs["groups"]
         size_factors = ro.r(
-            'sizeFactors('
-            '   computeSumFactors('
-            '       SingleCellExperiment(list(counts=data_mat)),'
-            '       clusters = input_groups,'
-            f'       min.mean = {min_mean}'
-            '   )'
-            ')'
+            "sizeFactors("
+            "   computeSumFactors("
+            "       SingleCellExperiment(list(counts=data_mat)),"
+            "       clusters = input_groups,"
+            f"       min.mean = {min_mean}"
+            "   )"
+            ")"
         )
 
         del adata_pp
@@ -380,15 +375,15 @@ def scale_batch(adata, batch):
 
 
 def hvg_intersect(
-        adata,
-        batch,
-        target_genes=2000,
-        flavor='cell_ranger',
-        n_bins=20,
-        adataOut=False,
-        n_stop=8000,
-        min_genes=500,
-        step_size=1000
+    adata,
+    batch,
+    target_genes=2000,
+    flavor="cell_ranger",
+    n_bins=20,
+    adataOut=False,
+    n_stop=8000,
+    min_genes=500,
+    step_size=1000,
 ):
     """Highly variable gene selection
 
@@ -413,14 +408,12 @@ def hvg_intersect(
     hvg_res = []
 
     for i in split:
-        sc.pp.filter_genes(i, min_cells=1)  # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(
+            i, min_cells=1
+        )  # remove genes unexpressed (otherwise hvg might break)
         hvg_res.append(
             sc.pp.highly_variable_genes(
-                i,
-                flavor=flavor,
-                n_top_genes=n_hvg,
-                n_bins=n_bins,
-                inplace=False
+                i, flavor=flavor, n_top_genes=n_hvg, n_bins=n_bins, inplace=False
             )
         )
 
@@ -456,7 +449,14 @@ def hvg_intersect(
     return list(intersect)
 
 
-def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_bins=20, adataOut=False):
+def hvg_batch(
+    adata,
+    batch_key=None,
+    target_genes=2000,
+    flavor="cell_ranger",
+    n_bins=20,
+    adataOut=False,
+):
     """Batch-aware highly variable gene selection
 
     Method to select HVGs based on mean dispersions of genes that are highly
@@ -543,19 +543,19 @@ def hvg_batch(adata, batch_key=None, target_genes=2000, flavor='cell_ranger', n_
         return adata_hvg[:, hvg].copy()
 
 
-### Feature Reduction
+# Feature Reduction
 def reduce_data(
-        adata,
-        batch_key=None,
-        flavor='cell_ranger',
-        n_top_genes=2000,
-        n_bins=20,
-        pca=True,
-        pca_comps=50,
-        overwrite_hvg=True,
-        neighbors=True,
-        use_rep='X_pca',
-        umap=True
+    adata,
+    batch_key=None,
+    flavor="cell_ranger",
+    n_top_genes=2000,
+    n_bins=20,
+    pca=True,
+    pca_comps=50,
+    overwrite_hvg=True,
+    neighbors=True,
+    use_rep="X_pca",
+    umap=True,
 ):
     """Apply feature selection and dimensionality reduction steps.
 
@@ -589,7 +589,7 @@ def reduce_data(
 
         overwrite_hvg = False
 
-        ## quick fix: HVG doesn't work on dense matrix
+        # quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
 
@@ -602,10 +602,7 @@ def reduce_data(
         else:
             print(f"Calculating {n_top_genes} HVGs for reduce_data.")
             sc.pp.highly_variable_genes(
-                adata,
-                n_top_genes=n_top_genes,
-                n_bins=n_bins,
-                flavor=flavor
+                adata, n_top_genes=n_top_genes, n_bins=n_bins, flavor=flavor
             )
 
         n_hvg = np.sum(adata.var["highly_variable"])
@@ -631,8 +628,8 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-### Cell Cycle
-def score_cell_cycle(adata, organism='mouse'):
+# Cell Cycle
+def score_cell_cycle(adata, organism="mouse"):
     """Score cell cycle score given an organism
 
     Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
@@ -664,9 +661,9 @@ def score_cell_cycle(adata, organism='mouse'):
         ],
     }
 
-    with open(cc_files[organism][0], "r") as f:
+    with open(cc_files[organism][0]) as f:
         s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
-    with open(cc_files[organism][1], "r") as f:
+    with open(cc_files[organism][1]) as f:
         g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
 
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
@@ -695,9 +692,9 @@ def save_seurat(adata, path, batch, hvgs=None):
     import re
 
     try:
-        ro.r('library(Seurat)')
-        ro.r('library(scater)')
-    except Exception as ex:
+        ro.r("library(Seurat)")
+        ro.r("library(scater)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -720,7 +717,7 @@ def save_seurat(adata, path, batch, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")')
     if hvgs is not None:
-        hvg_out = re.sub("\.RDS$", "", path) + "_hvg.RDS"
+        hvg_out = re.sub(r"\.RDS$", "", path) + "_hvg.RDS"
         # hvg_out = path+'_hvg.rds'
         ro.globalenv["hvgs"] = hvgs
         ro.r("unlist(hvgs)")
@@ -738,15 +735,15 @@ def read_seurat(path):
     """
 
     try:
-        ro.r('library(Seurat)')
-        ro.r('library(scater)')
-    except Exception as ex:
+        ro.r("library(Seurat)")
+        ro.r("library(scater)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
 
     ro.r(f'sobj <- readRDS("{path}")')
-    adata = ro.r('as.SingleCellExperiment(sobj)')
+    adata = ro.r("as.SingleCellExperiment(sobj)")
 
     anndata2ri.deactivate()
 
@@ -769,6 +766,7 @@ def read_conos(inPath, dir_path=None):
     :param dir_path:
     """
     from shutil import rmtree
+
     import pandas as pd
     from scipy.io import mmread
 
@@ -777,17 +775,18 @@ def read_conos(inPath, dir_path=None):
         dir_path = tmpdir.name + "/"
 
     try:
-        ro.r('library(conos)')
-        ro.r('library(data.table)')
-    except Exception as ex:
+        ro.r("library(conos)")
+        ro.r("library(data.table)")
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
-
     ro.r(f'con <- readRDS("{inPath}")')
-    ro.r('meta <- function(sobj) {return(sobj@meta.data)}')
-    ro.r('metalist <- lapply(con$samples, meta)')
-    ro.r('metaM <- do.call(rbind,unname(metalist))')
-    ro.r(f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)')
+    ro.r("meta <- function(sobj) {return(sobj@meta.data)}")
+    ro.r("metalist <- lapply(con$samples, meta)")
+    ro.r("metaM <- do.call(rbind,unname(metalist))")
+    ro.r(
+        f'saveConosForScanPy(con, output.path="{dir_path}", pseudo.pca=TRUE, pca=TRUE, metadata.df=metaM)'
+    )
 
     gene_df = pd.read_csv(dir_path + "genes.csv")
 

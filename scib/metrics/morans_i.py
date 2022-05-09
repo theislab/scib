@@ -1,6 +1,6 @@
-import scanpy as sc
 import numpy as np
 import pandas as pd
+import scanpy as sc
 
 from scib.preprocessing import hvg_batch
 
@@ -15,12 +15,14 @@ def morans_i(
     compare_pre=False,
     hvgs=None,
 ):
-    """
-    Compute Moran's I on HVGs (defined across batches) on integrated data
-        as a measure of bio conservation. The metric can be computed either as
-        A.) mean difference between Morans's I on embedding of integrated data and
-        max Moran's I of individual non-integrated batches or
-        B.) mean Morans's I on embedding of integrated data.
+    """Moran's I
+
+    Compute Moran's I on HVGs (defined across batches) on integrated data as a measure of bio conservation.
+    The metric can be computed either as
+
+        1. mean difference between Morans's I on embedding of integrated data and max Moran's I of individual non-integrated batches or
+        2. mean Morans's I on embedding of integrated data.
+
     :param adata_pre: Non-integrated data.
         Embedding is computed on scaled (m=0, s=1) X (expression)
         per batch (recomputing HVGs, scaling, pca, neighbours).

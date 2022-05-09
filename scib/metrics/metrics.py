@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from deprecated import deprecated
 
 from ..utils import check_adata, check_batch
 from .ari import ari
@@ -11,20 +10,14 @@ from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation
-from .morans_i import morans_i
 
 
-def metrics_fast(
-        adata,
-        adata_int,
-        batch_key,
-        label_key,
-        **kwargs
-):
+def metrics_fast(adata, adata_int, batch_key, label_key, **kwargs):
     """Only metrics with minimal preprocessing and runtime
 
 
@@ -63,13 +56,7 @@ def metrics_fast(
     )
 
 
-def metrics_slim(
-        adata,
-        adata_int,
-        batch_key,
-        label_key,
-        **kwargs
-):
+def metrics_slim(adata, adata_int, batch_key, label_key, **kwargs):
     """All metrics apart from kBET and LISI scores
 
     :Biological conservation:
@@ -122,13 +109,7 @@ def metrics_slim(
     )
 
 
-def metrics_all(
-        adata,
-        adata_int,
-        batch_key,
-        label_key,
-        **kwargs
-):
+def metrics_all(adata, adata_int, batch_key, label_key, **kwargs):
     """All metrics
 
     :Biological conservation:
@@ -190,38 +171,38 @@ def metrics_all(
 
 
 def metrics(
-        adata,
-        adata_int,
-        batch_key,
-        label_key,
-        embed='X_pca',
-        cluster_key='cluster',
-        cluster_nmi=None,
-        ari_=False,
-        nmi_=False,
-        nmi_method='arithmetic',
-        nmi_dir=None,
-        silhouette_=False,
-        si_metric='euclidean',
-        pcr_=False,
-        cell_cycle_=False,
-        organism='mouse',
-        hvg_score_=False,
-        isolated_labels_=False,  # backwards compatibility
-        isolated_labels_f1_=False,
-        isolated_labels_asw_=False,
-        n_isolated=None,
-        graph_conn_=False,
-        trajectory_=False,
-        moransi_=False,
-        kBET_=False,
-        lisi_graph_=False,
-        ilisi_=False,
-        clisi_=False,
-        subsample=0.5,
-        n_cores=1,
-        type_=None,
-        verbose=False,
+    adata,
+    adata_int,
+    batch_key,
+    label_key,
+    embed="X_pca",
+    cluster_key="cluster",
+    cluster_nmi=None,
+    ari_=False,
+    nmi_=False,
+    nmi_method="arithmetic",
+    nmi_dir=None,
+    silhouette_=False,
+    si_metric="euclidean",
+    pcr_=False,
+    cell_cycle_=False,
+    organism="mouse",
+    hvg_score_=False,
+    isolated_labels_=False,  # backwards compatibility
+    isolated_labels_f1_=False,
+    isolated_labels_asw_=False,
+    n_isolated=None,
+    graph_conn_=False,
+    trajectory_=False,
+    moransi_=False,
+    kBET_=False,
+    lisi_graph_=False,
+    ilisi_=False,
+    clisi_=False,
+    subsample=0.5,
+    n_cores=1,
+    type_=None,
+    verbose=False,
 ):
     """Master metrics function
 
@@ -451,7 +432,7 @@ def metrics(
             subsample=subsample * 100,
             scale=True,
             n_cores=n_cores,
-            verbose=verbose
+            verbose=verbose,
         )
     else:
         clisi = np.nan
@@ -465,7 +446,7 @@ def metrics(
             subsample=subsample * 100,
             scale=True,
             n_cores=n_cores,
-            verbose=verbose
+            verbose=verbose,
         )
     else:
         ilisi = np.nan
@@ -485,16 +466,12 @@ def metrics(
         )
     else:
         trajectory_score = np.nan
-    
-    if moransi_: 
+
+    if moransi_:
         print("Moran's I score...")
-        moransi_score = morans_i(
-            adata, 
-            adata_int, 
-            batch_key=batch_key
-        )
-    else: 
-        moransi_score = np.nan 
+        moransi_score = morans_i(adata, adata_int, batch_key=batch_key)
+    else:
+        moransi_score = np.nan
 
     results = {
         "NMI_cluster/label": nmi_score,
@@ -515,23 +492,3 @@ def metrics(
     }
 
     return pd.DataFrame.from_dict(results, orient="index")
-
-
-@deprecated
-def measureTM(*args, **kwargs):
-    """
-    :param *args: function to be tested for time and memory
-    :param **kwargs: list of function parameters
-    :returns: (memory (MB), time (s), list of *args function outputs)
-    """
-    import cProfile
-    from pstats import Stats
-
-    import memory_profiler
-
-    prof = cProfile.Profile()
-    out = memory_profiler.memory_usage((prof.runcall, args, kwargs), retval=True)
-    mem = np.max(out[0]) - out[0][0]
-    print(f"memory usage:{round(mem, 0)} MB")
-    print(f"runtime: {round(Stats(prof).total_tt, 0)} s")
-    return mem, Stats(prof).total_tt, out[1:]

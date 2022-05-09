@@ -7,17 +7,17 @@ from .nmi import nmi
 
 
 def opt_louvain(
-        adata,
-        label_key,
-        cluster_key,
-        function=None,
-        resolutions=None,
-        use_rep=None,
-        inplace=True,
-        plot=False,
-        force=True,
-        verbose=True,
-        **kwargs
+    adata,
+    label_key,
+    cluster_key,
+    function=None,
+    resolutions=None,
+    use_rep=None,
+    inplace=True,
+    plot=False,
+    force=True,
+    verbose=True,
+    **kwargs,
 ):
     """Optimised Louvain clustering
 
@@ -44,19 +44,23 @@ def opt_louvain(
     """
 
     if verbose:
-        print('Clustering...')
+        print("Clustering...")
 
     if function is None:
         function = nmi
 
     if cluster_key in adata.obs.columns:
         if force:
-            print(f"Warning: cluster key {cluster_key} already exists "
-                  "in adata.obs and will be overwritten")
+            print(
+                f"Warning: cluster key {cluster_key} already exists "
+                "in adata.obs and will be overwritten"
+            )
         else:
-            raise ValueError(f"cluster key {cluster_key} already exists in " +
-                             "adata, please remove the key or choose a different name." +
-                             "If you want to force overwriting the key, specify `force=True`")
+            raise ValueError(
+                f"cluster key {cluster_key} already exists in "
+                + "adata, please remove the key or choose a different name."
+                + "If you want to force overwriting the key, specify `force=True`"
+            )
 
     if resolutions is None:
         n = 20
@@ -68,17 +72,17 @@ def opt_louvain(
     score_all = []
 
     try:
-        adata.uns['neighbors']
+        adata.uns["neighbors"]
     except KeyError:
         if verbose:
-            print('computing neighbours for opt_cluster')
+            print("computing neighbours for opt_cluster")
         sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
         sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
         score = function(adata, label_key, cluster_key, **kwargs)
         if verbose:
-            print(f'resolution: {res}, {function.__name__}: {score}')
+            print(f"resolution: {res}, {function.__name__}: {score}")
         score_all.append(score)
         if score_max < score:
             score_max = score
@@ -87,14 +91,18 @@ def opt_louvain(
         del adata.obs[cluster_key]
 
     if verbose:
-        print(f'optimised clustering against {label_key}')
-        print(f'optimal cluster resolution: {res_max}')
-        print(f'optimal score: {score_max}')
+        print(f"optimised clustering against {label_key}")
+        print(f"optimal cluster resolution: {res_max}")
+        print(f"optimal score: {score_max}")
 
-    score_all = pd.DataFrame(zip(resolutions, score_all), columns=('resolution', 'score'))
+    score_all = pd.DataFrame(
+        zip(resolutions, score_all), columns=("resolution", "score")
+    )
     if plot:
         # score vs. resolution profile
-        sns.lineplot(data=score_all, x='resolution', y='score').set_title('Optimal cluster resolution profile')
+        sns.lineplot(data=score_all, x="resolution", y="score").set_title(
+            "Optimal cluster resolution profile"
+        )
         plt.show()
 
     if inplace:

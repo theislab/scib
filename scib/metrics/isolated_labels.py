@@ -6,14 +6,14 @@ from .silhouette import silhouette
 
 
 def isolated_labels(
-        adata,
-        label_key,
-        batch_key,
-        embed,
-        cluster=True,
-        iso_threshold=None,
-        return_all=False,
-        verbose=True
+    adata,
+    label_key,
+    batch_key,
+    embed,
+    cluster=True,
+    iso_threshold=None,
+    return_all=False,
+    verbose=True,
 ):
     """Isolated label score
 
@@ -39,21 +39,12 @@ def isolated_labels(
     """
     scores = {}
     isolated_labels = get_isolated_labels(
-        adata,
-        label_key,
-        batch_key,
-        iso_threshold,
-        verbose
+        adata, label_key, batch_key, iso_threshold, verbose
     )
 
     for label in isolated_labels:
         score = score_isolated_label(
-            adata,
-            label_key,
-            label,
-            embed,
-            cluster,
-            verbose=verbose
+            adata, label_key, label, embed, cluster, verbose=verbose
         )
         scores[label] = score
     scores = pd.Series(scores)
@@ -65,13 +56,13 @@ def isolated_labels(
 
 
 def score_isolated_label(
-        adata,
-        label_key,
-        isolated_label,
-        embed,
-        cluster=True,
-        iso_label_key='iso_label',
-        verbose=False
+    adata,
+    label_key,
+    isolated_label,
+    embed,
+    cluster=True,
+    iso_label_key="iso_label",
+    verbose=False,
 ):
     """
     Compute label score for a single label
@@ -116,9 +107,11 @@ def score_isolated_label(
             use_rep=embed,
             function=max_f1,
             verbose=False,
-            inplace=True
+            inplace=True,
         )
-        score = max_f1(adata_tmp, label_key, iso_label_key, isolated_label, argmax=False)
+        score = max_f1(
+            adata_tmp, label_key, iso_label_key, isolated_label, argmax=False
+        )
     else:
         # AWS score between label
         adata_tmp.obs[iso_label_key] = adata_tmp.obs[label_key] == isolated_label
