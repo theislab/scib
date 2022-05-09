@@ -1,0 +1,66 @@
+name: Test
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python
+            uses: actions/setup-python@v2
+            with:
+                python-version: 3.9
+
+        -   uses: actions/cache@v2
+            with:
+                path: ~/.cache/pre-commit
+                key: precommit-${{ env.pythonLocation }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+        -   name: Install dependencies
+            run: |
+                python -m pip install --upgrade pre-commit
+
+        -   name: Run pre-commit
+            run: |
+                pre-commit run --color=always --show-diff-on-failure --all-files
+
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                python: [3.7, 3.9]
+                os: [ubuntu-latest, macos-latest]
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python ${{ matrix.python }}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{ matrix.python }}
+
+        -   name: Install build dependencies
+            run: |
+                python -m pip install --upgrade pip
+                pip install build twine
+
+        -   name: Build a binary wheel and a source tarball
+            run: |
+                python -m build --sdist --wheel --outdir dist/
+                twine check dist/*
+
+        -   name: Install package with test dependencies
+            run: |
+                pip install dist/*.whl
+                pip install '.[test]'
+
+        -   name: Test with pytest
+            run: |
+                python -m pytest --cov --cov-append --cov-report=term-missing -vv
+        -   name: Upload coverage
+            env:
+                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
+            run: |
+                codecov --no-color --required --flags unittest

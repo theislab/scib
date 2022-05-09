@@ -4,6 +4,7 @@ import anndata2ri
 import numpy as np
 import pandas as pd
 import rpy2.rinterface_lib.callbacks
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
@@ -12,18 +13,20 @@ from ..exceptions import RLibraryNotFound
 from ..utils import check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)  # Ignore R warning messages
+rpy2.rinterface_lib.callbacks.logger.setLevel(
+    logging.ERROR
+)  # Ignore R warning messages
 
 
 def kBET(
-        adata,
-        batch_key,
-        label_key,
-        scaled=True,
-        embed='X_pca',
-        type_=None,
-        return_df=False,
-        verbose=False
+    adata,
+    batch_key,
+    label_key,
+    scaled=True,
+    embed="X_pca",
+    type_=None,
+    return_df=False,
+    verbose=False,
 ):
     """kBET score
 
@@ -54,25 +57,27 @@ def kBET(
 
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
-    if type_ != 'knn':
+    if type_ != "knn":
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=50, use_rep=embed, copy=True)
     else:
         # check if pre-computed neighbours are stored in input file
         adata_tmp = adata.copy()
-        if 'diffusion_connectivities' not in adata.uns['neighbors']:
+        if "diffusion_connectivities" not in adata.uns["neighbors"]:
             if verbose:
-                print(f"Compute: Diffusion neighbours.")
+                print("Compute diffusion neighbours")
             adata_tmp = diffusion_conn(adata, min_k=50, copy=True)
-        adata_tmp.obsp['connectivities'] = adata_tmp.uns['neighbors']['diffusion_connectivities']
+        adata_tmp.obsp["connectivities"] = adata_tmp.uns["neighbors"][
+            "diffusion_connectivities"
+        ]
 
     if verbose:
         print(f"batch: {batch_key}")
 
     # set upper bound for k0
-    size_max = 2 ** 31 - 1
+    size_max = 2**31 - 1
 
     # prepare call of kBET per cluster
-    kBET_scores = {'cluster': [], 'kBET': []}
+    kBET_scores = {"cluster": [], "kBET": []}
     for clus in adata_tmp.obs[label_key].unique():
 
         # subset by label
@@ -80,40 +85,41 @@ def kBET(
 
         # check if neighborhood size too small or only one batch in subset
         if np.logical_or(
-                adata_sub.n_obs < 10,
-                len(adata_sub.obs[batch_key].cat.categories) == 1
+            adata_sub.n_obs < 10, len(adata_sub.obs[batch_key].cat.categories) == 1
         ):
             print(f"{clus} consists of a single batch or is too small. Skip.")
             score = np.nan
         else:
-            quarter_mean = np.floor(np.mean(adata_sub.obs[batch_key].value_counts()) / 4).astype('int')
+            quarter_mean = np.floor(
+                np.mean(adata_sub.obs[batch_key].value_counts()) / 4
+            ).astype("int")
             k0 = np.min([70, np.max([10, quarter_mean])])
             # check k0 for reasonability
             if k0 * adata_sub.n_obs >= size_max:
-                k0 = np.floor(size_max / adata_sub.n_obs).astype('int')
+                k0 = np.floor(size_max / adata_sub.n_obs).astype("int")
 
             matrix = np.zeros(shape=(adata_sub.n_obs, k0 + 1))
 
             if verbose:
                 print(f"Use {k0} nearest neighbors.")
             n_comp, labs = scipy.sparse.csgraph.connected_components(
-                adata_sub.obsp['connectivities'],
-                connection='strong'
+                adata_sub.obsp["connectivities"], connection="strong"
             )
 
             if n_comp == 1:  # a single component to compute kBET on
                 try:
-                    nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype('float')
+                    nn_index_tmp = diffusion_nn(adata_sub, k=k0).astype("float")
                     # call kBET
                     score = kBET_single(
                         matrix=matrix,
                         batch=adata_sub.obs[batch_key],
-                        knn=nn_index_tmp + 1,  # nn_index in python is 0-based and 1-based in R
+                        knn=nn_index_tmp
+                        + 1,  # nn_index in python is 0-based and 1-based in R
                         verbose=verbose,
-                        k0=k0
+                        k0=k0,
                     )
                 except NeighborsError:
-                    print('Not enough neighbours')
+                    print("Not enough neighbours")
                     score = 1  # i.e. 100% rejection
 
             else:
@@ -133,23 +139,26 @@ def kBET(
                     nn_index_tmp[:] = np.nan
 
                     try:
-                        nn_index_tmp[idx_nonan] = diffusion_nn(adata_sub_sub, k=k0).astype('float')
+                        nn_index_tmp[idx_nonan] = diffusion_nn(
+                            adata_sub_sub, k=k0
+                        ).astype("float")
                         # call kBET
                         score = kBET_single(
                             matrix=matrix,
                             batch=adata_sub.obs[batch_key],
-                            knn=nn_index_tmp + 1,  # nn_index in python is 0-based and 1-based in R
+                            knn=nn_index_tmp
+                            + 1,  # nn_index in python is 0-based and 1-based in R
                             verbose=verbose,
-                            k0=k0
+                            k0=k0,
                         )
                     except NeighborsError:
-                        print('Not enough neighbours')
+                        print("Not enough neighbours")
                         score = 1  # i.e. 100% rejection
                 else:  # if there are too many too small connected components, set kBET score to 1
                     score = 1  # i.e. 100% rejection
 
-        kBET_scores['cluster'].append(clus)
-        kBET_scores['kBET'].append(score)
+        kBET_scores["cluster"].append(clus)
+        kBET_scores["kBET"].append(score)
 
     kBET_scores = pd.DataFrame.from_dict(kBET_scores)
     kBET_scores = kBET_scores.reset_index(drop=True)
@@ -157,17 +166,11 @@ def kBET(
     if return_df:
         return kBET_scores
 
-    final_score = np.nanmean(kBET_scores['kBET'])
+    final_score = np.nanmean(kBET_scores["kBET"])
     return 1 - final_score if scaled else final_score
 
 
-def kBET_single(
-        matrix,
-        batch,
-        k0=10,
-        knn=None,
-        verbose=False
-):
+def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     """Single kBET run
 
     Compute k-nearest neighbour batch effect test (kBET) score as described in
@@ -179,21 +182,21 @@ def kBET_single(
     """
     try:
         ro.r("library(kBET)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
 
     if verbose:
         print("importing expression matrix")
-    ro.globalenv['data_mtrx'] = matrix
-    ro.globalenv['batch'] = batch
+    ro.globalenv["data_mtrx"] = matrix
+    ro.globalenv["batch"] = batch
 
     if verbose:
         print("kBET estimation")
 
-    ro.globalenv['knn_graph'] = knn
-    ro.globalenv['k0'] = k0
+    ro.globalenv["knn_graph"] = knn
+    ro.globalenv["k0"] = k0
     ro.r(
         "batch.estimate <- kBET("
         "  data_mtrx,"
@@ -210,7 +213,8 @@ def kBET_single(
 
     try:
         score = ro.r("batch.estimate$summary$kBET.observed")[0]
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+        print(f"Error computing kBET: {ex}\nSetting value to np.nan")
         score = np.nan
 
     anndata2ri.deactivate()

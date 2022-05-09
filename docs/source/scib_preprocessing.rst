@@ -19,4 +19,3 @@ The most relevant preprocessing steps are:
     :skip: readConos
     :skip: readSeurat
     :skip: saveSeurat
-

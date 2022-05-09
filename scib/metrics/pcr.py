@@ -8,13 +8,7 @@ from ..utils import check_adata, check_batch
 
 
 def pcr_comparison(
-        adata_pre,
-        adata_post,
-        covariate,
-        embed=None,
-        n_comps=50,
-        scale=True,
-        verbose=False
+    adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False
 ):
     """Principal component regression score
 
@@ -37,7 +31,7 @@ def pcr_comparison(
         Difference of variance contribution of PCR (scaled between 0 and 1 by default)
     """
 
-    if embed == 'X_pca':
+    if embed == "X_pca":
         embed = None
 
     pcr_before = pcr(
@@ -45,7 +39,7 @@ def pcr_comparison(
         covariate=covariate,
         recompute_pca=True,
         n_comps=n_comps,
-        verbose=verbose
+        verbose=verbose,
     )
 
     pcr_after = pcr(
@@ -54,7 +48,7 @@ def pcr_comparison(
         embed=embed,
         recompute_pca=True,
         n_comps=n_comps,
-        verbose=verbose
+        verbose=verbose,
     )
 
     if scale:
@@ -70,14 +64,7 @@ def pcr_comparison(
         return pcr_after - pcr_before
 
 
-def pcr(
-        adata,
-        covariate,
-        embed=None,
-        n_comps=50,
-        recompute_pca=True,
-        verbose=False
-):
+def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
     """Principal component regression for anndata object
 
     Wraps :func:`~scib.metrics.pc_regression` while checking whether to:
@@ -110,10 +97,12 @@ def pcr(
         return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
 
     # use existing PCA computation
-    elif (recompute_pca == False) and ('X_pca' in adata.obsm) and ('pca' in adata.uns):
+    elif (recompute_pca is False) and ("X_pca" in adata.obsm) and ("pca" in adata.uns):
         if verbose:
             print("using existing PCA")
-        return pc_regression(adata.obsm['X_pca'], covariate_values, pca_var=adata.uns['pca']['variance'])
+        return pc_regression(
+            adata.obsm["X_pca"], covariate_values, pca_var=adata.uns["pca"]["variance"]
+        )
 
     # recompute PCA
     else:
@@ -123,12 +112,7 @@ def pcr(
 
 
 def pc_regression(
-        data,
-        covariate,
-        pca_var=None,
-        n_comps=50,
-        svd_solver='arpack',
-        verbose=False
+    data, covariate, pca_var=None, n_comps=50, svd_solver="arpack", verbose=False
 ):
     """Principal component regression
 
@@ -136,7 +120,7 @@ def pc_regression(
 
     .. math::
 
-        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \cdot R^2(PC_i|B)
+        Var(C|B) = \\sum^G_{i=1} Var(C|PC_i) \\cdot R^2(PC_i|B)
 
     for :math:`G` principal components (:math:`PC_i`), where :math:`Var(C|PC_i)` is the variance of the data matrix
     :math:`C` explained by the i-th principal component, and :math:`R^2(PC_i|B)` is the :math:`R^2` of the i-th
@@ -159,7 +143,9 @@ def pc_regression(
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
         matrix = data
     else:
-        raise TypeError(f'invalid type: {data.__class__} is not a numpy array or sparse matrix')
+        raise TypeError(
+            f"invalid type: {data.__class__} is not a numpy array or sparse matrix"
+        )
 
     # perform PCA if no variance contributions are given
     if pca_var is None:
@@ -168,12 +154,18 @@ def pc_regression(
             n_comps = min(matrix.shape)
 
         if n_comps == min(matrix.shape):
-            svd_solver = 'full'
+            svd_solver = "full"
 
         if verbose:
             print("compute PCA")
-        pca = sc.tl.pca(matrix, n_comps=n_comps, use_highly_variable=False,
-                        return_info=True, svd_solver=svd_solver, copy=True)
+        pca = sc.tl.pca(
+            matrix,
+            n_comps=n_comps,
+            use_highly_variable=False,
+            return_info=True,
+            svd_solver=svd_solver,
+            copy=True,
+        )
         X_pca = pca[0].copy()
         pca_var = pca[3].copy()
         del pca
@@ -181,7 +173,7 @@ def pc_regression(
         X_pca = matrix
         n_comps = matrix.shape[1]
 
-    ## PC Regression
+    # PC Regression
     if verbose:
         print("fit regression on PCs")
 

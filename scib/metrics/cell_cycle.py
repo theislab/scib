@@ -7,16 +7,16 @@ from .pcr import pc_regression
 
 
 def cell_cycle(
-        adata_pre,
-        adata_post,
-        batch_key,
-        embed=None,
-        agg_func=np.mean,
-        organism='mouse',
-        n_comps=50,
-        verbose=False,
-        recompute_cc=True,
-        precompute_pcr_key=None
+    adata_pre,
+    adata_post,
+    batch_key,
+    embed=None,
+    agg_func=np.mean,
+    organism="mouse",
+    n_comps=50,
+    verbose=False,
+    recompute_cc=True,
+    precompute_pcr_key=None,
 ):
     """Cell cycle conservation score
 
@@ -51,7 +51,7 @@ def cell_cycle(
     check_adata(adata_pre)
     check_adata(adata_post)
 
-    if embed == 'X_pca':
+    if embed == "X_pca":
         embed = None
 
     batches = adata_pre.obs[batch_key].unique()
@@ -59,11 +59,14 @@ def cell_cycle(
     scores_before = []
     scores_after = []
 
-    recompute_cc = recompute_cc \
-                   or 'S_score' not in adata_pre.obs_keys() \
-                   or 'G2M_score' not in adata_pre.obs_keys()
-    recompute_pcr = precompute_pcr_key is None \
-                    or precompute_pcr_key not in adata_pre.uns_keys()
+    recompute_cc = (
+        recompute_cc
+        or "S_score" not in adata_pre.obs_keys()
+        or "G2M_score" not in adata_pre.obs_keys()
+    )
+    recompute_pcr = (
+        precompute_pcr_key is None or precompute_pcr_key not in adata_pre.uns_keys()
+    )
 
     for batch in batches:
         before, after = get_pcr_before_after(
@@ -77,7 +80,7 @@ def cell_cycle(
             recompute_pcr=recompute_pcr,
             pcr_key=precompute_pcr_key,
             n_comps=n_comps,
-            verbose=verbose
+            verbose=verbose,
         )
 
         # scale result
@@ -93,7 +96,9 @@ def cell_cycle(
             score = 0
 
         if verbose:
-            print(f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}")
+            print(
+                f"batch: {batch}\t before: {before}\t after: {after}\t score: {score}"
+            )
 
         scores_before.append(before)
         scores_after.append(after)
@@ -102,24 +107,24 @@ def cell_cycle(
     if agg_func is None:
         return pd.DataFrame(
             [batches, scores_before, scores_after, scores_final],
-            columns=['batch', 'before', 'after', 'score']
+            columns=["batch", "before", "after", "score"],
         )
     else:
         return agg_func(scores_final)
 
 
 def get_pcr_before_after(
-        adata_pre,
-        adata_post,
-        batch_key,
-        batch,
-        embed,
-        organism,
-        recompute_cc,
-        recompute_pcr,
-        pcr_key,
-        n_comps,
-        verbose
+    adata_pre,
+    adata_post,
+    batch_key,
+    batch,
+    embed,
+    organism,
+    recompute_cc,
+    recompute_pcr,
+    pcr_key,
+    n_comps,
+    verbose,
 ):
     """
     Principle component regression value on cell cycle scores for one batch
@@ -151,8 +156,8 @@ def get_pcr_before_after(
     if raw_sub.shape[0] != int_sub.shape[0]:
         raise ValueError(
             f'batch "{batch}" of batch_key "{batch_key}" has unequal number of '
-            f'entries before and after integration.\n'
-            f'before: {raw_sub.shape[0]} after: {int_sub.shape[0]}'
+            f"entries before and after integration.\n"
+            f"before: {raw_sub.shape[0]} after: {int_sub.shape[0]}"
         )
 
     # compute cc scores if necessary
@@ -162,27 +167,19 @@ def get_pcr_before_after(
         score_cell_cycle(raw_sub, organism=organism)
 
     # regression variable
-    covariate = raw_sub.obs[['S_score', 'G2M_score']]
+    covariate = raw_sub.obs[["S_score", "G2M_score"]]
 
     # PCR on adata before integration
     if recompute_pcr:
         before = pc_regression(
-            raw_sub.X,
-            covariate,
-            pca_var=None,
-            n_comps=n_comps,
-            verbose=verbose
+            raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose
         )
     else:
         before = pd.Series(raw_sub.uns[pcr_key])
 
     # PCR on adata after integration
     after = pc_regression(
-        int_sub,
-        covariate,
-        pca_var=None,
-        n_comps=n_comps,
-        verbose=verbose
+        int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose
     )
 
     return before, after
