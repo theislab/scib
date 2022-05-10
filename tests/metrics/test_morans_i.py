@@ -1,4 +1,5 @@
-from tests.common import *
+import scib
+from tests.common import LOGGER, assert_near_exact
 
 
 def test_morans_i_nhvg(adata_neighbors):

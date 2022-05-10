@@ -7,6 +7,7 @@ from .isolated_labels import isolated_labels
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph, lisi_graph
 from .metrics import metrics, metrics_all, metrics_fast, metrics_slim
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import pc_regression, pcr, pcr_comparison
 from .silhouette import silhouette, silhouette_batch
