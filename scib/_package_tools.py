@@ -2,7 +2,7 @@ import inspect
 import warnings
 from functools import wraps
 
-warnings.simplefilter('default')  # or 'always'
+warnings.simplefilter("default")  # or 'always'
 
 
 def wrap_func_naming(func, name):
@@ -15,7 +15,7 @@ def wrap_func_naming(func, name):
         warnings.warn(
             f"Mixed case function naming is deprecated for '{name}'. "
             f"Please use '{func.__name__}' instead.",
-            DeprecationWarning
+            DeprecationWarning,
         )
         return func(*args, **kwargs)
 

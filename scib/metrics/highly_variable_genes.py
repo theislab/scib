@@ -7,7 +7,7 @@ from ..utils import split_batches
 def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
     """
     Compute HVGs per batch
-    
+
     :param adata: anndata object
     :param batch: key in adata.obs
     :param features: features to subset to
@@ -22,13 +22,15 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
         sc.pp.filter_genes(i, min_cells=1)
         n_hvg_tmp = np.minimum(n_hvg, int(0.5 * i.n_vars))
         if n_hvg_tmp < n_hvg:
-            print(i.obs[batch][0] + ' has less than the specified number of genes')
-            print('Number of genes: ' + str(i.n_vars))
-        hvg = sc.pp.highly_variable_genes(i, flavor='cell_ranger', n_top_genes=n_hvg_tmp, inplace=False)
-        hvg_dir[i.obs[batch][0]] = i.var.index[hvg['highly_variable']]
+            print(i.obs[batch][0] + " has less than the specified number of genes")
+            print("Number of genes: " + str(i.n_vars))
+        hvg = sc.pp.highly_variable_genes(
+            i, flavor="cell_ranger", n_top_genes=n_hvg_tmp, inplace=False
+        )
+        hvg_dir[i.obs[batch][0]] = i.var.index[hvg["highly_variable"]]
 
     if save_hvg:
-        adata.uns['hvg_before'] = hvg_dir
+        adata.uns["hvg_before"] = hvg_dir
     else:
         return hvg_dir
 
@@ -36,9 +38,9 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
 def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
     """Highly variable gene overlap
 
-    Metric that computes the average percentage of overlapping 
+    Metric that computes the average percentage of overlapping
     highly variable genes per batch pre post integration.
-    
+
     :param adata_pre: Unintegrated anndata object
     :param adata_post: Integrated anndata object
     :param batch: Batch variable
@@ -64,12 +66,9 @@ def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
 
         tmp_pre = hvg_pre_list[batch_var]
         hvg_post = sc.pp.highly_variable_genes(
-            ad_post,
-            flavor='cell_ranger',
-            n_top_genes=n_hvg_tmp,
-            inplace=False
+            ad_post, flavor="cell_ranger", n_top_genes=n_hvg_tmp, inplace=False
         )
-        tmp_post = ad_post.var.index[hvg_post['highly_variable']]
+        tmp_post = ad_post.var.index[hvg_post["highly_variable"]]
         n_hvg_real = np.minimum(len(tmp_pre), len(tmp_post))
         overlap.append((len(set(tmp_pre).intersection(set(tmp_post)))) / n_hvg_real)
     return np.mean(overlap)

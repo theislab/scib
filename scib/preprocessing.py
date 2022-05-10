@@ -4,6 +4,7 @@ import tempfile
 import anndata2ri
 import numpy as np
 import rpy2.rinterface_lib.callbacks  # rpy2 for running R code
+import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
 import seaborn
@@ -11,13 +12,11 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy import sparse
 
-# access to other methods of this module
-from scib import utils  # TODO: move util functions
-from scib.exceptions import RLibraryNotFound
+from . import utils  # TODO: move util fcns (eg reader) elsewhere
+from .exceptions import RLibraryNotFound
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
+# Ignore R warning messages
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 seaborn.set_context("talk")
 
 
@@ -43,7 +42,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
     adata.obs["log_counts"] = np.log(adata.obs["n_counts"])
     adata.obs["n_genes"] = (count_matrix > 0).sum(1)
 
-    if mt_gene_regex != None:
+    if mt_gene_regex is not None:
         # for each cell compute fraction of counts in mito genes vs. all genes
         mito_genes = adata.var_names.str.match(mt_gene_regex)
         mt_sum = np.sum(adata[:, mito_genes].X, axis=1)
@@ -61,7 +60,7 @@ def summarize_counts(adata, count_matrix=None, mt_gene_regex="^MT-"):
         # adata.obs['mt_frac'] = mt_count/adata.obs['n_counts']
 
 
-### Quality Control
+# Quality Control
 def plot_qc(
     adata,
     color=None,
@@ -222,7 +221,7 @@ def plot_count_filter(
         plt.show()
 
 
-### Normalisation
+# Normalisation
 def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     """Normalise counts using the ``scran`` normalisation method
 
@@ -260,7 +259,7 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
 
     try:
         ro.r("library(scran)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -544,7 +543,7 @@ def hvg_batch(
         return adata_hvg[:, hvg].copy()
 
 
-### Feature Reduction
+# Feature Reduction
 def reduce_data(
     adata,
     batch_key=None,
@@ -590,7 +589,7 @@ def reduce_data(
 
         overwrite_hvg = False
 
-        ## quick fix: HVG doesn't work on dense matrix
+        # quick fix: HVG doesn't work on dense matrix
         if not sparse.issparse(adata.X):
             adata.X = sparse.csr_matrix(adata.X)
 
@@ -629,7 +628,7 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-### Cell Cycle
+# Cell Cycle
 def score_cell_cycle(adata, organism="mouse"):
     """Score cell cycle score given an organism
 
@@ -662,9 +661,9 @@ def score_cell_cycle(adata, organism="mouse"):
         ],
     }
 
-    with open(cc_files[organism][0], "r") as f:
+    with open(cc_files[organism][0]) as f:
         s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
-    with open(cc_files[organism][1], "r") as f:
+    with open(cc_files[organism][1]) as f:
         g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
 
     if (len(s_genes) == 0) or (len(g2m_genes) == 0):
@@ -695,7 +694,8 @@ def save_seurat(adata, path, batch, hvgs=None):
     try:
         ro.r("library(Seurat)")
         ro.r("library(scater)")
-    except Exception as ex:
+
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -718,7 +718,7 @@ def save_seurat(adata, path, batch, hvgs=None):
     ro.r(f'Idents(sobj) = "{batch}"')
     ro.r(f'saveRDS(sobj, file="{path}")')
     if hvgs is not None:
-        hvg_out = re.sub(".RDS$", "", path) + "_hvg.RDS"
+        hvg_out = re.sub(r"\.RDS$", "", path) + "_hvg.RDS"
         # hvg_out = path+'_hvg.rds'
         ro.globalenv["hvgs"] = hvgs
         ro.r("unlist(hvgs)")
@@ -738,7 +738,7 @@ def read_seurat(path):
     try:
         ro.r("library(Seurat)")
         ro.r("library(scater)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     anndata2ri.activate()
@@ -778,7 +778,7 @@ def read_conos(inPath, dir_path=None):
     try:
         ro.r("library(conos)")
         ro.r("library(data.table)")
-    except Exception as ex:
+    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
     ro.r(f'con <- readRDS("{inPath}")')

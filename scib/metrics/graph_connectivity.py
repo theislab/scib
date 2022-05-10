@@ -19,9 +19,9 @@ def graph_connectivity(adata, label_key):
     :param adata: adata with computed neighborhood graph
     :param label_key: name in adata.obs containing the cell identity labels
     """
-    if 'neighbors' not in adata.uns:
+    if "neighbors" not in adata.uns:
         raise KeyError(
-            'Please compute the neighborhood graph before running this function!'
+            "Please compute the neighborhood graph before running this function!"
         )
 
     clust_res = []
@@ -29,8 +29,7 @@ def graph_connectivity(adata, label_key):
     for label in adata.obs[label_key].cat.categories:
         adata_sub = adata[adata.obs[label_key].isin([label])]
         _, labels = connected_components(
-            adata_sub.obsp['connectivities'],
-            connection='strong'
+            adata_sub.obsp["connectivities"], connection="strong"
         )
         tab = pd.value_counts(labels)
         clust_res.append(tab.max() / sum(tab))

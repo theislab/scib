@@ -29,10 +29,10 @@ def ari(adata, group1, group2, implementation=None):
 
     if len(group1) != len(group2):
         raise ValueError(
-            f'different lengths in group1 ({len(group1)}) and group2 ({len(group2)})'
+            f"different lengths in group1 ({len(group1)}) and group2 ({len(group2)})"
         )
 
-    if implementation == 'sklearn':
+    if implementation == "sklearn":
         return adjusted_rand_score(group1, group2)
 
     def binom_sum(x, k=2):
