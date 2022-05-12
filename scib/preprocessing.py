@@ -359,7 +359,8 @@ def scale_batch(adata, batch):
     for i in split:
         sc.pp.scale(i)
 
-    adata_scaled = utils.merge_adata(split)
+    adata_scaled = utils.merge_adata(split, index_unique=None, batch_key="tmp")
+    del adata_scaled.obs["tmp"]
 
     # Reorder to original obs_name ordering
     adata_scaled = adata_scaled[adata.obs_names]

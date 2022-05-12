@@ -2,12 +2,13 @@ import logging
 import os
 import tempfile
 
-import anndata
 import numpy as np
 import rpy2.rinterface_lib.callbacks
 import scanpy as sc
 import scipy as sp
 from scipy.sparse import issparse
+
+import scib.utils
 
 from . import utils
 from .exceptions import IntegrationMethodNotFound
@@ -35,17 +36,7 @@ def scanorama(adata, batch, hvg=None, **kwargs):
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
-    # Make sure that adatas do not contain duplicate columns
-    for _adata in corrected:
-        for attr in ("obs", "var"):
-            df = getattr(_adata, attr)
-            dup_mask = df.columns.duplicated()
-            if dup_mask.any():
-                print(
-                    f"Deleting duplicated keys `{list(df.columns[dup_mask].unique())}` from `adata.{attr}`."
-                )
-                setattr(_adata, attr, df.loc[:, ~dup_mask])
-    corrected = anndata.AnnData.concatenate(
+    corrected = scib.utils.merge_adata(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
     corrected.obsm["X_emb"] = corrected.obsm["X_scanorama"]
