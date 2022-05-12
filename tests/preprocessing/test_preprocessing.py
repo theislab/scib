@@ -6,6 +6,8 @@ import scib
 
 def test_scale():
     adata = sc.datasets.blobs()
+    adata.obs["blobs"] = adata.obs["blobs"].astype("category")
+
     scib.pp.scale_batch(adata, "blobs")
     split = scib.utils.split_batches(adata, "blobs")
     for i in split:
