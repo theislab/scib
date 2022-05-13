@@ -2,19 +2,19 @@ import logging
 import os
 import tempfile
 
-import anndata
 import numpy as np
 import rpy2.rinterface_lib.callbacks
 import scanpy as sc
 import scipy as sp
 from scipy.sparse import issparse
 
+import scib.utils
+
 from . import utils
 from .exceptions import IntegrationMethodNotFound
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
+# Ignore R warning messages
+rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 
 
 def scanorama(adata, batch, hvg=None, **kwargs):
@@ -36,7 +36,7 @@ def scanorama(adata, batch, hvg=None, **kwargs):
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
-    corrected = anndata.AnnData.concatenate(
+    corrected = scib.utils.merge_adata(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
     corrected.obsm["X_emb"] = corrected.obsm["X_scanorama"]
@@ -414,7 +414,7 @@ def mnn(adata, batch, hvg=None, **kwargs):
         batch_key=batch,
         batch_categories=categories,
         index_unique=None,
-        **kwargs
+        **kwargs,
     )
 
     return corrected
