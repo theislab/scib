@@ -10,6 +10,7 @@ def test_scanorama(adata_paul15_template):
     # check that batches match before and after integration
     batch_before = adata_paul15_template.obs["batch"].value_counts()
     batch_after = adata.obs["batch"].value_counts()
+
     pd.testing.assert_series_equal(batch_before, batch_after)
 
     scib.preprocessing.reduce_data(
@@ -26,4 +27,4 @@ def test_scanorama(adata_paul15_template):
     )
     LOGGER.info(f"max resolution: {res_max}, max NMI: {score_max}")
 
-    assert (res_max, score_max) == (1.8, 0.6416672285739567)
+    assert (res_max, score_max) == (2.0, 0.6440883682371078)
