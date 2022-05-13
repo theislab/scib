@@ -30,8 +30,15 @@ def check_sanity(adata, batch, hvg):
 
 
 def split_batches(adata, batch, hvg=None, return_categories=False):
+    """Split batches and preserve category information
+
+    :param adata:
+    :param batch: name of column in ``adata.obs``. The data type of the column must be of ``Category``.
+    :param hvg: list of highly variable genes
+    :param return_categories: whether to return the categories object of ``batch``
+    """
     split = []
-    batch_categories = adata.obs[batch].unique()
+    batch_categories = adata.obs[batch].cat.categories
     if hvg is not None:
         adata = adata[:, hvg]
     for i in batch_categories:
