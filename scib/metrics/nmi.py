@@ -6,7 +6,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from ..utils import check_adata, check_batch
 
 
-def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
+def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None):
     """Normalized mutual information
 
     This metric is useful for comparing between predicted cluster assignments and the ground truth labels (e.g. cell type).
@@ -15,10 +15,10 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     method output.
     Preprocessing differs, depending on the output type of the integration method.
 
-    :param adata: Anndata object
-    :param group1: column name of ``adata.obs``
-    :param group2: column name of ``adata.obs``
-    :param method: NMI implementation.
+    :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
+    :param cluster_key: string of column in adata.obs containing cluster assignments
+    :param label_key: string of column in adata.obs containing labels
+    :param implementation: NMI implementation.
         'max': scikit method with ``average_method='max'``;
         'min': scikit method with ``average_method='min'``;
         'geometric': scikit method with ``average_method='geometric'``;
@@ -72,26 +72,28 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     """
 
     check_adata(adata)
-    check_batch(group1, adata.obs)
-    check_batch(group2, adata.obs)
+    check_batch(cluster_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
-    group1 = adata.obs[group1].tolist()
-    group2 = adata.obs[group2].tolist()
+    cluster_key = adata.obs[cluster_key].tolist()
+    label_key = adata.obs[label_key].tolist()
 
-    if len(group1) != len(group2):
+    if len(cluster_key) != len(label_key):
         raise ValueError(
-            f"different lengths in group1 ({len(group1)}) and group2 ({len(group2)})"
+            f"different lengths in cluster_key ({len(cluster_key)}) and label_key ({len(label_key)})"
         )
 
     # choose method
-    if method in ["max", "min", "geometric", "arithmetic"]:
-        nmi_value = normalized_mutual_info_score(group1, group2, average_method=method)
-    elif method == "Lancichinetti":
-        nmi_value = nmi_Lanc(group1, group2, nmi_dir=nmi_dir)
-    elif method == "ONMI":
-        nmi_value = onmi(group1, group2, nmi_dir=nmi_dir)
+    if implementation in ["max", "min", "geometric", "arithmetic"]:
+        nmi_value = normalized_mutual_info_score(
+            cluster_key, label_key, average_method=implementation
+        )
+    elif implementation == "Lancichinetti":
+        nmi_value = nmi_Lanc(cluster_key, label_key, nmi_dir=nmi_dir)
+    elif implementation == "ONMI":
+        nmi_value = onmi(cluster_key, label_key, nmi_dir=nmi_dir)
     else:
-        raise ValueError(f"Method {method} not valid")
+        raise ValueError(f"Method {implementation} not valid")
 
     return nmi_value
 

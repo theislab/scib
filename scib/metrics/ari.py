@@ -72,7 +72,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
 
     if len(cluster_key) != len(label_key):
         raise ValueError(
-            f"different lengths in group1 ({len(cluster_key)}) and group2 ({len(label_key)})"
+            f"different lengths in cluster_key ({len(cluster_key)}) and label_key ({len(label_key)})"
         )
 
     if implementation == "sklearn":

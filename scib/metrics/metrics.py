@@ -309,9 +309,9 @@ def metrics(
         print("NMI...")
         nmi_score = nmi(
             adata_int,
-            group1=cluster_key,
-            group2=label_key,
-            method=nmi_method,
+            cluster_key=cluster_key,
+            label_key=label_key,
+            implementation=nmi_method,
             nmi_dir=nmi_dir,
         )
     else:
