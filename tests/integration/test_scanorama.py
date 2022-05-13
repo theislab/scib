@@ -13,7 +13,7 @@ def test_scanorama(adata_paul15_template):
 
     pd.testing.assert_series_equal(batch_before, batch_after)
 
-    scib.preprocessing.reduce_data(
+    scib.pp.reduce_data(
         adata, n_top_genes=200, neighbors=True, use_rep="X_emb", pca=True, umap=False
     )
 
@@ -25,7 +25,6 @@ def test_scanorama(adata_paul15_template):
         plot=False,
         inplace=True,
     )
-    LOGGER.info(f"max resolution: {res_max}, max NMI: {score_max}")
+    LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
 
-    assert res_max == 2.0
     assert_near_exact(score_max, 0.6440883682371078, 1e-2)
