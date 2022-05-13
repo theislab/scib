@@ -222,7 +222,14 @@ def plot_count_filter(
 
 
 # Normalisation
-def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
+def normalize(
+    adata,
+    min_mean=0.1,
+    log=True,
+    precluster=True,
+    cluster_method="louvain",
+    sparsify=True,
+):
     """Normalise counts using the ``scran`` normalisation method
 
     Using `computeSumFactors`_ function from `scran`_ package.
@@ -287,7 +294,14 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
         sc.pp.log1p(adata_pp)
         sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
         sc.pp.neighbors(adata_pp)
-        sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+        if cluster_method == "louvain":
+            sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+        elif cluster_method == "leiden":
+            sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
+        else:
+            raise NotImplementedError(
+                "Choose `cluster_method` from 'louvain', 'leiden'"
+            )
 
         ro.globalenv["input_groups"] = adata_pp.obs["groups"]
         size_factors = ro.r(
