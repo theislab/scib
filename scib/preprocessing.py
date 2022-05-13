@@ -290,7 +290,7 @@ def normalize(
     if precluster:
         # Preliminary clustering for differentiated normalisation
         adata_pp = adata.copy()
-        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
+        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
         sc.pp.log1p(adata_pp)
         sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
         sc.pp.neighbors(adata_pp)
