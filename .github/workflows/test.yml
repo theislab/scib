@@ -61,7 +61,6 @@ jobs:
                 if [ ${{ matrix.os }} = "macos-latest" ]; then
                     IGNORE="--ignore=tests/integration/"
                 fi
-
                 python -m pytest --cov --cov-append --cov-report=term-missing $IGNORE -vv
         -   name: Upload coverage
             env:
