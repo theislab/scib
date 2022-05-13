@@ -58,7 +58,11 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                python -m pytest --cov --cov-append --cov-report=term-missing -vv
+                if [ ${{ matrix.os }} = "macos-latest" ]; then
+                    IGNORE="--ignore=tests/integration/"
+                fi
+
+                python -m pytest --cov --cov-append --cov-report=term-missing $IGNORE -vv
         -   name: Upload coverage
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
