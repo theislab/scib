@@ -3,8 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Single-cell integration benchmark scib
-======================================
+Single-cell integration benchmark `scib`
+========================================
+
+.. include:: ../../README.md
+    :parser: myst_parser.sphinx_
+
 
 .. toctree::
    :maxdepth: 2
@@ -14,10 +18,6 @@ Single-cell integration benchmark scib
    scib_preprocessing
    scib_integration
    scib_metrics
-
-.. include:: ../../README.md
-    :parser: myst_parser.sphinx_
-
 
 Indices and tables
 ==================

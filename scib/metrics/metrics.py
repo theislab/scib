@@ -319,7 +319,7 @@ def metrics(
 
     if ari_:
         print("ARI...")
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+        ari_score = ari(adata_int, cluster_key=cluster_key, label_key=label_key)
     else:
         ari_score = np.nan
 

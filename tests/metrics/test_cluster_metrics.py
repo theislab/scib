@@ -29,7 +29,7 @@ def test_nmi(adata_neighbors):
 
 
 def test_ari(adata_clustered):
-    score = scib.me.ari(adata_clustered, group1="cluster", group2="celltype")
+    score = scib.me.ari(adata_clustered, cluster_key="cluster", label_key="celltype")
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 0.7614422905830917, diff=1e-2)
 
