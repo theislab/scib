@@ -9,7 +9,11 @@ from ..utils import check_adata, check_batch
 def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     """Normalized mutual information
 
-    Wrapper for normalized mutual information NMI between two different cluster assignments
+    This metric is useful for comparing between predicted cluster assignments and the ground truth labels (e.g. cell type).
+    For the regular integration benchmark use-case, the metric is applied to the integrated data.
+    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
+    method output.
+    Preprocessing differs, depending on the output type of the integration method.
 
     :param adata: Anndata object
     :param group1: column name of ``adata.obs``
@@ -24,6 +28,47 @@ def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
     :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as ``method``.
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
+
+    **Prepare full feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+        3. kNN graph
+        4. Clustering (optimised resolution recommended)
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
+
+    **Prepare embedding output**
+
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``
+
+        1. kNN graph
+        2. Clustering (optimised resolution recommended)
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, pca=False, use_rep="X_embed", neighbors=True, umap=False)
+        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
+
+
+    **Prepare kNN graph output**
+
+    KNN graph output only requires clustering on the (optimised resolution recommended)
+
+    .. code-block:: python
+
+        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
+
+    **Call function**
+
+    .. code-block:: python
+
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
     """
 
     check_adata(adata)
