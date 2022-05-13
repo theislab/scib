@@ -9,6 +9,19 @@ For a detailed description of the metrics implemented in this package, please se
 
 .. _publication: https://doi.org/10.1038/s41592-021-01336-8
 
+Preprocessing data for metrics
+------------------------------
+
+The ``anndata`` objects returned by the integration methods require some processing for most metrics.
+This involves feature selection (highly variable gene selection), PCA, kNN graph computation and clustering.
+For preprocessing, ``scib`` provides the function :func:`~scib.preprocessing.reduce_data`.
+Which preprocessing steps are needed, relies on the output type of the integration and the metric.
+
+.. figure:: _static/metrics_workflow.png
+   :alt: metrics workflow
+
+   Overview of metrics with relation to integration outputs and preprocessing steps.
+
 
 Biological Conservation Metrics
 -------------------------------
