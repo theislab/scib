@@ -20,7 +20,8 @@ def trajectory_conservation(
 
         trajectory \\, conservation = \\frac {s + 1} {2}
 
-    This function Expects pseudotime values to be precomputed.
+    This function expects pseudotime values to be precomputed and can be applied to all integration output types.
+    See below for examples of preproceassing and function calls.
 
     :param adata_pre: unintegrated adata
     :param adata_post: integrated adata
@@ -28,6 +29,41 @@ def trajectory_conservation(
     :param pseudotime_key: column in ``adata_pre.obs`` in which the pseudotime is saved in.
         Column can contain empty entries, the dataset will be subset to the cells with scores.
     :param batch_key: set to batch key if if you want to compute the trajectory metric by batch
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+        3. kNN graph
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata_pre, n_top_genes=2000, pca=True, neighbors=True)
+        scib.pp.reduce_data(adata_post, n_top_genes=2000, pca=True, neighbors=True)
+        scib.me.trajectory_conservation(adata_pre, adata_post, label_key="celltype")
+
+    **Preprocessing Embedding output**
+
+    The embedding should be stored in ``adata_post.obsm``, by default under key ``'X_emb'``.
+    The kNN graph must be computed on that embedding.
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata_pre, n_top_genes=2000, pca=True, neighbors=True)
+        scib.pp.reduce_data(adata_post, pca=False, neighbors=True, use_rep="X_emb")
+        scib.me.trajectory_conservation(adat_pre, adata_post, label_key="celltype")
+
+    **Preprocessing: kNN graph output**
+
+    No preprocessing required for the integrated ``anndata`` object.
+    The kNN graph is stored under ``adata_post.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata_pre, n_top_genes=2000, pca=True, neighbors=True)
+        scib.me.trajectory_conservation(adata_pre, adata_post, label_key="celltype")
     """
     # subset to cells for which pseudotime has been computed
     cell_subset = adata_pre.obs.index[adata_pre.obs[pseudotime_key].notnull()]
