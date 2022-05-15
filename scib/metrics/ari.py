@@ -9,11 +9,19 @@ from ..utils import check_adata, check_batch
 def ari(adata, cluster_key, label_key, implementation=None):
     """Adjusted Rand Index
 
-    This metric is useful for comparing between predicted cluster assignments and the ground truth labels (e.g. cell type).
+    The adjusted rand index is a chance-adjusted rand index, which evaluates the pair-wise accuracy of clustering vs.
+    ground truth label assignments.
+    The score ranges between
+
+    This metric is useful for evaluating the clustering performance of cells with respect to annotated cell identity
+    labels.
     For the regular integration benchmark use-case, the metric is applied to the integrated data.
+    A larger value indicates better conservation of data-driven cell identity discovery and after integration, based on
+    previous annotation.
     The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
     method output.
-    Preprocessing differs, depending on the output type of the integration method.
+    Preprocessing the ``anndata`` object is required and differs, depending on the output type of the integration method.
+    See below for more information on preprocessing.
 
     :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
     :param cluster_key: string of column in adata.obs containing cluster assignments
@@ -21,7 +29,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
     :param implementation: if set to 'sklearn', uses sklearn's implementation,
         otherwise native implementation is taken
 
-    **Prepare full feature output**
+    **Preprocessing: Full feature output**
 
     Feature output requires processing of the count matrix in the following steps:
 
@@ -35,7 +43,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
         scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
-    **Prepare embedding output**
+    **Preprocessing Embedding output**
 
     The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``
 
@@ -48,7 +56,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
 
-    **Prepare kNN graph output**
+    **Preprocessing: kNN graph output**
 
     KNN graph output only requires clustering on the (optimised resolution recommended)
 
@@ -57,6 +65,8 @@ def ari(adata, cluster_key, label_key, implementation=None):
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
     **Call function**
+
+    Once the ``adata`` has been preprocessed according to its integration output type, call the metric as follows:
 
     .. code-block:: python
 
