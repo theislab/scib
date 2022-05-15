@@ -17,6 +17,8 @@ def pcr_comparison(
     or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
     and after integration.
+    The score can be computed on full corrected feature spaces and latent embeddings.
+    No preprocessing is needed, as the function will perform PCA directly on the feature or embedding space.
 
     :param adata_pre: anndata object before integration
     :param adata_post: anndata object after integration

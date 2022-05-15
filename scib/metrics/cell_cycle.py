@@ -30,6 +30,7 @@ def cell_cycle(
 
     Variance contribution is obtained through principal component regression using :func:`~scib.metrics.pc_regression`.
     The score can be computed on full corrected feature spaces and latent embeddings.
+    No preprocessing is needed, as the function will perform PCA directly on the feature or embedding space.
 
     :param adata_pre: adata before integration
     :param adata_post: adata after integration

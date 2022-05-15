@@ -38,8 +38,9 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
 def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
     """Highly variable gene overlap
 
-    Metric that computes the average percentage of overlapping
-    highly variable genes per batch pre post integration.
+    Metric that computes the average percentage of overlapping highly variable genes per batch pre post integration.
+    The score can only be computed on feature spaces.
+    No preprocessing is needed, as the function will perform highly variable gene selection.
 
     :param adata_pre: Unintegrated anndata object
     :param adata_post: Integrated anndata object
