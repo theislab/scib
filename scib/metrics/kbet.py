@@ -1,5 +1,3 @@
-import logging
-
 import anndata2ri
 import numpy as np
 import pandas as pd
@@ -13,17 +11,13 @@ from ..exceptions import RLibraryNotFound
 from ..utils import check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
-
 
 def kBET(
     adata,
     batch_key,
     label_key,
+    embed,
     scaled=True,
-    embed="X_pca",
     type_=None,
     return_df=False,
     verbose=False,
@@ -31,6 +25,10 @@ def kBET(
     """kBET score
 
     Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
+    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
+    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
+    uses the existing kNN graph in ``adata.uns['neighbors']``.
+    See below for examples of preprocessing and function calls.
 
     .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
 
@@ -44,6 +42,45 @@ def kBET(
         kBET score (average of kBET per label) based on observed rejection rate.
         If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
         rejection rate per cluster
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+        3. kNN graph (optional)
+
+    .. code-block:: python
+
+        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed="X_pca")
+
+        # optional: precompute kNN graph
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+
+    **Preprocessing Embedding output**
+
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+
+    .. code-block:: python
+
+        scib.me.KBET(adata, batch_key="celltype", label_key="celltype", embed="X_embed")
+
+        # optional: precompute kNN graph
+        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
+        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+
+    **Preprocessing: kNN graph output**
+
+    No preprocessing required.
+    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+
+    .. code-block:: python
+
+        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+
     """
 
     check_adata(adata)
@@ -57,7 +94,7 @@ def kBET(
 
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
-    if type_ != "knn":
+    if type_ != "knn" and embed is not None:
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=50, use_rep=embed, copy=True)
     else:
         # check if pre-computed neighbours are stored in input file

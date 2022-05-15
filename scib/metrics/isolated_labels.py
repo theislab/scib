@@ -34,7 +34,7 @@ def isolated_labels_f1(
     :param verbose:
     :return: Mean of F1 scores over all isolated labels
 
-    **Preprocessing: Full feature output**
+    **Preprocessing: Feature output**
 
     Feature output requires processing of the count matrix in the following steps:
 
@@ -51,7 +51,7 @@ def isolated_labels_f1(
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
         scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed="X_pca"
+            adata, batch_key="celltype", label_key="celltype", embed=None
         )
 
     **Preprocessing Embedding output**
