@@ -192,7 +192,7 @@ def clisi_graph(
     **Preprocessing Embedding output**
 
     The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+    The kNN graph must be computed on that embedding.
 
     .. code-block:: python
 

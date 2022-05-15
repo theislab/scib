@@ -49,30 +49,22 @@ def kBET(
 
         1. Highly variable gene selection (skip, if working on feature space subset)
         2. PCA
-        3. kNN graph (optional)
+        3. kNN graph
 
     .. code-block:: python
 
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
         scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed="X_pca")
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data(
-            adata, n_top_genes=2000, pca=True, neighbors=True, umap=False, use_rep="X_emb"
-        )
-        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing Embedding output**
 
     The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+    The kNN graph must be computed on that embedding.
 
     .. code-block:: python
 
-        scib.me.KBET(adata, batch_key="batch", label_key="celltype", embed="X_emb")
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
-        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
+        scib.pp.reduce_data(adata, pca=False, neighbors=True)
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed="X_emb")
 
     **Preprocessing: kNN graph output**
 

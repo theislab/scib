@@ -38,7 +38,6 @@ def graph_connectivity(adata, label_key):
     **Preprocessing Embedding output**
 
     The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    KNN graph computation must use
 
     .. code-block:: python
 
