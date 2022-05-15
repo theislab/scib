@@ -45,14 +45,12 @@ def isolated_labels_f1(
     .. code-block:: python
 
         scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed="X_pca"
+            adata, batch_key="batch", label_key="celltype", embed="X_pca"
         )
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed=None
-        )
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing Embedding output**
 
@@ -62,14 +60,12 @@ def isolated_labels_f1(
     .. code-block:: python
 
         scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed="X_emb"
+            adata, batch_key="batch", label_key="celltype", embed="X_emb"
         )
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, pca=False, neighbors=True, use_rep="X_emb")
-        scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed=None
-        )
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing: kNN graph output**
 
@@ -78,9 +74,7 @@ def isolated_labels_f1(
 
     .. code-block:: python
 
-        scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed=None
-        )
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
 
     """
     return isolated_labels(
@@ -129,13 +123,13 @@ def isolated_labels_asw(
     .. code-block:: python
 
         scib.me.isolated_labels_asw(
-            adata, batch_key="celltype", label_key="celltype", embed="X_pca"
+            adata, batch_key="batch", label_key="celltype", embed="X_pca"
         )
 
         # optional: precompute kNN graph
         scib.pp.reduce_data_asw(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
         scib.me.isolated_labels_asw(
-            adata, batch_key="celltype", label_key="celltype", embed="X_pca"
+            adata, batch_key="batch", label_key="celltype", embed="X_pca"
         )
 
     **Preprocessing Embedding output**
@@ -146,14 +140,12 @@ def isolated_labels_asw(
     .. code-block:: python
 
         scib.me.isolated_labels_asw(
-            adata, batch_key="celltype", label_key="celltype", embed="X_embed"
+            adata, batch_key="batch", label_key="celltype", embed="X_embed"
         )
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
-        scib.me.isolated_labels_asw(
-            adata, batch_key="celltype", label_key="celltype", embed=None
-        )
+        scib.me.isolated_labels_asw(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing: kNN graph output**
 
@@ -162,9 +154,7 @@ def isolated_labels_asw(
 
     .. code-block:: python
 
-        scib.me.isolated_labels_asw(
-            adata, batch_key="celltype", label_key="celltype", embed=None
-        )
+        scib.me.isolated_labels_asw(adata, batch_key="batch", label_key="celltype", embed=None)
 
     """
     return isolated_labels(

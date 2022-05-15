@@ -92,8 +92,8 @@ def ilisi_graph(
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
+        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
 
     **Preprocessing Embedding output**
 
@@ -102,8 +102,8 @@ def ilisi_graph(
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False, use_rep="X_emb")
-        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.pp.reduce_data(adata, pca=True, neighbors=False)
+        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
 
     **Preprocessing: kNN graph output**
 
@@ -112,7 +112,7 @@ def ilisi_graph(
 
     .. code-block:: python
 
-        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
     """
 
     check_adata(adata)
@@ -186,8 +186,8 @@ def clisi_graph(
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
+        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
 
     **Preprocessing Embedding output**
 
@@ -196,8 +196,8 @@ def clisi_graph(
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False, use_rep="X_emb")
-        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.pp.reduce_data(adata, pca=True, neighbors=False)
+        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
 
     **Preprocessing: kNN graph output**
 
@@ -206,7 +206,7 @@ def clisi_graph(
 
     .. code-block:: python
 
-        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
+        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
     """
 
     check_adata(adata)

@@ -53,13 +53,13 @@ def kBET(
 
     .. code-block:: python
 
-        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed="X_pca")
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed="X_pca")
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(
             adata, n_top_genes=2000, pca=True, neighbors=True, umap=False, use_rep="X_emb"
         )
-        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing Embedding output**
 
@@ -68,11 +68,11 @@ def kBET(
 
     .. code-block:: python
 
-        scib.me.KBET(adata, batch_key="celltype", label_key="celltype", embed="X_emb")
+        scib.me.KBET(adata, batch_key="batch", label_key="celltype", embed="X_emb")
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
-        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
 
     **Preprocessing: kNN graph output**
 
@@ -81,7 +81,7 @@ def kBET(
 
     .. code-block:: python
 
-        scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
 
     """
 
