@@ -15,7 +15,7 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
     clustering and ground truth labels.
 
     This metric is useful for evaluating the clustering performance of cells with respect to annotated cell identity
-    labels.
+    labels and can be applied to all integration output types.
     For the regular integration benchmark use-case, the metric is applied to the integrated data.
     A larger value indicates better conservation of data-driven cell identity discovery and after integration, based on
     previous annotation.
