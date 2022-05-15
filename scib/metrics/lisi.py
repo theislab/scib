@@ -64,6 +64,10 @@ def ilisi_graph(
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of batches.
+    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
+    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
+    uses the existing kNN graph in ``data.uns['neighbors']``.
+    See below for examples of preproceassing and function calls.
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
@@ -76,6 +80,37 @@ def ilisi_graph(
     :param scale: scale output values between 0 and 1 (True/False)
     :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of iLISI scores per batch labels
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
+        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
+
+    **Preprocessing Embedding output**
+
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
+    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False, use_rep="X_emb")
+        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
+
+    **Preprocessing: kNN graph output**
+
+    No preprocessing required.
+    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+
+    .. code-block:: python
+
+        scib.me.ilisi_graph(adata, batch_key="celltype", label_key="celltype")
     """
 
     check_adata(adata)
@@ -133,6 +168,37 @@ def clisi_graph(
     :param scale: scale output values between 0 and 1 (True/False)
     :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of cLISI scores per cell type labels
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
+        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
+
+    **Preprocessing Embedding output**
+
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
+    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False, use_rep="X_emb")
+        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
+
+    **Preprocessing: kNN graph output**
+
+    No preprocessing required.
+    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+
+    .. code-block:: python
+
+        scib.me.clisi_graph(adata, batch_key="celltype", label_key="celltype")
     """
 
     check_adata(adata)
