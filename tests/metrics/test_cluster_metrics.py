@@ -32,16 +32,3 @@ def test_ari(adata_clustered):
     score = scib.me.ari(adata_clustered, cluster_key="cluster", label_key="celltype")
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 0.7614422905830917, diff=1e-2)
-
-
-def test_isolated_labels_F1(adata_neighbors):
-    score = scib.me.isolated_labels(
-        adata_neighbors,
-        label_key="celltype",
-        batch_key="batch",
-        embed="X_pca",
-        cluster=True,
-        verbose=True,
-    )
-    LOGGER.info(f"score: {score}")
-    assert_near_exact(score, 0.5581395348837209, diff=1e-12)

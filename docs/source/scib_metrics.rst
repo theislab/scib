@@ -36,7 +36,8 @@ the biological aspect that the metric addresses.
 
     hvg_overlap
     silhouette
-    isolated_labels
+    isolated_labels_f1
+    isolated_labels_asw
     nmi
     ari
     cell_cycle
