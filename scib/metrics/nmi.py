@@ -38,7 +38,7 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
 
-    **Preprocessing: Full feature output**
+    **Preprocessing: Feature output**
 
     Feature output requires processing of the count matrix in the following steps:
 
@@ -49,7 +49,7 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
     **Preprocessing: Embedding output**
@@ -61,7 +61,9 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=False, use_rep="X_embed", neighbors=True, umap=False)
+        scib.pp.reduce_data(
+            adata, pca=False, use_rep="X_embed", neighbors=True, use_rep="X_emb"
+        )
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
 

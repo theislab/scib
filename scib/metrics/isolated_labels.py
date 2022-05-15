@@ -20,8 +20,8 @@ def isolated_labels_f1(
     This function performs clustering on a kNN graph and can be applied to all integration output types.
     The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
     If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``adata.uns['neighbors']``.
-    See below for examples of preprocessing and function calls.
+    uses the existing kNN graph in ``data.uns['neighbors']``.
+    See below for examples of preproceassing and function calls.
 
     :param adata: anndata object
     :param label_key: column in ``adata.obs``
@@ -49,24 +49,24 @@ def isolated_labels_f1(
         )
 
         # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
         scib.me.isolated_labels_f1(
             adata, batch_key="celltype", label_key="celltype", embed=None
         )
 
     **Preprocessing Embedding output**
 
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
     KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
 
     .. code-block:: python
 
         scib.me.isolated_labels_f1(
-            adata, batch_key="celltype", label_key="celltype", embed="X_embed"
+            adata, batch_key="celltype", label_key="celltype", embed="X_emb"
         )
 
         # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
+        scib.pp.reduce_data(adata, pca=False, neighbors=True, use_rep="X_emb")
         scib.me.isolated_labels_f1(
             adata, batch_key="celltype", label_key="celltype", embed=None
         )

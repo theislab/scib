@@ -29,7 +29,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
     :param implementation: if set to 'sklearn', uses sklearn's implementation,
         otherwise native implementation is taken
 
-    **Preprocessing: Full feature output**
+    **Preprocessing: Feature output**
 
     Feature output requires processing of the count matrix in the following steps:
 
@@ -40,7 +40,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
     **Preprocessing Embedding output**
@@ -52,7 +52,9 @@ def ari(adata, cluster_key, label_key, implementation=None):
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=False, use_rep="X_embed", neighbors=True, umap=False)
+        scib.pp.reduce_data(
+            adata, pca=False, use_rep="X_embed", neighbors=True, use_rep="X_emb"
+        )
         scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
 
 

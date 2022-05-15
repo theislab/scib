@@ -56,17 +56,19 @@ def kBET(
         scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed="X_pca")
 
         # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, pca=True, neighbors=True, umap=False, use_rep="X_emb"
+        )
         scib.me.kBET(adata, batch_key="celltype", label_key="celltype", embed=None)
 
     **Preprocessing Embedding output**
 
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
     KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
 
     .. code-block:: python
 
-        scib.me.KBET(adata, batch_key="celltype", label_key="celltype", embed="X_embed")
+        scib.me.KBET(adata, batch_key="celltype", label_key="celltype", embed="X_emb")
 
         # optional: precompute kNN graph
         scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)

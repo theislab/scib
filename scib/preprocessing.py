@@ -562,7 +562,7 @@ def reduce_data(
     overwrite_hvg=True,
     neighbors=True,
     use_rep="X_pca",
-    umap=True,
+    umap=False,
 ):
     """Apply feature selection and dimensionality reduction steps.
 
