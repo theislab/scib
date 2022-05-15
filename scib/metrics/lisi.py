@@ -64,6 +64,8 @@ def ilisi_graph(
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of batches.
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
     The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
     If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
     uses the existing kNN graph in ``data.uns['neighbors']``.
@@ -155,6 +157,12 @@ def clisi_graph(
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of labels.
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
+    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
+    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
+    uses the existing kNN graph in ``data.uns['neighbors']``.
+    See below for examples of preproceassing and function calls.
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
