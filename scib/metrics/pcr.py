@@ -22,9 +22,9 @@ def pcr_comparison(
 
     :param adata_pre: anndata object before integration
     :param adata_post: anndata object after integration
-    :param covariate: Key for adata.obs column to regress against
+    :param covariate: Key for ``adata_post.obs`` column to regress against
     :param embed: Embedding to use for principal components.
-        If None, use the full expression matrix (``adata.X``), otherwise use the embedding
+        If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
     :param scale: If True, scale score between 0 and 1 (default)
@@ -76,10 +76,10 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         + recompute PCA on expression matrix (default)
 
     :param adata: Anndata object
-    :param covariate: Key for adata.obs column to regress against
+    :param covariate: Key for ``adata.obs`` column to regress against
     :param embed: Embedding to use for principal components.
         If None, use the full expression matrix (``adata.X``), otherwise use the embedding
-        provided in ``adata_post.obsm[embed]``.
+        provided in ``adata.obsm[embed]``.
     :param n_comps: Number of PCs, if PCA is recomputed
     :return:
         Variance contribution of regression

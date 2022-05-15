@@ -34,14 +34,14 @@ def cell_cycle(
 
     :param adata_pre: adata before integration
     :param adata_post: adata after integration
-    :param embed: Name of embedding in adata_post.obsm.
-        If ``embed=None``, use the full expression matrix (``adata.X``), otherwise use the
+    :param embed: Name of embedding in ``adata_post.obsm``.
+        If ``embed=None``, use the full expression matrix (``adata_post.X``), otherwise use the
         embedding provided in ``adata_post.obsm[embed]``
     :param agg_func: any function that takes a list of numbers and aggregates them into
         a single value. If ``agg_func=None``, all results will be returned
     :param organism: 'mouse' or 'human' for choosing cell cycle genes
     :param recompute_cc: If True, force recompute cell cycle score, otherwise use
-        precomputed scores if available as 'S_score' and 'G2M_score' in adata.obs
+        precomputed scores if available as 'S_score' and 'G2M_score' in ``adata_post.obs``
     :param precompute_pcr_key: Key in adata_pre for precomputed PCR values for cell
         cycle scores. Ignores cell cycle scores in adata_pre if present.
 
