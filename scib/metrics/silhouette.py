@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.metrics.cluster import silhouette_samples, silhouette_score
 
 
-def silhouette(adata, group_key, embed, metric="euclidean", scale=True):
+def silhouette(adata, label_key, embed, metric="euclidean", scale=True):
     """Average silhouette width (ASW)
 
     Wrapper for sklearn silhouette function values range from [-1, 1] with
@@ -12,16 +12,40 @@ def silhouette(adata, group_key, embed, metric="euclidean", scale=True):
         * -1 indicates core-periphery (non-cluster) structure
 
     By default, the score is scaled between 0 and 1 (``scale=True``).
+    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
+    integration outputs.
+    See below for examples of preprocessing and function calls.
 
-    :param group_key: key in adata.obs of cell labels
+    :param label_key: key in adata.obs of cell labels
     :param embed: embedding key in adata.obsm, default: 'X_pca'
     :param scale: default True, scale between 0 (worst) and 1 (best)
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True)
+        scib.me.isolated_labels_asw(adata, label_key="celltype", embed="X_pca")
+
+    **Preprocessing Embedding output**
+
+    No preprocessing is required.
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+
+    .. code-block:: python
+
+        scib.me.silhouette(adata, label_key="celltype", embed="X_emb")
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
         raise KeyError(f"{embed} not in obsm")
     asw = silhouette_score(
-        X=adata.obsm[embed], labels=adata.obs[group_key], metric=metric
+        X=adata.obsm[embed], labels=adata.obs[label_key], metric=metric
     )
     if scale:
         asw = (asw + 1) / 2
@@ -31,7 +55,7 @@ def silhouette(adata, group_key, embed, metric="euclidean", scale=True):
 def silhouette_batch(
     adata,
     batch_key,
-    group_key,
+    label_key,
     embed,
     metric="euclidean",
     return_all=False,
@@ -64,9 +88,12 @@ def silhouette_batch(
 
         batch \\, ASW_j = \\frac{1}{|C_j|} \\sum_{i \\in C_j} 1 - |silhouette(i)|
 
+    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
+    integration outputs.
+    See below for examples of preprocessing and function calls.
 
     :param batch_key: batch labels to be compared against
-    :param group_key: group labels to be subset by e.g. cell type
+    :param label_key: group labels to be subset by e.g. cell type
     :param embed: name of column in adata.obsm
     :param metric: see sklearn silhouette score
     :param scale: if True, scale between 0 and 1
@@ -77,6 +104,28 @@ def silhouette_batch(
         Batch ASW  (always)
         Mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
         Absolute silhouette scores per group label (additionally, if return_all=True)
+
+    **Preprocessing: Feature output**
+
+    Feature output requires processing of the count matrix in the following steps:
+
+        1. Highly variable gene selection (skip, if working on feature space subset)
+        2. PCA
+
+    .. code-block:: python
+
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True)
+        scib.me.silhouette_batch(adata, batch_key="batch", label_key="celltype", embed="X_pca")
+
+    **Preprocessing Embedding output**
+
+    No preprocessing is required.
+    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+
+    .. code-block:: python
+
+        scib.me.silhouette_batch(adata, batch_key="batch", label_key="celltype", embed="X_emb")
+
     """
     if embed not in adata.obsm.keys():
         print(adata.obsm.keys())
@@ -84,8 +133,8 @@ def silhouette_batch(
 
     sil_all = pd.DataFrame(columns=["group", "silhouette_score"])
 
-    for group in adata.obs[group_key].unique():
-        adata_group = adata[adata.obs[group_key] == group]
+    for group in adata.obs[label_key].unique():
+        adata_group = adata[adata.obs[label_key] == group]
         n_batches = adata_group.obs[batch_key].nunique()
 
         if (n_batches == 1) or (n_batches == adata_group.shape[0]):

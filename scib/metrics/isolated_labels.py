@@ -113,7 +113,7 @@ def isolated_labels_asw(
     :param verbose:
     :return: Mean of ASW over all isolated labels
 
-    **Preprocessing: Full feature output**
+    **Preprocessing: Feature output**
 
     Feature output requires processing of the count matrix in the following steps:
 
@@ -122,39 +122,21 @@ def isolated_labels_asw(
 
     .. code-block:: python
 
-        scib.me.isolated_labels_asw(
-            adata, batch_key="batch", label_key="celltype", embed="X_pca"
-        )
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data_asw(adata, n_top_genes=2000, pca=True, neighbors=True, umap=False)
+        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
         scib.me.isolated_labels_asw(
             adata, batch_key="batch", label_key="celltype", embed="X_pca"
         )
 
     **Preprocessing Embedding output**
 
+    No preprocessing is required.
     The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
-    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
 
     .. code-block:: python
 
         scib.me.isolated_labels_asw(
-            adata, batch_key="batch", label_key="celltype", embed="X_embed"
+            adata, batch_key="batch", label_key="celltype", embed="X_emb"
         )
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, umap=False)
-        scib.me.isolated_labels_asw(adata, batch_key="batch", label_key="celltype", embed=None)
-
-    **Preprocessing: kNN graph output**
-
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
-
-    .. code-block:: python
-
-        scib.me.isolated_labels_asw(adata, batch_key="batch", label_key="celltype", embed=None)
 
     """
     return isolated_labels(

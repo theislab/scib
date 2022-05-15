@@ -327,13 +327,13 @@ def metrics(
         print("Silhouette score...")
         # global silhouette coefficient
         asw_label = silhouette(
-            adata_int, group_key=label_key, embed=embed, metric=si_metric
+            adata_int, label_key=label_key, embed=embed, metric=si_metric
         )
         # silhouette coefficient per batch
         asw_batch = silhouette_batch(
             adata_int,
             batch_key=batch_key,
-            group_key=label_key,
+            label_key=label_key,
             embed=embed,
             metric=si_metric,
             return_all=False,
