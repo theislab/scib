@@ -34,7 +34,7 @@ Additionally, in order to run the R package ``kBET``, you need to install it thr
 
 .. code-block:: R
 
-    devtools::install_github('theislab/kBET')
+    devtools::install_github('theislab/kBET@4c9dafa')
 
 
 .. note::
