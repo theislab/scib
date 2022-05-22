@@ -17,6 +17,29 @@ from .exceptions import IntegrationMethodNotFound
 rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 
 
+def harmony(adata, batch, hvg=None, **kwargs):
+    """Harmony wrapper function
+
+    Based on `harmony-pytorch <https://github.com/lilab-bcb/harmony-pytorch>`_ version 0.1.7
+
+    :param adata: preprocessed ``anndata`` object
+    :param batch: batch key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
+    :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
+        corrected data
+    """
+    try:
+        from harmony import harmonize
+    except ModuleNotFoundError as e:
+        raise IntegrationMethodNotFound(e)
+
+    utils.check_sanity(adata, batch, hvg)
+    sc.tl.pca(adata)
+    adata.obsm['X_emb'] = harmonize(adata.obsm['X_pca'], adata.obs, batch_key = batch)
+
+    return adata
+
+
 def scanorama(adata, batch, hvg=None, **kwargs):
     """Scanorama wrapper function
 
