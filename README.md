@@ -13,7 +13,7 @@ In [our study](https://doi.org/10.1038/s41592-021-01336-8), we benchmark 16 meth
 preprocessing steps leading to 68 methods combinations on 85 batches of gene expression and chromatin accessibility
 data.
 
-![Workflow](https://raw.githubusercontent.com/theislab/scib/main/figure.png)
+![Workflow](https://raw.githubusercontent.com/theislab/scib/main/docs/source/_static/figure.png)
 
 ## Resources
 
