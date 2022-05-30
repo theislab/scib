@@ -15,12 +15,26 @@ Preprocessing data for metrics
 The ``anndata`` objects returned by the integration methods require some processing for most metrics.
 This involves feature selection (highly variable gene selection), PCA, kNN graph computation and clustering.
 For preprocessing, ``scib`` provides the function :func:`~scib.preprocessing.reduce_data`.
-Which preprocessing steps are needed, relies on the output type of the integration and the metric.
+Whether preprocessing steps are needed, and which part of the anndata object preprocessing should be performed on
+depends on the output type of the integration and the metric.
+Output types of integration methods can be
+
+    1. feature output: a corrected count matrix
+    2. embedding output:corrected embedding
+    3. kNN output: corrected kNN graph
+
+Each metrics assumes that the representation it requires (e.g. count matrix, embedding, kNN graph) is available in the
+``anndata`` object.
+If that is not the case, the data needs to be preprocessed accordingly or, for cases where that is not possible, the
+metric cannot be applied to that output type.
 
 .. figure:: _static/metrics_workflow.png
    :alt: metrics workflow
 
    Overview of metrics with relation to integration outputs and preprocessing steps.
+   For metrics that require the same data representation as the integration output type, no preprocessing is required
+   (metrics on the left side of the plot). For higher dimensional integration outputs than the required metric input
+   (e.g. feature output for embedding metrics), the user needs to preprocess the data (right side).
 
 
 Biological Conservation Metrics
