@@ -48,6 +48,7 @@ repos:
     -   id: mixed-line-ending
         args: [--fix=lf]
     -   id: trailing-whitespace
+        exclude: setup.cfg
     -   id: check-case-conflict
 -   repo: https://github.com/myint/autoflake
     rev: v1.4
