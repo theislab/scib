@@ -274,12 +274,11 @@ def scanvi(adata, batch, labels, hvg=None):
     n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
     n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.0)])]))
 
-
     # STEP 2: RUN scVI to initialize scANVI
     scanvae = SCANVI.from_scvi_model(
         scvi_model=vae,
         labels_key=labels,
-        unknown_category="UnknownUnknown" # pick anything definitely not in a dataset
+        unknown_category="UnknownUnknown",  # pick anything definitely not in a dataset
     )
     scanvae.train(max_epochs=n_epochs_scANVI, train_size=1.0)
     adata.obsm["X_emb"] = scanvae.get_latent_representation()
