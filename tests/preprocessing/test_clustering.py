@@ -1,7 +1,7 @@
 import pandas as pd
 
 import scib
-from tests.common import LOGGER
+from tests.common import LOGGER, assert_near_exact
 
 
 def test_opt_louvain(adata_neighbors):
@@ -17,4 +17,4 @@ def test_opt_louvain(adata_neighbors):
 
     LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
     assert res_max == 0.7
-    assert score_max == 0.7432787576640969
+    assert_near_exact(score_max, 0.7432787576640969, diff=1e-3)
