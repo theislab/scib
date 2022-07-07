@@ -39,5 +39,6 @@ def test_plot():
     }
 
     df = pd.DataFrame(data)
-    scib.pl.metrics(df, palette="viridis")
-    scib.pl.metrics(df[0:2])
+    df = df.melt(id_vars=["method"], var_name="metric", value_name="value")
+    scib.pl.metrics(df)
+    scib.pl.metrics(df[0:1])
