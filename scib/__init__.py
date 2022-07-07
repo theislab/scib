@@ -5,7 +5,7 @@ except ImportError:  # for Python<3.8
 
 __version__ = metadata.version("scib")
 
-from . import integration, metrics, preprocessing, utils
+from . import integration, metrics, plotting, preprocessing, utils
 from ._package_tools import rename_func
 from .metrics import clustering
 
@@ -33,3 +33,4 @@ pp = preprocessing
 ig = integration
 me = metrics
 cl = clustering
+pl = plotting
