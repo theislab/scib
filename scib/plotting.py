@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
@@ -52,7 +53,26 @@ def metrics(
     metric_type = ["Batch Correction", "Biological Conservation"]
     df["metric_type"] = np.select(conditions, metric_type)
     df[metric_column] = df[metric_column].str.replace("_", " ")
-    df["rank"] = df.groupby(metric_column)[value_column].rank(ascending=False)
+
+    # overall score
+    df = pd.concat(
+        [
+            df,
+            df.groupby([method_column, "metric_type"])[value_column]
+            .mean()
+            .reset_index()
+            .assign(metric="Overall"),
+            df.groupby(method_column)[value_column]
+            .mean()
+            .reset_index()
+            .assign(metric_type="Overall", metric="Overall"),
+        ]
+    )
+
+    # rank
+    df["rank"] = df.groupby([metric_column, "metric_type"])[value_column].rank(
+        ascending=False
+    )
 
     dims = (
         df[["metric_type", metric_column]]
@@ -75,6 +95,7 @@ def metrics(
     )
 
     for i, metric_type in enumerate(dims.index):
+        legend = None if metric_type == "Overall" else "brief"
         df_sub = df.query(f'metric_type == "{metric_type}"')
         ax = axs if n_metric_types == 1 else axs[i]
         sns.scatterplot(
@@ -86,14 +107,15 @@ def metrics(
             size=value_column,
             sizes=(df_sub["value"].min() * 100, df_sub["value"].max() * 100),
             # sizes={x: int(x * 200) for x in df_sub['value'].dropna().unique()},
-            legend="brief",
+            legend=legend,
             ax=ax,
         )
         ax.set(title=metric_type, xlabel=None, ylabel=None)
         ax.tick_params(axis="x", rotation=90)
-        ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0)
-        for t in ax.legend_.texts:
-            t.set_text(t.get_text()[:5])
+        if legend is not None:
+            ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0)
+            for t in ax.legend_.texts:
+                t.set_text(t.get_text()[:5])
         sns.despine(bottom=True, left=True)
 
     fig.tight_layout()
