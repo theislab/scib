@@ -12,6 +12,7 @@ def metrics(
     batch_metrics=None,
     bio_metrics=None,
     palette=None,
+    overall=True,
 ):
     """
     :param metrics_df: dataframe with columns for methods, metrics and metric values
@@ -20,6 +21,7 @@ def metrics(
     :param batch_metrics: list of batch correction metrics in metrics column for annotating metric type
     :param bio_metrics: list of biological conservation metrics in the metrics column for annotating metric type
     :param palette: color map as input for ``seaborn.scatterplot``
+    :param overall: whether to include a column for the overall score
     """
     sns.set_context("paper")
     sns.set_style("white")
@@ -55,25 +57,35 @@ def metrics(
     df[metric_column] = df[metric_column].str.replace("_", " ")
 
     # overall score
-    df = pd.concat(
-        [
-            df,
-            df.groupby([method_column, "metric_type"])[value_column]
-            .mean()
-            .reset_index()
-            .assign(metric="Overall"),
+    df_list = [
+        df,
+        df.groupby([method_column, "metric_type"])[value_column]
+        .mean()
+        .reset_index()
+        .assign(metric="Overall"),
+    ]
+    if overall:
+        df_list.append(
             df.groupby(method_column)[value_column]
             .mean()
             .reset_index()
-            .assign(metric_type="Overall", metric="Overall"),
-        ]
-    )
+            .assign(metric_type="Overall", metric="Overall")
+        )
+    df = pd.concat(df_list)
 
-    # rank
-    df["rank"] = df.groupby([metric_column, "metric_type"])[value_column].rank(
-        ascending=False
+    # rank metrics
+    df["rank"] = (
+        df.groupby([metric_column, "metric_type"])[value_column]
+        .rank(
+            method="min",
+            ascending=False,
+            na_option="bottom",
+        )
+        .astype(int)
     )
+    df = df.sort_values("rank")
 
+    # get plot dimensions
     dims = (
         df[["metric_type", metric_column]]
         .drop_duplicates()["metric_type"]
@@ -95,7 +107,7 @@ def metrics(
     )
 
     for i, metric_type in enumerate(dims.index):
-        legend = None if metric_type == "Overall" else "brief"
+        legend = "brief" if i == 0 else None
         df_sub = df.query(f'metric_type == "{metric_type}"')
         ax = axs if n_metric_types == 1 else axs[i]
         sns.scatterplot(
