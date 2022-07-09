@@ -54,7 +54,7 @@ jobs:
         -   name: Install package with test dependencies
             run: |
                 pip install dist/*.whl
-                pip install '.[test,scanorama,scvi]'
+                pip install '.[test]'
 
         -   name: Test with pytest
             run: |
