@@ -82,8 +82,7 @@ def silhouette_batch(
         print(adata.obsm.keys())
         raise KeyError(f"{embed} not in obsm")
 
-    sil_all = pd.DataFrame(columns=["group", "silhouette_score"])
-
+    sil_dfs = []
     for group in adata.obs[group_key].unique():
         adata_group = adata[adata.obs[group_key] == group]
         n_batches = adata_group.obs[batch_key].nunique()
@@ -102,7 +101,7 @@ def silhouette_batch(
             # scale s.t. highest number is optimal
             sil_per_group = [1 - i for i in sil_per_group]
 
-        sil_all = sil_all.append(
+        sil_dfs.append(
             pd.DataFrame(
                 {
                     "group": [group] * len(sil_per_group),
@@ -111,14 +110,14 @@ def silhouette_batch(
             )
         )
 
-    sil_all = sil_all.reset_index(drop=True)
-    sil_means = sil_all.groupby("group").mean()
+    sil_df = pd.concat(sil_dfs).reset_index(drop=True)
+    sil_means = sil_df.groupby("group").mean()
     asw = sil_means["silhouette_score"].mean()
 
     if verbose:
         print(f"mean silhouette per group: {sil_means}")
 
     if return_all:
-        return asw, sil_means, sil_all
+        return asw, sil_means, sil_df
 
     return asw
