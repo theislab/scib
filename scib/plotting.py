@@ -13,6 +13,7 @@ def metrics(
     bio_metrics=None,
     palette=None,
     overall=True,
+    return_fig=False,
 ):
     """
     :param metrics_df: dataframe with columns for methods, metrics and metric values
@@ -22,6 +23,7 @@ def metrics(
     :param bio_metrics: list of biological conservation metrics in the metrics column for annotating metric type
     :param palette: color map as input for ``seaborn.scatterplot``
     :param overall: whether to include a column for the overall score
+    :param return_fig: whether to return a fig object
     """
     sns.set_context("paper")
     sns.set_style("white")
@@ -131,3 +133,6 @@ def metrics(
         sns.despine(bottom=True, left=True)
 
     fig.tight_layout()
+
+    if return_fig:
+        return fig
