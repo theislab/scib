@@ -17,8 +17,9 @@ def metrics(
 ):
     """
     :param metrics_df: dataframe with columns for methods, metrics and metric values
-    :param metric_column: column in ``metrics_df`` of metrics
     :param method_column: column in ``metrics_df`` of methods
+    :param metric_column: column in ``metrics_df`` of metrics
+    :param value_column: column in ``metrics_df`` with metric values
     :param batch_metrics: list of batch correction metrics in metrics column for annotating metric type
     :param bio_metrics: list of biological conservation metrics in the metrics column for annotating metric type
     :param palette: color map as input for ``seaborn.scatterplot``
@@ -96,7 +97,8 @@ def metrics(
     n_metric_types = dims.shape[0]
     n_metrics = dims.sum()
     n_methods = df[method_column].nunique()
-    dim_x = np.max([4, (n_metrics + n_metric_types) * 0.4])
+    metric_len = df[metric_column].str.len().max()
+    dim_x = np.max([4, (n_metrics + n_metric_types + (metric_len / 10)) * 0.4])
     dim_y = np.max([2.5, n_methods * 0.9])
 
     # Build plot
@@ -121,6 +123,7 @@ def metrics(
             size=value_column,
             sizes=(df_sub["value"].min() * 100, df_sub["value"].max() * 100),
             # sizes={x: int(x * 200) for x in df_sub['value'].dropna().unique()},
+            edgecolor="black",
             legend=legend,
             ax=ax,
         )
