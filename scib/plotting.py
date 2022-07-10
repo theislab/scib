@@ -98,7 +98,7 @@ def metrics(
     n_metrics = dims.sum()
     n_methods = df[method_column].nunique()
     metric_len = df[metric_column].str.len().max()
-    dim_x = np.max([4, (n_metrics + n_metric_types + (metric_len / 10)) * 0.4])
+    dim_x = np.max([4, (n_metrics + n_metric_types) * 0.4 + (metric_len / 10)])
     dim_y = np.max([2.5, n_methods * 0.9])
 
     # Build plot
