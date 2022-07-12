@@ -66,14 +66,11 @@ def metrics(
         .mean()
         .reset_index()
         .assign(metric="Overall"),
+        df.groupby(method_column)[value_column]
+        .mean()
+        .reset_index()
+        .assign(metric_type="Overall", metric="Overall"),
     ]
-    if overall:
-        df_list.append(
-            df.groupby(method_column)[value_column]
-            .mean()
-            .reset_index()
-            .assign(metric_type="Overall", metric="Overall")
-        )
     df = pd.concat(df_list)
 
     # rank metrics
@@ -86,7 +83,10 @@ def metrics(
         )
         .astype(int)
     )
-    df = df.sort_values("rank")
+    method_rank = df.query('metric_type == "Overall"').sort_values(
+        "rank", ascending=True
+    )[method_column]
+    df[method_column] = pd.Categorical(df[method_column], categories=method_rank)
 
     # get plot dimensions
     dims = (
