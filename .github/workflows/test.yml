@@ -57,11 +57,11 @@ jobs:
                 pip install '.[test]'
 
         -   name: Test with pytest
-            if: ${{ matrix.os }} != 'macos-latest'
+            if: matrix.os != 'macos-latest'
             run: |
                 python -m pytest --cov --cov-append --cov-report=term-missing --ignore=tests/integration/ -vv
         -   name: Upload coverage
-            if: ${{ matrix.os }} != 'macos-latest'
+            if: matrix.os != 'macos-latest'
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
             run: |
