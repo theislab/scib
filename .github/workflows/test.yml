@@ -59,11 +59,13 @@ jobs:
         -   name: Test with pytest
             run: |
                 python -m pytest --cov --cov-append --cov-report=term-missing --ignore=tests/integration/ -vv
+            if: ${{ matrix.os = 'ubuntu-latest' }}
         -   name: Upload coverage
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
             run: |
                 codecov --no-color --required --flags unittest
+            if: ${{ matrix.os = 'ubuntu-latest' }}
 
     integration:
         runs-on: ${{ matrix.os }}
