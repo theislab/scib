@@ -3,7 +3,7 @@ import tempfile
 
 import anndata2ri
 import numpy as np
-import rpy2.rinterface_lib.callbacks  # rpy2 for running R code
+import rpy2.rinterface_lib.callbacks
 import rpy2.rinterface_lib.embedded
 import rpy2.robjects as ro
 import scanpy as sc
@@ -518,6 +518,12 @@ def hvg_batch(
         print(f"Using {len(nbatch1_dispersions)} HVGs from full intersect set")
         hvg = nbatch1_dispersions.index[:]
         not_n_batches = 1
+
+        # Check that target_genes is not greater than total number of genes
+        if not target_genes <= adata_hvg.n_vars:
+            raise ValueError(
+                f"Number of HVGs ({target_genes=}) has to be smaller than total number of genes ({adata.n_vars=})"
+            )
 
         while not enough:
             target_genes_diff = target_genes - len(hvg)

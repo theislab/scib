@@ -10,6 +10,7 @@ from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -193,6 +194,7 @@ def metrics(
     n_isolated=None,
     graph_conn_=False,
     trajectory_=False,
+    moransi_=False,
     kBET_=False,
     lisi_graph_=False,
     ilisi_=False,
@@ -465,6 +467,12 @@ def metrics(
     else:
         trajectory_score = np.nan
 
+    if moransi_:
+        print("Moran's I score...")
+        moransi_score = morans_i(adata, adata_int, batch_key=batch_key)
+    else:
+        moransi_score = np.nan
+
     results = {
         "NMI_cluster/label": nmi_score,
         "ARI_cluster/label": ari_score,
@@ -480,6 +488,7 @@ def metrics(
         "cLISI": clisi,
         "hvg_overlap": hvg_score,
         "trajectory": trajectory_score,
+        "moransi": moransi_score,
     }
 
     return pd.DataFrame.from_dict(results, orient="index")
