@@ -1,11 +1,8 @@
 import logging
 import tempfile
 
-import anndata2ri
 import numpy as np
-import rpy2.rinterface_lib.callbacks  # rpy2 for running R code
-import rpy2.rinterface_lib.embedded
-import rpy2.robjects as ro
+import pandas as pd
 import scanpy as sc
 import seaborn
 import seaborn as sns
@@ -15,8 +12,6 @@ from scipy import sparse
 from . import utils  # TODO: move util fcns (eg reader) elsewhere
 from .exceptions import RLibraryNotFound
 
-# Ignore R warning messages
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 seaborn.set_context("talk")
 
 
@@ -243,6 +238,12 @@ def normalize(
     :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
     :param log: whether to performing log1p-transformation after normalisation
     """
+    import anndata2ri
+    import rpy2.rinterface_lib.callbacks
+    import rpy2.robjects as ro
+
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+
     utils.check_adata(adata)
 
     # Check for 0 count cells
@@ -698,6 +699,13 @@ def save_seurat(adata, path, batch, hvgs=None):
     """
     import re
 
+    import anndata2ri
+    import rpy2.rinterface_lib.callbacks
+    import rpy2.rinterface_lib.embedded
+    import rpy2.robjects as ro
+
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+
     try:
         ro.r("library(Seurat)")
         ro.r("library(scater)")
@@ -740,6 +748,12 @@ def read_seurat(path):
 
     :param path: file path to saved file
     """
+    import anndata2ri
+    import rpy2.rinterface_lib.callbacks
+    import rpy2.rinterface_lib.embedded
+    import rpy2.robjects as ro
+
+    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 
     try:
         ro.r("library(Seurat)")
@@ -774,7 +788,9 @@ def read_conos(inPath, dir_path=None):
     """
     from shutil import rmtree
 
-    import pandas as pd
+    import rpy2.rinterface_lib.callbacks
+    import rpy2.rinterface_lib.embedded
+    import rpy2.robjects as ro
     from scipy.io import mmread
 
     if dir_path is None:
