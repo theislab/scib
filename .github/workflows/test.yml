@@ -55,6 +55,7 @@ jobs:
             run: |
                 pip install dist/*.whl
                 pip install '.[test]'
+
         -   name: Test with pytest
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
@@ -63,11 +64,10 @@ jobs:
                     --ignore=tests/integration/ \
                     --ignore=tests/metrics/rpy2 -vv
 
-        -   name: Install rpy2 dependencies
+        -   name: Test R metrics
+            if: ${{ matrix.os != 'macos-latest'}}
             run: |
                 pip install '.[rpy2]'
-        -   name: Test R metrics
-            run: |
                 python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
 
         -   name: Upload coverage
