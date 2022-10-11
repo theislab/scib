@@ -180,14 +180,6 @@ def lisi_graph_py(
     Compute LISI score on shortes path based on kNN graph provided in the adata object.
     By default, perplexity is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
-    try:
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
-
     # use no more than the available cores
     n_cores = max(1, min(n_cores, mp.cpu_count()))
 
@@ -258,7 +250,7 @@ def lisi_graph_py(
         print(f'call {" ".join(args_int)}')
     try:
         subprocess.run(args_int)
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+    except RuntimeError as ex:
         print(f"Error computing LISI kNN graph {ex}\nSetting value to np.nan")
         return np.nan
 
