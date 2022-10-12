@@ -264,7 +264,7 @@ def scanvi(adata, batch, labels, hvg=None, max_epochs=None):
     # # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
     # this n_epochs_scVI is now default in scvi-tools
     if max_epochs is None:
-        n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
+        n_epochs_scVI = int(np.min([round((20000 / adata.n_obs) * 400), 400]))  # 400
         n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.0)])]))
     else:
         n_epochs_scVI = max_epochs
