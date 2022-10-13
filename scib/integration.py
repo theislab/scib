@@ -158,13 +158,13 @@ def trvaep(adata, batch, hvg=None):
     return adata
 
 
-def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwargs):
+def scgen(adata, batch, cell_type, epochs=100, hvg=None, **kwargs):
     """scGen wrapper function
 
-    Based on `scgen`_ version 1.1.5 with parametrization taken from the tutorial `notebook`_.
+    Based on `scgen`_ version 2.1.0 with parametrization taken from the tutorial `notebook`_.
 
     .. _scgen: https://github.com/theislab/scgen
-    .. _notebook: https://nbviewer.jupyter.org/github/M0hammadL/scGen_notebooks/blob/master/notebooks/scgen_batch_removal.ipynb
+    .. _notebook: https://scgen.readthedocs.io/en/stable/tutorials/scgen_batch_removal.html
 
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
@@ -172,32 +172,32 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, model_path=None, **kwar
     :return: ``anndata`` object containing the corrected feature matrix
     """
     try:
-        import scgen
+        from scgen import SCGEN
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
     utils.check_sanity(adata, batch, hvg)
 
-    if model_path is None:
-        temp_dir = tempfile.TemporaryDirectory()
-        model_path = temp_dir.name
+    net_adata = adata.copy()
+    if hvg is not None:
+        net_adata = net_adata[:, hvg].copy()
 
-    # Fit the model
-    network = scgen.VAEArith(x_dimension=adata.shape[1], model_path=model_path)
-    network.train(train_data=adata, n_epochs=epochs, save=False)
-    corrected_adata = scgen.batch_removal(
-        network, adata, batch_key=batch, cell_label_key=cell_type, **kwargs
+    SCGEN.setup_anndata(net_adata, batch_key=batch, labels_key=cell_type)
+    model = SCGEN(net_adata)
+    model.train(
+        max_epochs=epochs,
+        batch_size=32,
+        early_stopping=True,
+        early_stopping_patience=25,
     )
-
-    network.sess.close()
-
+    corrected_adata = model.batch_removal(**kwargs)
     return corrected_adata
 
 
-def scvi(adata, batch, hvg=None):
+def scvi(adata, batch, hvg=None, return_model=False, max_epochs=None):
     """scVI wrapper function
 
-    Based on scVI version 0.6.7 (available through `conda <https://anaconda.org/bioconda/scvi>`_)
+    Based on scvi-tools version >=0.16.0 (available through `conda <https://docs.scvi-tools.org/en/stable/installation.html>`_)
 
     .. note::
         scVI expects only non-normalized (count) data on highly variable genes!
@@ -209,10 +209,7 @@ def scvi(adata, batch, hvg=None):
         corrected data
     """
     try:
-        from scvi.dataset import AnnDatasetFromAnnData
-        from scvi.inference import UnsupervisedTrainer
-        from scvi.models import VAE
-        from sklearn.preprocessing import LabelEncoder
+        from scvi.model import SCVI
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
@@ -225,55 +222,36 @@ def scvi(adata, batch, hvg=None):
         )
 
     # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
-    n_epochs = np.min([round((20000 / adata.n_obs) * 400), 400])
     n_latent = 30
     n_hidden = 128
     n_layers = 2
 
+    # copying to not return values added to adata during setup_anndata
     net_adata = adata.copy()
-    net_adata.X = adata.layers["counts"]
-    del net_adata.layers["counts"]
-    # Ensure that the raw counts are not accidentally used
-    del net_adata.raw  # Note that this only works from anndata 0.7
+    if hvg is not None:
+        net_adata = adata[:, hvg].copy()
+    SCVI.setup_anndata(net_adata, layer="counts", batch_key=batch)
 
-    # Define batch indices
-    le = LabelEncoder()
-    net_adata.obs["batch_indices"] = le.fit_transform(net_adata.obs[batch].values)
-
-    net_adata = AnnDatasetFromAnnData(net_adata)
-
-    vae = VAE(
-        net_adata.nb_genes,
-        reconstruction_loss="nb",
-        n_batch=net_adata.n_batches,
+    vae = SCVI(
+        net_adata,
+        gene_likelihood="nb",
         n_layers=n_layers,
         n_latent=n_latent,
         n_hidden=n_hidden,
     )
+    vae.train(train_size=1.0, max_epochs=max_epochs)
+    adata.obsm["X_emb"] = vae.get_latent_representation()
 
-    trainer = UnsupervisedTrainer(
-        vae,
-        net_adata,
-        train_size=1.0,
-        use_cuda=False,
-    )
-
-    trainer.train(n_epochs=n_epochs, lr=1e-3)
-
-    full = trainer.create_posterior(
-        trainer.model, net_adata, indices=np.arange(len(net_adata))
-    )
-    latent, _, _ = full.sequential().get_latent()
-
-    adata.obsm["X_emb"] = latent
-
-    return adata
+    if not return_model:
+        return adata
+    else:
+        return vae
 
 
-def scanvi(adata, batch, labels):
+def scanvi(adata, batch, labels, hvg=None, max_epochs=None):
     """scANVI wrapper function
 
-    Based on scVI version 0.6.7 (available through `conda <https://anaconda.org/bioconda/scvi>`_)
+    Based on scvi-tools version >=0.16.0 (available through `conda <https://docs.scvi-tools.org/en/stable/installation.html>`_)
 
     .. note::
         Use non-normalized (count) data for scANVI!
@@ -281,107 +259,34 @@ def scanvi(adata, batch, labels):
     :param adata: preprocessed ``anndata`` object
     :param batch: batch key in ``adata.obs``
     :param labels: label key in ``adata.obs``
+    :param hvg: list of highly variables to subset to. If ``None``, the full dataset will be used
     :return: ``anndata`` object containing the corrected feature matrix as well as an embedding representation of the
         corrected data
     """
     try:
-        from scvi.dataset import AnnDatasetFromAnnData
-        from scvi.inference import SemiSupervisedTrainer, UnsupervisedTrainer
-        from scvi.models import SCANVI, VAE
-        from sklearn.preprocessing import LabelEncoder
+        from scvi.model import SCANVI
     except ModuleNotFoundError as e:
         raise IntegrationMethodNotFound(e)
 
-    import numpy as np
-
-    if "counts" not in adata.layers:
-        raise TypeError(
-            "Adata does not contain a `counts` layer in `adata.layers[`counts`]`"
-        )
-    # Check for counts data layer
-
-    # STEP 1: prepare the data
-    net_adata = adata.copy()
-    net_adata.X = adata.layers["counts"]
-    del net_adata.layers["counts"]
-    # Ensure that the raw counts are not accidentally used
-    del net_adata.raw  # Note that this only works from anndata 0.7
-
-    # Define batch indices
-    le = LabelEncoder()
-    net_adata.obs["batch_indices"] = le.fit_transform(net_adata.obs[batch].values)
-    net_adata.obs["labels"] = le.fit_transform(net_adata.obs[labels].values)
-
-    net_adata = AnnDatasetFromAnnData(net_adata)
-
-    print(
-        "scANVI dataset object with {} batches and {} cell types".format(
-            net_adata.n_batches, net_adata.n_labels
-        )
-    )
-
-    # if hvg is True:
-    #    # this also corrects for different batches by default
-    #    net_adata.subsample_genes(2000, mode="seurat_v3")
-
     # # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
-    n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
-    n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.0)])]))
-    n_latent = 30
-    n_hidden = 128
-    n_layers = 2
+    # this n_epochs_scVI is now default in scvi-tools
+    if max_epochs is None:
+        n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
+        n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.0)])]))
+    else:
+        n_epochs_scVI = max_epochs
+        n_epochs_scANVI = max_epochs
+
+    vae = scvi(adata, batch, hvg, return_model=True, max_epochs=n_epochs_scVI)
 
     # STEP 2: RUN scVI to initialize scANVI
-
-    vae = VAE(
-        net_adata.nb_genes,
-        reconstruction_loss="nb",
-        n_batch=net_adata.n_batches,
-        n_latent=n_latent,
-        n_hidden=n_hidden,
-        n_layers=n_layers,
+    scanvae = SCANVI.from_scvi_model(
+        scvi_model=vae,
+        labels_key=labels,
+        unlabeled_category="UnknownUnknown",  # pick anything definitely not in a dataset
     )
-
-    trainer = UnsupervisedTrainer(
-        vae,
-        net_adata,
-        train_size=1.0,
-        use_cuda=False,
-    )
-
-    trainer.train(n_epochs=n_epochs_scVI, lr=1e-3)
-
-    # STEP 3: RUN scANVI
-
-    scanvi = SCANVI(
-        net_adata.nb_genes,
-        net_adata.n_batches,
-        net_adata.n_labels,
-        n_hidden=n_hidden,
-        n_latent=n_latent,
-        n_layers=n_layers,
-        dispersion="gene",
-        reconstruction_loss="nb",
-    )
-    scanvi.load_state_dict(trainer.model.state_dict(), strict=False)
-
-    # use default parameter from semi-supervised trainer class
-    trainer_scanvi = SemiSupervisedTrainer(scanvi, net_adata)
-    # use all cells as labelled set
-    trainer_scanvi.labelled_set = trainer_scanvi.create_posterior(
-        trainer_scanvi.model, net_adata, indices=np.arange(len(net_adata))
-    )
-    # put one cell in the unlabelled set
-    trainer_scanvi.unlabelled_set = trainer_scanvi.create_posterior(indices=[0])
-    trainer_scanvi.train(n_epochs=n_epochs_scANVI)
-
-    # extract info from posterior
-    scanvi_full = trainer_scanvi.create_posterior(
-        trainer_scanvi.model, net_adata, indices=np.arange(len(net_adata))
-    )
-    latent, _, _ = scanvi_full.sequential().get_latent()
-
-    adata.obsm["X_emb"] = latent
+    scanvae.train(max_epochs=n_epochs_scANVI, train_size=1.0)
+    adata.obsm["X_emb"] = scanvae.get_latent_representation()
 
     return adata
 

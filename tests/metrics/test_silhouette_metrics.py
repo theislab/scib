@@ -21,3 +21,16 @@ def test_silhouette_batch(adata_pca):
     )
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 0.9014384369842835, diff=1e-2)
+
+
+def test_isolated_labels_silhouette(adata_pca):
+    score = scib.me.isolated_labels(
+        adata_pca,
+        label_key="celltype",
+        batch_key="batch",
+        embed="X_pca",
+        cluster=False,
+        verbose=True,
+    )
+    LOGGER.info(f"score: {score}")
+    assert_near_exact(score, 0.6101431176066399, diff=1e-3)
