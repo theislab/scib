@@ -12,46 +12,44 @@ For a detailed description of the metrics implemented in this package, please se
 Preprocessing data for metrics
 ------------------------------
 
+The metrics can either be used ot evaluate a dataset or to evaluate the integration performance.
+For the latter case, it is important to note that different integration methods return different data representations.
+These are denoted as "native representation" in the figure below.
+
 The ``anndata`` objects returned by the integration methods require some processing for most metrics.
 This involves feature selection (highly variable gene selection), PCA, kNN graph computation and clustering.
 For preprocessing, ``scib`` provides the function :func:`~scib.preprocessing.reduce_data`.
-Whether preprocessing steps are needed, and which part of the anndata object preprocessing should be performed on
-depends on the output type of the integration and the metric.
-Output types of integration methods can be
+Data representations can be:
 
-    1. feature output: a corrected count matrix
-    2. embedding output:corrected embedding
-    3. kNN output: corrected kNN graph
+    1. Feature space: a count matrix
+    2. Embedding space: an embedding or a PCA of a count matrix
+    3. kNN space: a kNN graph on an embedding or PCA
 
-Each metrics assumes that the data representation it requires (e.g. count matrix, embedding, kNN graph) is available in
-the ``anndata`` object.
+.. note::
+    Which preprocessing steps are required depends on the data representation that you want to evaluate.
+    For example, a corrected feature matrix needs to be transformed into a PCA first for the ASW metrics, whereas a
+    native embedding output can be used directly for the same metrics.
+
+.. figure:: _static/metrics_workflow.png
+   :alt: metrics workflow
+
+   **Overview of metrics and processing steps for different data representations.**
+   Metrics are arranged depending on the data representation they require.
+   The different data representations are separated by dotted lines in the figure.
+   Native data representations (from integration output) are depicted in green boxes, while the processed
+   representations are in white boxes.
+   The preprocessing commands are denoted on the arrows between data representations, highly variable gene selection is
+   not shown here explicitly.
+   Metrics that are evaluate differently for different data representations are depicted by metrics on top of the dotted
+   lines.
+
+Each metric assumes that the data representation it requires is available in the ``anndata`` object.
 If that is not the case, the data needs to be preprocessed accordingly or, for cases where that is not possible, the
 metric cannot be applied to that data representation.
 The data representation not only determines which metrics can be evaluated, but for some metrics it also determines how
 they are computed.
 For instance, the principle component regression computes a PCA, which can be done not just on a full feature matrix
 but also on an integrated embedding.
-
-The metrics can either be used ot evaluate a dataset or to evaluate the integration performance.
-For the latter case, it is important to note that different integration methods return different data representations.
-These are denoted as "native representation" in the figure below.
-
-.. figure:: _static/metrics_workflow.png
-   :alt: metrics workflow
-
-   **Overview of metrics with relation to integration outputs and preprocessing steps.**
-   Metrics are arranged depending on the data representation they require.
-   The different data representations are separated by dotted lines in the figure.
-   Native data representations (from integration output) are depicted in green boxes, while the processed
-   representations are in white boxes.
-   The preprocessing commands are denoted on the arrows between data representations.
-   Metrics that are evaluate differently for different data representations are depicted by metrics on top of the dotted
-   lines.
-
-.. note::
-    Whether preprocessing is required, depends on the data representation that you want to evaluate.
-    For example, a corrected feature matrix needs to be transformed into a PCA first for the ASW metrics, whereas a native
-    embedding output can be used directly for the same metrics.
 
 
 Biological Conservation Metrics
