@@ -1,4 +1,5 @@
 import logging
+import re
 import tempfile
 
 import numpy as np
@@ -10,7 +11,7 @@ from matplotlib import pyplot as plt
 from scipy import sparse
 
 from . import utils  # TODO: move util fcns (eg reader) elsewhere
-from .exceptions import RLibraryNotFound
+from .exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 
 seaborn.set_context("talk")
 
@@ -238,11 +239,15 @@ def normalize(
     :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
     :param log: whether to performing log1p-transformation after normalisation
     """
-    import anndata2ri
-    import rpy2.rinterface_lib.callbacks
-    import rpy2.robjects as ro
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
 
-    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_adata(adata)
 
@@ -697,14 +702,15 @@ def save_seurat(adata, path, batch, hvgs=None):
     :param batch: key in ``adata.obs`` that holds batch assigments
     :param hvgs: list of highly variable genes
     """
-    import re
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
 
-    import anndata2ri
-    import rpy2.rinterface_lib.callbacks
-    import rpy2.rinterface_lib.embedded
-    import rpy2.robjects as ro
-
-    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     try:
         ro.r("library(Seurat)")
@@ -748,12 +754,15 @@ def read_seurat(path):
 
     :param path: file path to saved file
     """
-    import anndata2ri
-    import rpy2.rinterface_lib.callbacks
-    import rpy2.rinterface_lib.embedded
-    import rpy2.robjects as ro
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
 
-    rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     try:
         ro.r("library(Seurat)")
@@ -786,11 +795,17 @@ def read_conos(inPath, dir_path=None):
     :param inPath:
     :param dir_path:
     """
+    try:
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
+
     from shutil import rmtree
 
-    import rpy2.rinterface_lib.callbacks
-    import rpy2.rinterface_lib.embedded
-    import rpy2.robjects as ro
     from scipy.io import mmread
 
     if dir_path is None:
