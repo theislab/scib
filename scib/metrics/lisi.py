@@ -6,12 +6,8 @@ import pathlib
 import subprocess
 import tempfile
 
-import anndata2ri
 import numpy as np
 import pandas as pd
-import rpy2.rinterface_lib.callbacks
-import rpy2.rinterface_lib.embedded
-import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
 from deprecated import deprecated
@@ -19,12 +15,8 @@ from scipy.io import mmwrite
 
 import scib
 
-from ..exceptions import RLibraryNotFound
+from ..exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 from ..utils import check_adata, check_batch
-
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
 
 
 # Graph LISI (analoguous to lisi function)
@@ -188,7 +180,6 @@ def lisi_graph_py(
     Compute LISI score on shortes path based on kNN graph provided in the adata object.
     By default, perplexity is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
-
     # use no more than the available cores
     n_cores = max(1, min(n_cores, mp.cpu_count()))
 
@@ -259,7 +250,7 @@ def lisi_graph_py(
         print(f'call {" ".join(args_int)}')
     try:
         subprocess.run(args_int)
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+    except RuntimeError as ex:
         print(f"Error computing LISI kNN graph {ex}\nSetting value to np.nan")
         return np.nan
 
@@ -689,6 +680,15 @@ def lisi_knn(adata, batch_key, label_key, perplexity=None, verbose=False):
     Compute LISI score on kNN graph provided in the adata object. By default, perplexity
     is chosen as 1/3 * number of nearest neighbours in the knn-graph.
     """
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     if "neighbors" not in adata.uns:
         raise AttributeError(
@@ -788,6 +788,15 @@ def lisi_matrix(adata, batch_key, label_key, matrix=None, verbose=False):
     LISI R package is called with default parameters. This function takes a data matrix and
     recomputes nearest neighbours.
     """
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     if matrix is None:
         matrix = adata.X
