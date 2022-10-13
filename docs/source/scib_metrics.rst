@@ -23,18 +23,35 @@ Output types of integration methods can be
     2. embedding output:corrected embedding
     3. kNN output: corrected kNN graph
 
-Each metrics assumes that the representation it requires (e.g. count matrix, embedding, kNN graph) is available in the
-``anndata`` object.
+Each metrics assumes that the data representation it requires (e.g. count matrix, embedding, kNN graph) is available in
+the ``anndata`` object.
 If that is not the case, the data needs to be preprocessed accordingly or, for cases where that is not possible, the
-metric cannot be applied to that output type.
+metric cannot be applied to that data representation.
+The data representation not only determines which metrics can be evaluated, but for some metrics it also determines how
+they are computed.
+For instance, the principle component regression computes a PCA, which can be done not just on a full feature matrix
+but also on an integrated embedding.
+
+The metrics can either be used ot evaluate a dataset or to evaluate the integration performance.
+For the latter case, it is important to note that different integration methods return different data representations.
+These are denoted as "native representation" in the figure below.
 
 .. figure:: _static/metrics_workflow.png
    :alt: metrics workflow
 
-   Overview of metrics with relation to integration outputs and preprocessing steps.
-   For metrics that require the same data representation as the integration output type, no preprocessing is required
-   (metrics on the left side of the plot). For higher dimensional integration outputs than the required metric input
-   (e.g. feature output for embedding metrics), the user needs to preprocess the data (right side).
+   **Overview of metrics with relation to integration outputs and preprocessing steps.**
+   Metrics are arranged depending on the data representation they require.
+   The different data representations are separated by dotted lines in the figure.
+   Native data representations (from integration output) are depicted in green boxes, while the processed
+   representations are in white boxes.
+   The preprocessing commands are denoted on the arrows between data representations.
+   Metrics that are evaluate differently for different data representations are depicted by metrics on top of the dotted
+   lines.
+
+.. note::
+    Whether preprocessing is required, depends on the data representation that you want to evaluate.
+    For example, a corrected feature matrix needs to be transformed into a PCA first for the ASW metrics, whereas a native
+    embedding output can be used directly for the same metrics.
 
 
 Biological Conservation Metrics
