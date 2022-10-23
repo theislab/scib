@@ -42,14 +42,30 @@ integration methods are in `scib.integration` or for short `scib.ig` and metrics
 
 The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
-```shell
+```commandline
 pip install scib
+```
+
+or from the source code.
+```commandline
+pip install .
 ```
 
 Import `scib` in python:
 
 ```python
 import scib
+```
+
+### Optional Dependencies
+
+The package contains optional dependencies that need to be installed manually if needed.
+These include R dependencies (`rpy2`, `anndata2ri`) which require an installation of R integration method packages.
+All optional dependencies are listed under `setup.cfg` under `[options.extras_require]` and can be installed through pip.
+
+e.g. for installing `rpy2` and `bbknn` dependencies:
+```commandline
+pip install 'scib[rpy2,bbknn]'
 ```
 
 ## Metrics

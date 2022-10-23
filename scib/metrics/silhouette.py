@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn.metrics.cluster import silhouette_samples, silhouette_score
 
@@ -131,7 +132,7 @@ def silhouette_batch(
         print(adata.obsm.keys())
         raise KeyError(f"{embed} not in obsm")
 
-    sil_dfs = []
+    sil_per_label = []
     for group in adata.obs[label_key].unique():
         adata_group = adata[adata.obs[label_key] == group]
         n_batches = adata_group.obs[batch_key].nunique()
@@ -139,29 +140,29 @@ def silhouette_batch(
         if (n_batches == 1) or (n_batches == adata_group.shape[0]):
             continue
 
-        sil_per_group = silhouette_samples(
+        sil = silhouette_samples(
             adata_group.obsm[embed], adata_group.obs[batch_key], metric=metric
         )
 
         # take only absolute value
-        sil_per_group = [abs(i) for i in sil_per_group]
+        sil = [abs(i) for i in sil]
 
         if scale:
             # scale s.t. highest number is optimal
-            sil_per_group = [1 - i for i in sil_per_group]
+            sil = [1 - i for i in sil]
 
-        sil_dfs.append(
-            pd.DataFrame(
-                {
-                    "group": [group] * len(sil_per_group),
-                    "silhouette_score": sil_per_group,
-                }
-            )
-        )
+        sil_per_label.extend([(group, score) for score in sil])
 
-    sil_df = pd.concat(sil_dfs).reset_index(drop=True)
-    sil_means = sil_df.groupby("group").mean()
-    asw = sil_means["silhouette_score"].mean()
+    sil_df = pd.DataFrame.from_records(
+        sil_per_label, columns=["group", "silhouette_score"]
+    )
+
+    if len(sil_per_label) == 0:
+        sil_means = np.nan
+        asw = np.nan
+    else:
+        sil_means = sil_df.groupby("group").mean()
+        asw = sil_means["silhouette_score"].mean()
 
     if verbose:
         print(f"mean silhouette per group: {sil_means}")
