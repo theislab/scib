@@ -31,7 +31,7 @@ def test_silhouette_batch_empty(adata_pca):
     asw, sil_means, sil_df = scib.me.silhouette_batch(
         adata_pca,
         batch_key="batch",
-        group_key="celltype",
+        label_key="celltype",
         embed="X_pca",
         scale=True,
         verbose=False,
