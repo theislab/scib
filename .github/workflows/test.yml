@@ -54,14 +54,50 @@ jobs:
         -   name: Install package with test dependencies
             run: |
                 pip install dist/*.whl
-                pip install '.[test,scanorama]'
+                pip install '.[test]'
+
+        -   name: Test with pytest
+            if: ${{ matrix.os != 'macos-latest'}}
+            run: |
+                python -m pytest --cov --cov-append \
+                    --cov-report=term-missing \
+                    --ignore=tests/integration/ \
+                    --ignore=tests/metrics/rpy2 -vv
+
+        -   name: Test R metrics
+            if: ${{ matrix.os != 'macos-latest'}}
+            run: |
+                pip install '.[rpy2]'
+                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
+
+        -   name: Upload coverage
+            if: ${{ matrix.os != 'macos-latest' }}
+            env:
+                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
+            run: |
+                codecov --no-color --required --flags unittest
+
+    integration:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                python: [3.7, 3.9]
+                os: [ubuntu-latest]
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python ${{ matrix.python }}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{ matrix.python }}
+
+        -   name: Install dependencies
+            run: |
+                python -m pip install --upgrade pip
+                pip install '.[test,scanorama,scvi]'
 
         -   name: Test with pytest
             run: |
-                if [ ${{ matrix.os }} = "macos-latest" ]; then
-                    IGNORE="--ignore=tests/integration/"
-                fi
-                python -m pytest --cov --cov-append --cov-report=term-missing $IGNORE -vv
+                python -m pytest --cov --cov-append --cov-report=term-missing -k integration -vv
         -   name: Upload coverage
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}

@@ -1,21 +1,13 @@
 import logging
 
-import anndata2ri
 import numpy as np
 import pandas as pd
-import rpy2.rinterface_lib.callbacks
-import rpy2.rinterface_lib.embedded
-import rpy2.robjects as ro
 import scanpy as sc
 import scipy.sparse
 
-from ..exceptions import RLibraryNotFound
+from ..exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 from ..utils import check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
-
-rpy2.rinterface_lib.callbacks.logger.setLevel(
-    logging.ERROR
-)  # Ignore R warning messages
 
 
 def kBET(
@@ -45,6 +37,14 @@ def kBET(
         If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
         rejection rate per cluster
     """
+    try:
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     check_adata(adata)
     check_batch(batch_key, adata.obs)
@@ -180,6 +180,16 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     :param batch: series or list of batch assignments
     :returns: kBET observed rejection rate
     """
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
+
     try:
         ro.r("library(kBET)")
     except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
