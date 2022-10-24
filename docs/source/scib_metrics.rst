@@ -12,23 +12,27 @@ For a detailed description of the metrics implemented in this package, please se
 Preprocessing data for metrics
 ------------------------------
 
-The metrics can either be used ot evaluate a dataset or to evaluate the integration performance.
-For the latter case, it is important to note that different integration methods return different data representations.
-These are denoted as "native representation" in the figure below.
+The metrics can either be used to evaluate a dataset or to evaluate the integration performance on different
+representations of the data.
+Data representations can be one of the following:
 
-The ``anndata`` objects returned by the integration methods require some processing for most metrics.
-This involves feature selection (highly variable gene selection), PCA, kNN graph computation and clustering.
-For preprocessing, ``scib`` provides the function :func:`~scib.preprocessing.reduce_data`.
-Data representations can be:
+1. **Feature space:** a feature-level expression matrix (usually normalised & log-transformed counts or corrected counts from integration)
+2. **Embedding space:** PCA of the feature-level expression matrix or an embedding from an integration method
+3. **kNN graph space:** a kNN graph on a PCA or an embedding
 
-    1. Feature space: a count matrix
-    2. Embedding space: an embedding or a PCA of a count matrix
-    3. kNN space: a kNN graph on an embedding or PCA
+Unintegrated feature matrices can simply be reduced to a PCA embedding or kNN graph using the according ``scanpy``
+functions or the  wrapper :func:`~scib.preprocessing.reduce_data`.
+The integrated output can come in one of the three representations, which are denoted as "native representation" in the
+figure below.
+Each metric assumes that the data representation it requires is available in the ``anndata`` object.
+If that is not the case, the data needs to be preprocessed accordingly or, for cases where that is not possible, the
+metric cannot be applied to that data representation.
 
-.. note::
-    Which preprocessing steps are required depends on the data representation that you want to evaluate.
-    For example, a corrected feature matrix needs to be transformed into a PCA first for the ASW metrics, whereas a
-    native embedding output can be used directly for the same metrics.
+This means that native representations in kNN graph space can only be evaluated by graph based metrics, while embedding
+space outputs can be evaluated by embedding and graph based metrics, the latter requiring processing for the kNN graph.
+From a feature space native representation one can compute embedding space (PCA on expression matrix, optionally with
+highly variable gene selection) and kNN graph (on PCA) and all metrics are applicable.
+These relationships are visualised in the figure below.
 
 .. figure:: _static/metrics_workflow.png
    :alt: metrics workflow
@@ -43,13 +47,10 @@ Data representations can be:
    Metrics that are evaluate differently for different data representations are depicted by metrics on top of the dotted
    lines.
 
-Each metric assumes that the data representation it requires is available in the ``anndata`` object.
-If that is not the case, the data needs to be preprocessed accordingly or, for cases where that is not possible, the
-metric cannot be applied to that data representation.
-The data representation not only determines which metrics can be evaluated, but for some metrics it also determines how
-they are computed.
-For instance, the principle component regression computes a PCA, which can be done not just on a full feature matrix
-but also on an integrated embedding.
+The data representation not only determines which metrics can be evaluated, but also how they are computed.
+For instance, the principle component regression :func:`~scib.metrics.pcr_comparison` requires a PCA and variance
+contributions, which would classically be computed a full feature matrix but can also be computed on an integrated
+embedding matrix.
 
 
 Biological Conservation Metrics
