@@ -7,9 +7,17 @@ from tests.common import LOGGER, assert_near_exact
 def test_scanorama(adata_paul15_template):
     adata = scib.ig.scanorama(adata_paul15_template, batch="batch")
 
+    # check full feature output
     scib.pp.reduce_data(
-        adata, n_top_genes=200, neighbors=True, use_rep="X_emb", pca=True, umap=False
+        adata, pca=True, n_top_genes=200, neighbors=True, use_rep="X_pca", umap=False
     )
+    score = scib.me.graph_connectivity(adata, label_key="celltype")
+    LOGGER.info(f"\nscore: {score}")
+
+    # check embedding output
+    scib.pp.reduce_data(adata, pca=False, neighbors=True, use_rep="X_emb", umap=False)
+    score = scib.me.graph_connectivity(adata, label_key="celltype")
+    LOGGER.info(f"\nscore: {score}")
 
     # check NMI after clustering
     res_max, score_max, _ = scib.cl.opt_louvain(
