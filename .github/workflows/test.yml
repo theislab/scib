@@ -34,6 +34,10 @@ jobs:
             matrix:
                 python: [3.7, 3.9]
                 os: [ubuntu-latest, macos-latest]
+        env:
+            PYTHON: ${{ matrix.os }}
+            OS: ${{ matrix.os }}
+
         steps:
         -   uses: actions/checkout@v2
         -   name: Set up Python ${{ matrix.python }}
@@ -71,11 +75,13 @@ jobs:
                 python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
 
         -   name: Upload coverage
-            if: ${{ matrix.os != 'macos-latest' }}
-            env:
-                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
-            run: |
-                codecov --no-color --required --flags unittest
+            uses: codecov/codecov-action@v3
+            with:
+                token: ${{ secrets.CODECOV_TOKEN }}
+                flags: unittests
+                env_vars: OS,PYTHON
+                fail_ci_if_error: ${{ github.repository == 'theislab/scib' }}
+                verbose: true
 
     integration:
         runs-on: ${{ matrix.os }}
@@ -83,6 +89,10 @@ jobs:
             matrix:
                 python: [3.7, 3.9]
                 os: [ubuntu-latest]
+        env:
+            PYTHON: ${{ matrix.os }}
+            OS: ${{ matrix.os }}
+
         steps:
         -   uses: actions/checkout@v2
         -   name: Set up Python ${{ matrix.python }}
@@ -104,5 +114,6 @@ jobs:
             with:
                 token: ${{ secrets.CODECOV_TOKEN }}
                 flags: unittests
+                env_vars: OS,PYTHON
                 fail_ci_if_error: ${{ github.repository == 'theislab/scib' }}
                 verbose: true
