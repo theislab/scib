@@ -69,16 +69,11 @@ jobs:
                     --ignore=tests/integration/ \
                     --ignore=tests/metrics/rpy2 -vv
 
-        -   name: Install R dependencies
-            uses: r-lib/actions/setup-r-dependencies@v2
-            with:
-                cache-version: 2
-                extra-packages: any::devtools
-
         -   name: Test R metrics
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
                 pip install '.[rpy2]'
+                Rscript -e "install.packages('devtools')"
                 Rscript -e "devtools::install_github('theislab/kBET')"
                 python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
 
