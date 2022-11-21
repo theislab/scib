@@ -40,6 +40,10 @@ jobs:
             uses: actions/setup-python@v2
             with:
                 python-version: ${{ matrix.python }}
+        -   uses: r-lib/actions/setup-r@v2
+            with:
+                r-version: '4.2'
+
 
         -   name: Install build dependencies
             run: |
@@ -65,9 +69,6 @@ jobs:
                     --ignore=tests/metrics/rpy2 -vv
 
         -   name: Test R metrics
-            uses: r-lib/actions/setup-r@v2
-            with:
-                r-version: '4.2'
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
                 pip install '.[rpy2]'
