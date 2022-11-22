@@ -255,7 +255,10 @@ def scvi(adata, batch, hvg=None, return_model=False, max_epochs=None):
         n_latent=n_latent,
         n_hidden=n_hidden,
     )
-    vae.train(train_size=1.0, max_epochs=max_epochs)
+    train_kwargs = {"train_size": 1.0}
+    if max_epochs is not None:
+        train_kwargs["max_epochs"] = max_epochs
+    vae.train(**train_kwargs)
     adata.obsm["X_emb"] = vae.get_latent_representation()
 
     if not return_model:
