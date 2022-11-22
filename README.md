@@ -72,8 +72,7 @@ Optional dependencies outside of python need to be installed separately.
 For instance, in order to run kBET, install it via the following command in R:
 
 ```R
-library(devtools)
-install_github('theislab/kBET')
+remotes::install_github('theislab/kBET')
 ```
 
 ## Metrics
