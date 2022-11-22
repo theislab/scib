@@ -28,7 +28,7 @@ jobs:
             run: |
                 pre-commit run --color=always --show-diff-on-failure --all-files
 
-    test:
+    metrics:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
@@ -40,10 +40,6 @@ jobs:
             uses: actions/setup-python@v2
             with:
                 python-version: ${{ matrix.python }}
-        -   name: Set up R
-            uses: r-lib/actions/setup-r@v2
-            with:
-                r-version: '4.2'
 
         -   name: Install build dependencies
             run: |
@@ -68,22 +64,49 @@ jobs:
                     --ignore=tests/integration/ \
                     --ignore=tests/metrics/rpy2 -vv
 
-        -   name: Test R metrics
-            if: ${{ matrix.os != 'macos-latest'}}
-            env:
-                GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-            run: |
-                pip install '.[rpy2]'
-                Rscript -e "install.packages('remotes')"
-                Rscript -e "remotes::install_github('theislab/kBET')"
-                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
-
         -   name: Upload coverage
             if: ${{ matrix.os != 'macos-latest' }}
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
             run: |
                 codecov --no-color --required --flags unittest
+
+    rpy2:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                r: [4.2]
+                python: [3.9]
+                os: [ubuntu-latest]
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python ${{ matrix.python }}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{ matrix.python }}
+        -   name: Set up R
+            uses: r-lib/actions/setup-r@v2
+            with:
+                r-version: ${{ matrix.python }}
+
+        -   name: Install dependencies
+            env:
+                GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+                python -m pip install --upgrade pip
+                pip install '.[rpy2]'
+                Rscript -e "install.packages('remotes')"
+                Rscript -e "remotes::install_github('theislab/kBET')"
+
+        -   name: Test with pytest
+            run: |
+                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
+        -   name: Upload coverage
+            env:
+                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
+            run: |
+                codecov --no-color --required --flags unittest
+
 
     integration:
         runs-on: ${{ matrix.os }}
