@@ -57,9 +57,21 @@ jobs:
                 pip install '.[test]'
 
         -   name: Test with pytest
+            if: ${{ matrix.os != 'macos-latest'}}
             run: |
-                python -m pytest --cov --cov-append --cov-report=term-missing --ignore=tests/integration/ -vv
+                python -m pytest --cov --cov-append \
+                    --cov-report=term-missing \
+                    --ignore=tests/integration/ \
+                    --ignore=tests/metrics/rpy2 -vv
+
+        -   name: Test R metrics
+            if: ${{ matrix.os != 'macos-latest'}}
+            run: |
+                pip install '.[rpy2]'
+                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
+
         -   name: Upload coverage
+            if: ${{ matrix.os != 'macos-latest' }}
             env:
                 CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
             run: |

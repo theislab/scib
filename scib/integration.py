@@ -1,20 +1,13 @@
-import logging
 import os
 import tempfile
 
 import numpy as np
-import rpy2.rinterface_lib.callbacks
 import scanpy as sc
 import scipy as sp
 from scipy.sparse import issparse
 
-import scib.utils
-
 from . import utils
-from .exceptions import IntegrationMethodNotFound
-
-# Ignore R warning messages
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+from .exceptions import OptionalDependencyNotInstalled
 
 
 def scanorama(adata, batch, hvg=None, **kwargs):
@@ -31,12 +24,12 @@ def scanorama(adata, batch, hvg=None, **kwargs):
     try:
         import scanorama
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata.copy(), batch, return_categories=True)
     corrected = scanorama.correct_scanpy(split, return_dimred=True, **kwargs)
-    corrected = scib.utils.merge_adata(
+    corrected = utils.merge_adata(
         *corrected, batch_key=batch, batch_categories=categories, index_unique=None
     )
     corrected.obsm["X_emb"] = corrected.obsm["X_scanorama"]
@@ -59,7 +52,7 @@ def trvae(adata, batch, hvg=None):
     try:
         import trvae
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     n_batches = len(adata.obs[batch].cat.categories)
@@ -115,7 +108,7 @@ def trvaep(adata, batch, hvg=None):
     try:
         import trvaep
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     n_batches = adata.obs[batch].nunique()
@@ -174,7 +167,7 @@ def scgen(adata, batch, cell_type, epochs=100, hvg=None, **kwargs):
     try:
         from scgen import SCGEN
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
 
@@ -211,7 +204,7 @@ def scvi(adata, batch, hvg=None, return_model=False, max_epochs=None):
     try:
         from scvi.model import SCVI
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
 
@@ -239,7 +232,10 @@ def scvi(adata, batch, hvg=None, return_model=False, max_epochs=None):
         n_latent=n_latent,
         n_hidden=n_hidden,
     )
-    vae.train(train_size=1.0, max_epochs=max_epochs)
+    train_kwargs = {"train_size": 1.0}
+    if max_epochs is not None:
+        train_kwargs["max_epochs"] = max_epochs
+    vae.train(**train_kwargs)
     adata.obsm["X_emb"] = vae.get_latent_representation()
 
     if not return_model:
@@ -266,12 +262,12 @@ def scanvi(adata, batch, labels, hvg=None, max_epochs=None):
     try:
         from scvi.model import SCANVI
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     # # Defaults from SCVI github tutorials scanpy_pbmc3k and harmonization
     # this n_epochs_scVI is now default in scvi-tools
     if max_epochs is None:
-        n_epochs_scVI = np.min([round((20000 / adata.n_obs) * 400), 400])  # 400
+        n_epochs_scVI = int(np.min([round((20000 / adata.n_obs) * 400), 400]))  # 400
         n_epochs_scANVI = int(np.min([10, np.max([2, round(n_epochs_scVI / 3.0)])]))
     else:
         n_epochs_scVI = max_epochs
@@ -308,7 +304,7 @@ def mnn(adata, batch, hvg=None, **kwargs):
     try:
         import mnnpy
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     split, categories = utils.split_batches(adata, batch, return_categories=True)
@@ -339,7 +335,7 @@ def bbknn(adata, batch, hvg=None, **kwargs):
     try:
         import bbknn
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     sc.pp.pca(adata, svd_solver="arpack")
@@ -364,7 +360,7 @@ def saucie(adata, batch):
     try:
         import SAUCIE
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     import sklearn.decomposition
 
@@ -413,7 +409,7 @@ def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
     try:
         import desc
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     if tmp_dir is None:
         temp_dir = tempfile.TemporaryDirectory()
