@@ -52,8 +52,8 @@ def kBET(
 
     try:
         ro.r("library(kBET)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
-        return np.nan
+    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
+        raise OptionalDependencyNotInstalled(e, "kBET")
 
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
