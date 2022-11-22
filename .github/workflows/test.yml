@@ -70,6 +70,8 @@ jobs:
 
         -   name: Test R metrics
             if: ${{ matrix.os != 'macos-latest'}}
+            env:
+                GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
             run: |
                 pip install '.[rpy2]'
                 Rscript -e "install.packages('remotes')"
