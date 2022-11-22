@@ -24,7 +24,7 @@ def harmony(adata, batch, hvg=None, **kwargs):
     try:
         from harmony import harmonize
     except ModuleNotFoundError as e:
-        raise IntegrationMethodNotFound(e)
+        raise OptionalDependencyNotInstalled(e)
 
     utils.check_sanity(adata, batch, hvg)
     sc.tl.pca(adata)
