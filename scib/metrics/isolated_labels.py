@@ -1,5 +1,4 @@
 import pandas as pd
-from deprecate import deprecated
 from sklearn.metrics import f1_score
 
 from .clustering import opt_louvain
@@ -99,7 +98,6 @@ def isolated_labels_asw(
     )
 
 
-@deprecated
 def isolated_labels(
     adata,
     label_key,
