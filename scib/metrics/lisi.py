@@ -5,6 +5,7 @@ import os
 import pathlib
 import subprocess
 import tempfile
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ from ..exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 from ..utils import check_adata, check_batch
 
 
-# Graph LISI (analoguous to lisi function)
+# Graph LISI (analogous to lisi function)
 def lisi_graph(adata, batch_key, label_key, **kwargs):
     """cLISI and iLISI scores
 
@@ -35,15 +36,16 @@ def lisi_graph(adata, batch_key, label_key, **kwargs):
     :return: Overall cLISI and iLISI scores
     """
     ilisi = ilisi_graph(adata, batch_key=batch_key, **kwargs)
-    clisi = clisi_graph(adata, batch_key=batch_key, label_key=label_key, **kwargs)
+    clisi = clisi_graph(adata, label_key=label_key, **kwargs)
     return ilisi, clisi
 
 
 def ilisi_graph(
     adata,
     batch_key,
+    type_,
+    use_rep="X_emb",
     k0=90,
-    type_=None,
     subsample=None,
     scale=True,
     n_cores=1,
@@ -56,64 +58,47 @@ def ilisi_graph(
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of batches.
-    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
-    output with specific parameters.
-    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
-    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``data.uns['neighbors']``.
-    See below for examples of preproceassing and function calls.
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
+    :param `type_`: type of data integration, one of 'knn', 'embed' or 'full'
+    :param use_rep: embedding slot in ``.obsm``, only used for embedding input
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
-    :param `type_`: type of data integration, either knn, full or embed
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
     :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of iLISI scores per batch labels
 
-    **Preprocessing: Feature output**
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
+    Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
+    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
-        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
-
-    **Preprocessing Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
+    **Examples**
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=True, neighbors=False)
-        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
+        # feature output or unintegrated object
+        scib.me.ilisi_graph(adata, batch_key="batch", type="full")
 
-    **Preprocessing: kNN graph output**
+        # embeding output
+        scib.me.ilisi_graph(adata, batch_key="batch", type="embed", use_rep="X_emb")
 
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+        # knn output
+        scib.me.ilisi_graph(adata, batch_key="batch", type="knn")
 
-    .. code-block:: python
-
-        scib.me.ilisi_graph(adata, batch_key="batch", label_key="celltype")
     """
 
     check_adata(adata)
     check_batch(batch_key, adata.obs)
 
-    adata_tmp = recompute_knn(adata, type_)
+    adata_tmp = recompute_knn(adata, type_, use_rep)
     ilisi_score = lisi_graph_py(
         adata=adata_tmp,
-        batch_key=batch_key,
+        obs_key=batch_key,
         n_neighbors=k0,
         perplexity=None,
         subsample=subsample,
@@ -133,10 +118,11 @@ def ilisi_graph(
 
 def clisi_graph(
     adata,
-    batch_key,  # TODO: remove
     label_key,
+    type_,
+    use_rep="X_emb",
+    batch_key=None,
     k0=90,
-    type_=None,
     subsample=None,
     scale=True,
     n_cores=1,
@@ -149,67 +135,51 @@ def clisi_graph(
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of labels.
-    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
-    output with specific parameters.
-    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
-    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``data.uns['neighbors']``.
-    See below for examples of preproceassing and function calls.
 
     :param adata: adata object to calculate on
-    :param batch_key: batch column name in ``adata.obs``
     :param label_key: label column name in ``adata.obs``
+    :param `type_`: type of data integration, one of 'knn', 'embed' or 'full'
+    :param use_rep: embedding slot in ``.obsm``, only used for embedding input
+    :param batch_key: deprecated, not used
     :param k0: number of nearest neighbors to compute lisi score
         Please note that the initial neighborhood size that is
         used to compute shortest paths is 15.
-    :param `type_`: type of data integration, either knn, full or embed
     :param subsample: Percentage of observations (integer between 0 and 100)
         to which lisi scoring should be subsampled
     :param scale: scale output values between 0 and 1 (True/False)
     :param n_cores: number of cores (i.e. CPUs or CPU cores to use for multiprocessing)
     :return: Median of cLISI scores per cell type labels
 
-    **Preprocessing: Feature output**
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
+    Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
+    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
-        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
-
-    **Preprocessing Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    The kNN graph must be computed on that embedding.
+    **Examples**
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=True, neighbors=False)
-        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
+        # feature output or unintegrated object
+        scib.me.clisi_graph(adata, label_key="celltype", type="full")
 
-    **Preprocessing: kNN graph output**
+        # embeding output
+        scib.me.clisi_graph(adata, label_key="celltype", type="embed", use_rep="X_emb")
 
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+        # knn output
+        scib.me.clisi_graph(adata, label_key="celltype", type="knn")
 
-    .. code-block:: python
-
-        scib.me.clisi_graph(adata, batch_key="batch", label_key="celltype")
     """
+    if batch_key is not None:
+        warnings.warn("'batch_key' is deprecated and will be ignore")
 
     check_adata(adata)
-    check_batch(batch_key, adata.obs)  # TODO: remove
     check_batch(label_key, adata.obs)
 
-    adata_tmp = recompute_knn(adata, type_)
+    adata_tmp = recompute_knn(adata, type_, use_rep)
 
     scores = lisi_graph_py(
         adata=adata_tmp,
-        batch_key=label_key,
+        obs_key=label_key,
         n_neighbors=k0,
         perplexity=None,
         subsample=subsample,
@@ -227,10 +197,10 @@ def clisi_graph(
     return clisi
 
 
-def recompute_knn(adata, type_):
+def recompute_knn(adata, type_, use_rep="X_emb"):
     """Recompute neighbours"""
     if type_ == "embed":
-        return sc.pp.neighbors(adata, n_neighbors=15, use_rep="X_emb", copy=True)
+        return sc.pp.neighbors(adata, n_neighbors=15, use_rep=use_rep, copy=True)
     elif type_ == "full":
         if "X_pca" not in adata.obsm.keys():
             sc.pp.pca(adata, svd_solver="arpack")
@@ -242,7 +212,7 @@ def recompute_knn(adata, type_):
 
 def lisi_graph_py(
     adata,
-    batch_key,
+    obs_key,
     n_neighbors=90,
     perplexity=None,
     subsample=None,
@@ -268,8 +238,8 @@ def lisi_graph_py(
     if verbose:
         print("Convert nearest neighbor matrix and distances for LISI.")
 
-    batch = adata.obs[batch_key].cat.codes.values
-    n_batches = len(np.unique(adata.obs[batch_key]))
+    batch = adata.obs[obs_key].cat.codes.values
+    n_batches = len(np.unique(adata.obs[obs_key]))
 
     if perplexity is None or perplexity >= n_neighbors:
         # use LISI default

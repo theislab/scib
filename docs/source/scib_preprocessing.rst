@@ -89,6 +89,7 @@ kNN graph output
 ````````````````
 
 KNN graph outputs can only be evaluated with metrics that use a kNN graph as input.
+The graph must be located in ``adata.obsp['neighbors']`` and ``adata.obsp['connectivities']``.
 Some of these methods require cluster assignments to compare against known cell labels, which requires clustering.
 We recommend to use resolutions that are optimised to the hierarchy of the cell labels for a more representative
 cluster assignment.
@@ -117,6 +118,7 @@ Some metrics require the following:
 Feature output
 ``````````````
 
+Feature output processing contains the same steps that are computed on unintegrated data before integration.
 Feature output requires processing of the count matrix in the following steps:
 
     1. Highly variable gene selection (skip, if working on feature space subset)
@@ -124,7 +126,6 @@ Feature output requires processing of the count matrix in the following steps:
     3. kNN graph
     4. Clustering with optimised resolution
 
-These are the same steps that are computed on unintegrated data before integration.
 Note that, depending on the metric, not all steps are required.
 If the metrics uses an expression matrix, no preprocessing is needed, while the PCA should be used for all metrics that
 evaluate an embedding.

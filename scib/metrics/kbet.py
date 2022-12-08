@@ -14,25 +14,29 @@ def kBET(
     adata,
     batch_key,
     label_key,
-    embed,
+    type_,
+    embed=None,
     scaled=True,
-    type_=None,
     return_df=False,
     verbose=False,
 ):
     """kBET score
 
     Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
-    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
-    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``adata.uns['neighbors']``.
-    See below for examples of preprocessing and function calls.
+    kBET measures the bias of a batch variable in the kNN graph.
+    Specifically, kBET is quantified as the average rejection rate of Chi-squared tests of local vs  global batch label
+    distributions.
+    This means that smaller values indicate better batch mixing.
+    By default the original kBET score is scaled between 0 and 1 so that better batch mixing is associated with larger
+    scores.
 
     .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
     :param label_key: name of cell identity labels column in adata.obs
+    :param `type_`: type of data integration, one of 'knn', 'embed' or 'full'
+    :param embed: embedding key in ``adata.obsm`` for embedding and feature input
     :param scaled: whether to scale between 0 and 1
         with 0 meaning low batch mixing and 1 meaning optimal batch mixing
         if scaled=False, 0 means optimal batch mixing and 1 means low batch mixing
@@ -41,37 +45,27 @@ def kBET(
         If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
         rejection rate per cluster
 
-    **Preprocessing: Feature output**
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
+    Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
+    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-        3. kNN graph
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed="X_pca")
-
-    **Preprocessing Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    The kNN graph must be computed on that embedding.
+    **Examples**
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, pca=False, neighbors=True)
-        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed="X_emb")
+        # full feature integration output or unintegrated data
+        scib.me.kBET(
+            adata, batch_key="batch", label_key="celltype", type_="full", embed="X_pca"
+        )
 
-    **Preprocessing: kNN graph output**
+        # embedding output
+        scib.me.kBET(
+            adata, batch_key="batch", label_key="celltype", type_="embed", embed="X_emb"
+        )
 
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
-
-    .. code-block:: python
-
-        scib.me.kBET(adata, batch_key="batch", label_key="celltype", embed=None)
+        # kNN output
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", type_="knn")
 
     """
     try:
