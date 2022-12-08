@@ -8,14 +8,20 @@ integration output.
 
 The most relevant preprocessing steps are:
 
-+ normalization
-+ scaling, batch-aware
-+ highly variable gene selection, batch-aware
-+ cell cycle scoring
++ Normalization
++ Scaling, batch-aware
++ Highly variable gene selection, batch-aware
++ Cell cycle scoring
 + Principle component analysis (PCA)
 + k-nearest neighbor graph (kNN graph)
 + UMAP
-+ clustering
++ Clustering
+
+Note that some preprocessing steps depend on each other.
+Please refer to the `best_practices`_ for more details.
+
+.. _best_practices: sc-best-practices.org
+
 
 Functions
 ---------
@@ -76,43 +82,52 @@ contributions, which would classically be computed a full feature matrix but can
 embedding matrix.
 
 
+Code examples
+-------------
+
+kNN graph output
+````````````````
+
+KNN graph outputs can only be evaluated with metrics that use a kNN graph as input.
+Some of these methods require cluster assignments to compare against known cell labels, which requires clustering.
+We recommend to use resolutions that are optimised to the hierarchy of the cell labels for a more representative
+cluster assignment.
+
+.. code-block:: python
+
+    scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+
+
+Embedding output
+````````````````
+
+The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``
+
+    1. kNN graph
+    2. Clustering with optimised resolution
+
+Note that, depending on the metric, not all steps are required.
+
+.. code-block:: python
+
+    sc.pp.neighbors(adata, use_rep="X_emb")
+    scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+
+
 Feature output
 ``````````````
-
 
 Feature output requires processing of the count matrix in the following steps:
 
     1. Highly variable gene selection (skip, if working on feature space subset)
     2. PCA
     3. kNN graph
-    4. Clustering (optimised resolution recommended)
+    4. Clustering with optimised resolution
+
+Note that, depending on the metric, not all steps are required.
 
 .. code-block:: python
 
+    # use wrapper function for the first 3 steps
     scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-    scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
-
-Embedding output
-````````````````
-
-The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``
-
-    1. kNN graph
-    2. Clustering (optimised resolution recommended)
-
-.. code-block:: python
-
-    scib.pp.reduce_data(
-        adata, pca=False, use_rep="X_embed", neighbors=True, use_rep="X_emb"
-    )
-    scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
-
-
-kNN graph output
-````````````````
-
-KNN graph output only requires clustering on the (optimised resolution recommended)
-
-.. code-block:: python
-
-    scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
+    scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")

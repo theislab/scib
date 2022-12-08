@@ -4,10 +4,13 @@ Metrics
 .. currentmodule:: scib.metrics
 
 This package contains all the metrics used for benchmarking scRNA-seq data integration performance.
-The metrics can be classified into biological conservation and batch removal metrics.
+They can be applied on the integrated as well as the unintegrated data and  can be classified into biological
+conservation and batch removal metrics.
 For a detailed description of the metrics implemented in this package, please see our `publication`_.
 
 .. _publication: https://doi.org/10.1038/s41592-021-01336-8
+
+Most metrics require specific inputs that need to be preprocessed, which is described in detail under :ref:`preprocessing`.
 
 
 Biological Conservation Metrics
