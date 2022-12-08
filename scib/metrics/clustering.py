@@ -37,7 +37,7 @@ def cluster_optimal_resolution(
         optimised against
     :param cluster_key: name of column to be added to adata.obs during clustering.
         Will be overwritten if exists and ``force=True``
-    :param cluster_function:
+    :param cluster_function: a clustering function that takes an anndata.Anndata object. Default: Leiden clustering
     :param metric: function that computes the cost to be optimised over. Must take as
         arguments ``(adata, group1, group2, **kwargs)`` and returns a number for maximising
         Default is :func:`~scib.metrics.nmi()`

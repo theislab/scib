@@ -25,8 +25,8 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
     previous annotation.
     The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
     method output.
-    Preprocessing the ``anndata`` object is required and differs, depending on the output type of the integration method.
-    See below for more information on preprocessing.
+    For this metric you need to include all steps that are needed for clustering.
+    See :ref:`preprocessing`. for more information on preprocessing.
 
     :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
     :param cluster_key: string of column in adata.obs containing cluster assignments
@@ -42,44 +42,7 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
 
-    **Preprocessing: Feature output**
-
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-        3. kNN graph
-        4. Clustering (optimised resolution recommended)
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
-
-    **Preprocessing: Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``
-
-        1. kNN graph
-        2. Clustering (optimised resolution recommended)
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(
-            adata, pca=False, use_rep="X_embed", neighbors=True, use_rep="X_emb"
-        )
-        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
-
-
-    **Preprocessing: kNN graph output**
-
-    KNN graph output only requires clustering on the (optimised resolution recommended)
-
-    .. code-block:: python
-
-        scib.me.opt_louvain(adata, cluster_key="cluster", label_key="celltype")
-
-    **Call function**
+    **Function call**
 
     Once the ``adata`` has been preprocessed according to its integration output type, call the metric as follows:
 

@@ -17,37 +17,13 @@ def graph_connectivity(adata, label_key):
     cell type :math:`c`.
 
     This function can be applied to all integration output types.
-    See below for examples of preproceassing and function calls.
+    The integrated object (``adata``) needs to have a kNN graph based on the integration output.
+    See :ref:`preprocessing`. for more information on preprocessing.
 
-    :param adata: adata with computed neighborhood graph
+    :param adata: integrated adata with computed neighborhood graph
     :param label_key: name in adata.obs containing the cell identity labels
 
-    **Preprocessing: Feature output**
-
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-        3. kNN graph
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.graph_connectivity(adata, label_key="celltype")
-
-    **Preprocessing Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, use_rep="X_emb")
-        scib.me.graph_connectivity(adata, label_key="celltype")
-
-    **Preprocessing: kNN graph output**
-
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+    **Function call**
 
     .. code-block:: python
 

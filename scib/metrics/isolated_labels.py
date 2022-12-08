@@ -1,4 +1,5 @@
 import pandas as pd
+from deprecate import deprecated
 from sklearn.metrics import f1_score
 
 from .clustering import opt_louvain
@@ -18,10 +19,11 @@ def isolated_labels_f1(
     Score how well isolated labels are distinguished from other labels by data-driven clustering.
     The F1 score is used to evaluate clustering with respect to the ground truth labels.
     This function performs clustering on a kNN graph and can be applied to all integration output types.
-    The ``adata`` requires either a kNN graph in ``adata.uns['neighbors]`` or an embedding in ``adata.obsm``.
+    The ``adata`` requires either a kNN graph in ``adata.obsp['neighbors']`` and ``adata.obsp['connectivities']`` or an
+    embedding in ``adata.obsm`` under the key ``embed``.
     If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``data.uns['neighbors']``.
-    See below for examples of preproceassing and function calls.
+    uses the existing kNN graph in ``data.obsp['neighbors']`` and ``data.obsp['connectivities']``.
+    See :ref:`preprocessing`. for more information on preprocessing.
 
     :param adata: anndata object
     :param label_key: column in ``adata.obs``
@@ -34,43 +36,7 @@ def isolated_labels_f1(
     :param verbose:
     :return: Mean of F1 scores over all isolated labels
 
-    **Preprocessing: Feature output**
-
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-        3. kNN graph (optional)
-
-    .. code-block:: python
-
-        scib.me.isolated_labels_f1(
-            adata, batch_key="batch", label_key="celltype", embed="X_pca"
-        )
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
-        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
-
-    **Preprocessing Embedding output**
-
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
-    KNN graph computation is optional for this function and will be recomputed, if an embedding key is specified.
-
-    .. code-block:: python
-
-        scib.me.isolated_labels_f1(
-            adata, batch_key="batch", label_key="celltype", embed="X_emb"
-        )
-
-        # optional: precompute kNN graph
-        scib.pp.reduce_data(adata, pca=False, neighbors=True, use_rep="X_emb")
-        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
-
-    **Preprocessing: kNN graph output**
-
-    No preprocessing required.
-    The kNN graph is stored under ``adata.uns['neighbors']`` and will be used if ``embed`` is set to ``None``.
+    **Function call**
 
     .. code-block:: python
 
@@ -101,7 +67,7 @@ def isolated_labels_asw(
     Score how well isolated labels are distinguished from all other labels using the average-width silhouette score (ASW).
     The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
     integration outputs.
-    See below for examples of preprocessing and function calls.
+    See :ref:`preprocessing`. for more information on preprocessing.
 
     :param adata: anndata object
     :param label_key: column in ``adata.obs``
@@ -113,24 +79,7 @@ def isolated_labels_asw(
     :param verbose:
     :return: Mean of ASW over all isolated labels
 
-    **Preprocessing: Feature output**
-
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=False)
-        scib.me.isolated_labels_asw(
-            adata, batch_key="batch", label_key="celltype", embed="X_pca"
-        )
-
-    **Preprocessing Embedding output**
-
-    No preprocessing is required.
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+    **Function call**
 
     .. code-block:: python
 
@@ -150,6 +99,7 @@ def isolated_labels_asw(
     )
 
 
+@deprecated
 def isolated_labels(
     adata,
     label_key,

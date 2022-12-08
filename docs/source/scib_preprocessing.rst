@@ -101,12 +101,12 @@ cluster assignment.
 Embedding output
 ````````````````
 
-The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``
+The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
+If the metric requires an embedding, no preprocessing is needed.
+Some metrics require the following:
 
     1. kNN graph
     2. Clustering with optimised resolution
-
-Note that, depending on the metric, not all steps are required.
 
 .. code-block:: python
 
@@ -124,7 +124,10 @@ Feature output requires processing of the count matrix in the following steps:
     3. kNN graph
     4. Clustering with optimised resolution
 
+These are the same steps that are computed on unintegrated data before integration.
 Note that, depending on the metric, not all steps are required.
+If the metrics uses an expression matrix, no preprocessing is needed, while the PCA should be used for all metrics that
+evaluate an embedding.
 
 .. code-block:: python
 
