@@ -1,7 +1,8 @@
 # fmt: off
 from .ari import ari
 from .cell_cycle import cell_cycle
-from .clustering import opt_louvain
+from .clustering import (cluster_optimal_resolution, get_resolutions,
+                         opt_louvain)
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import (isolated_labels, isolated_labels_asw,

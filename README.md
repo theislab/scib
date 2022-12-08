@@ -68,6 +68,13 @@ e.g. for installing `rpy2` and `bbknn` dependencies:
 pip install 'scib[rpy2,bbknn]'
 ```
 
+Optional dependencies outside of python need to be installed separately.
+For instance, in order to run kBET, install it via the following command in R:
+
+```R
+remotes::install_github('theislab/kBET')
+```
+
 ## Metrics
 
 We implemented different metrics for evaluating batch correction and biological conservation in the `scib.metrics`
