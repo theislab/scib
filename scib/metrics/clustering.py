@@ -26,6 +26,7 @@ def cluster_optimal_resolution(
     force=True,
     verbose=True,
     return_all=False,
+    metric_kwargs=None,
     **kwargs,
 ):
     """Optimised clustering
@@ -48,6 +49,7 @@ def cluster_optimal_resolution(
     :param force: whether to overwrite the cluster assignments in the ``.obs[cluster_key]``
     :param verbose: whether to print out intermediate results
     :param return_all: whether to results for all resolutions
+    :param metric_kwargs: arguments to be passed to metric
     :param kwargs: arguments to pass to clustering function
     :returns:
         Only if ``return_all=True``, return tuple of ``(res_max, score_max, score_all)``
@@ -73,6 +75,9 @@ def cluster_optimal_resolution(
     if metric is None:
         metric = nmi
 
+    if metric_kwargs is None:
+        metric_kwargs = {}
+
     if resolutions is None:
         resolutions = get_resolutions(n=10, max=2)
 
@@ -94,7 +99,7 @@ def cluster_optimal_resolution(
 
     for res in resolutions:
         cluster_function(adata, resolution=res, key_added=cluster_key, **kwargs)
-        score = metric(adata, label_key, cluster_key)
+        score = metric(adata, label_key, cluster_key, **metric_kwargs)
         if verbose:
             print(f"resolution: {res}, {metric.__name__}: {score}")
         score_all.append(score)

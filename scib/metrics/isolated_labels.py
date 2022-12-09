@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from .clustering import opt_louvain
+from .clustering import cluster_optimal_resolution
 from .silhouette import silhouette
 
 
@@ -63,10 +63,8 @@ def isolated_labels_asw(
 ):
     """Isolated label score ASW
 
-    Score how well isolated labels are distinguished from all other labels using the average-width silhouette score (ASW).
-    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
-    integration outputs.
-    See :ref:`preprocessing`. for more information on preprocessing.
+    Score how well isolated labels are distinguished from all other labels using the average-width silhouette score
+    (ASW) :func:`~scib.metrics.silhouette`.
 
     :param adata: anndata object
     :param label_key: column in ``adata.obs``
@@ -78,10 +76,22 @@ def isolated_labels_asw(
     :param verbose:
     :return: Mean of ASW over all isolated labels
 
-    **Function call**
+    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
+    integration outputs.
+    Please note, that the metric cannot be used to evaluate kNN graph outputs.
+    See :ref:`preprocessing` for more information on preprocessing.
+
+    **Examples**
 
     .. code-block:: python
 
+        # full feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=False
+        )
+        scib.me.isolated_labels_asw(adata, label_key="celltype", embed="X_pca")
+
+        # embedding output
         scib.me.isolated_labels_asw(
             adata, batch_key="batch", label_key="celltype", embed="X_emb"
         )
@@ -195,15 +205,14 @@ def score_isolated_label(
                 return max_cluster
             return max_f1
 
-        opt_louvain(
+        cluster_optimal_resolution(
             adata,
             label_key,
             cluster_key=iso_label_key,
-            label=isolated_label,
             use_rep=embed,
-            function=max_f1,
+            metric=max_f1,
+            metric_kwargs={"label": isolated_label},
             verbose=False,
-            inplace=True,
         )
         score = max_f1(adata, label_key, iso_label_key, isolated_label, argmax=False)
     else:
