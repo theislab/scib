@@ -13,7 +13,7 @@ In [our study](https://doi.org/10.1038/s41592-021-01336-8), we benchmark 16 meth
 preprocessing steps leading to 68 methods combinations on 85 batches of gene expression and chromatin accessibility
 data.
 
-![Workflow](https://raw.githubusercontent.com/theislab/scib/main/figure.png)
+![Workflow](https://raw.githubusercontent.com/theislab/scib/main/docs/source/_static/figure.png)
 
 ## Resources
 
@@ -46,11 +46,6 @@ The `scib` python package is available on [PyPI](https://pypi.org/) and can be i
 pip install scib
 ```
 
-or from the source code.
-```commandline
-pip install .
-```
-
 Import `scib` in python:
 
 ```python
@@ -72,6 +67,7 @@ Optional dependencies outside of python need to be installed separately.
 For instance, in order to run kBET, install it via the following command in R:
 
 ```R
+install.packages('remotes')
 remotes::install_github('theislab/kBET')
 ```
 

@@ -14,9 +14,9 @@ def cell_cycle(
     agg_func=np.mean,
     organism="mouse",
     n_comps=50,
-    verbose=False,
     recompute_cc=True,
     precompute_pcr_key=None,
+    verbose=False,
 ):
     """Cell cycle conservation score
 
@@ -29,24 +29,40 @@ def cell_cycle(
         CC \\, conservation = 1 - \\frac { |Var_{after} - Var_{before}| } {Var_{before}}
 
     Variance contribution is obtained through principal component regression using :func:`~scib.metrics.pc_regression`.
-    The score can be computed on full corrected feature spaces and latent embeddings.
 
     :param adata_pre: adata before integration
     :param adata_post: adata after integration
-    :param embed: Name of embedding in adata_post.obsm.
-        If ``embed=None``, use the full expression matrix (``adata.X``), otherwise use the
+    :param batch_key: Batch key in ``adata_post.obs``
+    :param embed: Name of embedding in ``adata_post.obsm``.
+        If ``embed=None``, use the full expression matrix (``adata_post.X``), otherwise use the
         embedding provided in ``adata_post.obsm[embed]``
     :param agg_func: any function that takes a list of numbers and aggregates them into
         a single value. If ``agg_func=None``, all results will be returned
     :param organism: 'mouse' or 'human' for choosing cell cycle genes
+    :param n_comps: number of principle components
     :param recompute_cc: If True, force recompute cell cycle score, otherwise use
-        precomputed scores if available as 'S_score' and 'G2M_score' in adata.obs
+        precomputed scores if available as 'S_score' and 'G2M_score' in ``adata_post.obs``
     :param precompute_pcr_key: Key in adata_pre for precomputed PCR values for cell
         cycle scores. Ignores cell cycle scores in adata_pre if present.
 
     :return:
         A score between 1 and 0. The larger the score, the stronger the cell cycle
         variance is conserved.
+
+    The function can be computed on full corrected feature spaces and latent embeddings for both integrated and
+    unintegrated ``anndata.Anndata`` objects.
+    No preprocessing is needed, as the function will perform PCA directly on the feature or embedding space.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # full feature output
+        scib.me.cell_cycle(adata_unintegrated, adata, batch_key="batch")
+
+        # embedding output
+        scib.me.cell_cycle(adata_unintegrated, adata, batch_key="batch", embed="X_emb")
+
     """
     check_adata(adata_pre)
     check_adata(adata_post)

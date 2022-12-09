@@ -20,14 +20,38 @@ def trajectory_conservation(
 
         trajectory \\, conservation = \\frac {s + 1} {2}
 
-    This function Expects pseudotime values to be precomputed.
-
     :param adata_pre: unintegrated adata
     :param adata_post: integrated adata
     :param label_key: column in ``adata_pre.obs`` of the groups used to precompute the trajectory
     :param pseudotime_key: column in ``adata_pre.obs`` in which the pseudotime is saved in.
         Column can contain empty entries, the dataset will be subset to the cells with scores.
-    :param batch_key: set to batch key if if you want to compute the trajectory metric by batch
+    :param batch_key: set to batch key if you want to compute the trajectory metric by batch. By default the batch
+        information will be ignored (``batch_key=None``)
+
+    This function requires pseudotime values in ``.obs`` of the unintegrated object (``adata_pre``) computed per batch
+    and can be applied to all integration output types.
+    The input trajectories should be curated manually as the quality of the metric depends on the quality of the metric
+    depends on the quality of the annotation.
+    The integrated object (``adata_post``) needs to have a kNN graph based on the integration output.
+    See :ref:`preprocessing` for more information on preprocessing.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=True
+        )
+        scib.me.trajectory_conservation(adata_unintegrated, adata, label_key="cell_type")
+
+        # embedding output
+        sc.pp.neighbors(adata, use_rep="X_emb")
+        scib.me.trajectory_conservation(adata_unintegrated, adata, label_key="celltype")
+
+        # knn output
+        scib.me.trajectory_conservation(adata_unintegrated, adata, label_key="celltype")
+
     """
     # subset to cells for which pseudotime has been computed
     cell_subset = adata_pre.obs.index[adata_pre.obs[pseudotime_key].notnull()]

@@ -10,7 +10,7 @@ Requirements
 
 + Linux or UNIX system
 + Python >= 3.7
-+ 3.6 <= R <= 4.0
++ R >= 3.6
 
 
 Installation with pip
@@ -34,7 +34,8 @@ Additionally, in order to run the R package ``kBET``, you need to install it thr
 
 .. code-block:: R
 
-    devtools::install_github('theislab/kBET')
+    install.packages('remotes')
+    remotes::install_github('theislab/kBET')
 
 
 .. note::
