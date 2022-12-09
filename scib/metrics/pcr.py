@@ -21,7 +21,7 @@ def pcr_comparison(
     :param adata_pre: anndata object before integration
     :param adata_post: anndata object after integration
     :param covariate: Key for ``adata_post.obs`` column to regress against
-    :param embed: Matrix to use for principal component analysis.
+    :param embed: Embedding to use for principal component analysis.
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
@@ -42,7 +42,7 @@ def pcr_comparison(
         scib.me.pcr_comparison(adata_unintegrated, adata, covariate="batch")
 
         # embedding output
-        scib.me.pcr_comparison(adata_unintegrated, adata, covariate="batch", matrix="X_emb")
+        scib.me.pcr_comparison(adata_unintegrated, adata, covariate="batch", embed="X_emb")
 
     """
 
@@ -112,7 +112,7 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         scib.me.pcr(adata, covariate="batch", recompute_pca=True)
 
         # embedding output
-        scib.me.pcr(adata, covariate="batch", matrix="X_emb")
+        scib.me.pcr(adata, covariate="batch", embed="X_emb")
     """
 
     check_adata(adata)
