@@ -16,18 +16,30 @@ def graph_connectivity(adata, label_key):
     where :math:`|LCC(subgraph_c)|` stands for all cells in the largest connected component and :math:`|c|` stands for all cells of
     cell type :math:`c`.
 
-    This function can be applied to all integration output types.
-    The integrated object (``adata``) needs to have a kNN graph based on the integration output.
-    See :ref:`preprocessing`. for more information on preprocessing.
-
     :param adata: integrated adata with computed neighborhood graph
     :param label_key: name in adata.obs containing the cell identity labels
 
-    **Function call**
+    This function can be applied to all integration output types.
+    The integrated object (``adata``) needs to have a kNN graph based on the integration output.
+    See :ref:`preprocessing` for more information on preprocessing.
+
+    **Examples**
 
     .. code-block:: python
 
+        # feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=True
+        )
         scib.me.graph_connectivity(adata, label_key="celltype")
+
+        # embedding output
+        sc.pp.neighbors(adata, use_rep="X_emb")
+        scib.me.graph_connectivity(adata, label_key="celltype")
+
+        # knn output
+        scib.me.graph_connectivity(adata, label_key="celltype")
+
     """
     if "neighbors" not in adata.uns:
         raise KeyError(

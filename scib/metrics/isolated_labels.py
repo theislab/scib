@@ -17,12 +17,6 @@ def isolated_labels_f1(
 
     Score how well isolated labels are distinguished from other labels by data-driven clustering.
     The F1 score is used to evaluate clustering with respect to the ground truth labels.
-    This function performs clustering on a kNN graph and can be applied to all integration output types.
-    The ``adata`` requires either a kNN graph in ``adata.obsp['neighbors']`` and ``adata.obsp['connectivities']`` or an
-    embedding in ``adata.obsm`` under the key ``embed``.
-    If an embedding is specified, the function will compute a kNN graph based on the embedding, otherwise the function
-    uses the existing kNN graph in ``data.obsp['neighbors']`` and ``data.obsp['connectivities']``.
-    See :ref:`preprocessing`. for more information on preprocessing.
 
     :param adata: anndata object
     :param label_key: column in ``adata.obs``
@@ -35,11 +29,28 @@ def isolated_labels_f1(
     :param verbose:
     :return: Mean of F1 scores over all isolated labels
 
-    **Function call**
+    This function performs clustering on a kNN graph and can be applied to all integration output types.
+    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
+    method output.
+    For this metric you need to include all steps that are needed for clustering.
+    See :ref:`preprocessing` for more information on preprocessing.
+
+    **Examples**
 
     .. code-block:: python
 
-        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", embed=None)
+        # full feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=True
+        )
+        scib.me.isolated_labels_f1(adata, label_key="celltype")
+
+        # embedding output
+        sc.pp.neighbors(adata, use_rep="X_emb")
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype")
+
+        # knn output
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype")
 
     """
     return isolated_labels(

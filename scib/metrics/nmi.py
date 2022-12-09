@@ -23,10 +23,6 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
     For the regular integration benchmark use-case, the metric is applied to the integrated data.
     A larger value indicates better conservation of data-driven cell identity discovery and after integration, based on
     previous annotation.
-    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
-    method output.
-    For this metric you need to include all steps that are needed for clustering.
-    See :ref:`preprocessing`. for more information on preprocessing.
 
     :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
     :param cluster_key: string of column in adata.obs containing cluster assignments
@@ -42,13 +38,31 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
 
-    **Function call**
+    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
+    method output.
+    For this metric you need to include all steps that are needed for clustering.
+    See :ref:`preprocessing` for more information on preprocessing.
 
-    Once the ``adata`` has been preprocessed according to its integration output type, call the metric as follows:
+    **Examples**
 
     .. code-block:: python
 
+        # feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=True
+        )
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
         scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
+        # embedding output
+        sc.pp.neighbors(adata, use_rep="X_emb")
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
+        # knn output
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
     """
 
     check_adata(adata)
