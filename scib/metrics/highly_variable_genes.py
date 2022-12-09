@@ -1,5 +1,6 @@
 import numpy as np
 import scanpy as sc
+from scanpy._utils import deprecated_arg_names
 
 from ..utils import split_batches
 
@@ -35,31 +36,40 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
         return hvg_dir
 
 
-def hvg_overlap(adata_pre, adata_post, batch, n_hvg=500, verbose=False):
+@deprecated_arg_names({"batch": "batch_key"})
+def hvg_overlap(adata_pre, adata_post, batch_key, n_hvg=500, verbose=False):
     """Highly variable gene overlap
 
     Metric that computes the average percentage of overlapping highly variable genes per batch pre post integration.
-    The score can only be computed on feature spaces.
-    No preprocessing is needed, as the function will perform highly variable gene selection.
 
     :param adata_pre: Unintegrated anndata object
     :param adata_post: Integrated anndata object
-    :param batch: Batch variable
+    :param batch_key: Batch variable in ``adata_post.obs``
     :param n_hvg: Number of hvgs to compute per batch
     :return:
         Average percentage of overlapping highly variable genes
+
+    The score can only be computed on feature spaces.
+    No preprocessing is needed, as the function will perform highly variable gene selection.
+
+    **Example**
+
+    .. code-block:: python
+
+        # full feature output
+        scib.me.hvg_overlap(adata_unintegrated, adata, batch_key="batch")
     """
     hvg_post = adata_post.var_names
 
-    adata_post_list = split_batches(adata_post, batch)
+    adata_post_list = split_batches(adata_post, batch_key)
     overlap = []
 
-    hvg_pre_list = precompute_hvg_batch(adata_pre, batch, hvg_post, n_hvg=n_hvg)
+    hvg_pre_list = precompute_hvg_batch(adata_pre, batch_key, hvg_post, n_hvg=n_hvg)
 
     for ad_post in adata_post_list:  # range(len(adata_pre_list)):
         # remove genes unexpressed (otherwise hvg might break)
         sc.pp.filter_genes(ad_post, min_cells=1)
-        batch_var = ad_post.obs[batch][0]
+        batch_var = ad_post.obs[batch_key][0]
         n_hvg_tmp = len(hvg_pre_list[batch_var])
 
         if verbose:

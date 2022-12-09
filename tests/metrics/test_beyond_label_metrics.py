@@ -43,6 +43,6 @@ def test_cell_cycle_all(adata_paul15):
 
 def test_hvg_overlap(adata):
     adata_int = adata.copy()
-    score = scib.me.hvg_overlap(adata_int, adata, batch="batch", n_hvg=500)
+    score = scib.me.hvg_overlap(adata_int, adata, batch_key="batch", n_hvg=500)
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 1, diff=1e-12)
