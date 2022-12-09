@@ -17,13 +17,11 @@ def pcr_comparison(
     or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
     changed. The larger the score, the more different the variance contributions are before
     and after integration.
-    The score can be computed on full corrected feature spaces and latent embeddings.
-    No preprocessing is needed, as the function will perform PCA directly on the feature or embedding space.
 
     :param adata_pre: anndata object before integration
     :param adata_post: anndata object after integration
     :param covariate: Key for ``adata_post.obs`` column to regress against
-    :param embed: Embedding to use for principal components.
+    :param embed: Matrix to use for principal component analysis.
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
@@ -31,6 +29,21 @@ def pcr_comparison(
     :param verbose:
     :return:
         Difference of variance contribution of PCR (scaled between 0 and 1 by default)
+
+    The function can be computed on full corrected feature spaces and latent embeddings for both integrated and
+    unintegrated ``anndata.Anndata`` objects.
+    No preprocessing is needed, as the function will perform PCA directly on the feature or embedding space.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # full feature output
+        scib.me.pcr_comparison(adata_unintegrated, adata, covariate="batch")
+
+        # embedding output
+        scib.me.pcr_comparison(adata_unintegrated, adata, covariate="batch", matrix="X_emb")
+
     """
 
     if embed == "X_pca":
@@ -77,12 +90,29 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
 
     :param adata: Anndata object
     :param covariate: Key for ``adata.obs`` column to regress against
-    :param embed: Embedding to use for principal components.
+    :param embed: Embedding to use for principal component analysis.
         If None, use the full expression matrix (``adata.X``), otherwise use the embedding
         provided in ``adata.obsm[embed]``.
-    :param n_comps: Number of PCs, if PCA is recomputed
+    :param n_comps: Number of PCs, if PCA is recomputed. The PCA will be recomputed if neither PCA loadings nor the
+        principle components can be found.
+    :param recompute_pca: whether to recompute a PCA on the
     :return:
         Variance contribution of regression
+
+    The function can be computed on full corrected feature spaces and latent embeddings.
+    No preprocessing is needed, as the function can perform PCA if ``recompute_pca=True``.
+    Alternatively, you can also provide precomputed PCA, if the principle components are saved under ``.obsm["X_pca"]``
+    and the PC loadings are saved in ``.uns["pca"]["variance"]``.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # full feature output
+        scib.me.pcr(adata, covariate="batch", recompute_pca=True)
+
+        # embedding output
+        scib.me.pcr(adata, covariate="batch", matrix="X_emb")
     """
 
     check_adata(adata)
@@ -93,7 +123,8 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
     covariate_values = adata.obs[covariate]
 
     # use embedding for PCA
-    if (embed is not None) and (embed in adata.obsm):
+    if embed is not None:
+        assert embed in adata.obsm
         if verbose:
             print(f"Compute PCR on embedding n_comps: {n_comps}")
         return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
