@@ -22,15 +22,16 @@ def kBET(
 ):
     """kBET score
 
-    Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
+    Compute the average of k-nearest neighbour batch effect test (kBET) score per label.
+    This is a wrapper function of the implementation by `Büttner et al. 2019`_.
     kBET measures the bias of a batch variable in the kNN graph.
     Specifically, kBET is quantified as the average rejection rate of Chi-squared tests of local vs  global batch label
     distributions.
     This means that smaller values indicate better batch mixing.
-    By default the original kBET score is scaled between 0 and 1 so that better batch mixing is associated with larger
-    scores.
+    By default the original kBET score is scaled between 0 and 1 so that larger scores are associated with better batch
+    mixing.
 
-    .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
+    .. _Büttner et al. 2019: https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
@@ -48,7 +49,6 @@ def kBET(
     This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
     output with specific parameters.
     Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
-    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
     **Examples**
 

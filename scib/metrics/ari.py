@@ -13,18 +13,8 @@ def ari(adata, cluster_key, label_key, implementation=None):
 
     The adjusted rand index is a chance-adjusted rand index, which evaluates the pair-wise accuracy of clustering vs.
     ground truth label assignments.
-    The score ranges between
-
-    This metric is useful for evaluating the clustering performance of cells with respect to annotated cell identity
-    labels and can be applied to all integration output types.
-    For the regular integration benchmark use-case, the metric is applied to the integrated data.
-    A larger value indicates better conservation of data-driven cell identity discovery and after integration, based on
-    previous annotation.
-    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
-    method output.
-    Preprocessing the ``anndata`` object is required and differs, depending on the output type of the integration method.
-    For this metric you need to include all steps that are needed for clustering.
-    See :ref:`preprocessing`. for more information on preprocessing.
+    The score ranges between 0 and 1 with larger values indicating better conservation of the data-driven cell identity
+    discovery after integration compared to annotated labels.
 
     :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
     :param cluster_key: string of column in adata.obs containing cluster assignments
@@ -32,6 +22,7 @@ def ari(adata, cluster_key, label_key, implementation=None):
     :param implementation: if set to 'sklearn', uses sklearn's implementation,
         otherwise native implementation is taken
 
+    This function can be applied to all integration output types.
     The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
     method output.
     For this metric you need to include all steps that are needed for clustering.

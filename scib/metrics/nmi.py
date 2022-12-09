@@ -15,29 +15,24 @@ def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None
 
     The normalized mutual information is a version of the mutual information corrected by the entropy of clustering and
     ground truth labels (e.g. cell type).
-    The score ranges between 0 and 1, with 0 representing no, and 1 representing perfect sharing of information between
-    clustering and ground truth labels.
-
-    This metric is useful for evaluating the clustering performance of cells with respect to annotated cell identity
-    labels and can be applied to all integration output types.
-    For the regular integration benchmark use-case, the metric is applied to the integrated data.
-    A larger value indicates better conservation of data-driven cell identity discovery and after integration, based on
-    previous annotation.
+    The score ranges between 0 and 1, with 0 representing no sharing and 1 representing perfect sharing of information
+    between clustering and annotated cell labels.
 
     :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
     :param cluster_key: string of column in adata.obs containing cluster assignments
     :param label_key: string of column in adata.obs containing labels
     :param implementation: NMI implementation.
-        'max': scikit method with ``average_method='max'``;
-        'min': scikit method with ``average_method='min'``;
-        'geometric': scikit method with ``average_method='geometric'``;
-        'arithmetic': scikit method with ``average_method='arithmetic'``;
-        'Lancichinetti': implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
-        'ONMI': implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
+        ``'max'``: scikit method with ``average_method='max'``;
+        ``'min'``: scikit method with ``average_method='min'``;
+        ``'geometric'``: scikit method with ``average_method='geometric'``;
+        ``'arithmetic'``: scikit method with ``average_method='arithmetic'``;
+        ``'Lancichinetti'``: implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
+        ``'ONMI'``: implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
     :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as ``method``.
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
 
+    This function can be applied to all integration output types.
     The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
     method output.
     For this metric you need to include all steps that are needed for clustering.

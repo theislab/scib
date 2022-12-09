@@ -30,9 +30,7 @@ def isolated_labels_f1(
     :return: Mean of F1 scores over all isolated labels
 
     This function performs clustering on a kNN graph and can be applied to all integration output types.
-    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
-    method output.
-    For this metric you need to include all steps that are needed for clustering.
+    For this metric the ``adata`` needs a kNN graph.
     See :ref:`preprocessing` for more information on preprocessing.
 
     **Examples**

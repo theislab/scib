@@ -53,11 +53,13 @@ def ilisi_graph(
 ):
     """Integration LISI (iLISI) score
 
-    Local Inverse Simpson’s Index metrics adapted from https://doi.org/10.1038/s41592-019-0619-0 to run on all full
+    Local Inverse Simpson’s Index metrics adapted from `Korsunsky et al. 2019`_ to run on all full
     feature, embedding and kNN integration outputs via shortest path-based distance computation on single-cell kNN
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of batches.
+
+    .. _Korsunsky et al. 2019: https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
     :param batch_key: batch column name in ``adata.obs``
@@ -75,7 +77,6 @@ def ilisi_graph(
     This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
     output with specific parameters.
     Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
-    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
     **Examples**
 
@@ -130,11 +131,13 @@ def clisi_graph(
 ):
     """Cell-type LISI (cLISI) score
 
-    Local Inverse Simpson’s Index metrics adapted from https://doi.org/10.1038/s41592-019-0619-0 to run on all full
+    Local Inverse Simpson’s Index metrics adapted from `Korsunsky et al. 2019`_ to run on all full
     feature, embedding and kNN integration outputs via shortest path-based distance computation on single-cell kNN
     graphs.
     By default, this function returns a value scaled between 0 and 1 instead of the original LISI range of 0 to the
     number of labels.
+
+    .. _Korsunsky et al. 2019: https://doi.org/10.1038/s41592-019-0619-0
 
     :param adata: adata object to calculate on
     :param label_key: label column name in ``adata.obs``
@@ -153,7 +156,6 @@ def clisi_graph(
     This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
     output with specific parameters.
     Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
-    See :ref:`preprocessing`. for more information on where the different representations are expected.
 
     **Examples**
 
