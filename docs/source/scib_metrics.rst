@@ -24,15 +24,15 @@ the biological aspect that the metric addresses.
 .. autosummary::
     :toctree: api/
 
-    hvg_overlap
-    silhouette
-    isolated_labels_f1
-    isolated_labels_asw
-    nmi
     ari
     cell_cycle
-    trajectory_conservation
     clisi_graph
+    hvg_overlap
+    isolated_labels_asw
+    isolated_labels_f1
+    nmi
+    silhouette
+    trajectory_conservation
 
 
 Batch Correction Metrics
@@ -45,10 +45,10 @@ removal.
     :toctree: api/
 
     graph_connectivity
-    silhouette_batch
-    pcr_comparison
-    kBET
     ilisi_graph
+    kBET
+    pcr_comparison
+    silhouette_batch
 
 
 Metrics Wrapper Functions
@@ -82,9 +82,10 @@ based on expected computation time:
     metrics_all
 
 
-.. raw:: html
+Auxiliary Functions
+-------------------
 
-    <h2>Auxiliary Functions</h2>
+Some parts of metrics can be used individually, these are listed below.
 
 .. autosummary::
     :toctree: api/
