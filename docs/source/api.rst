@@ -25,10 +25,6 @@ Please refer to the `best_practices`_ for more details.
 
 .. _best_practices: sc-best-practices.org
 
-
-Functions
-`````````
-
 .. autosummary::
     :toctree: api/
 
