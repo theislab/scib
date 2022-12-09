@@ -46,11 +46,6 @@ The `scib` python package is available on [PyPI](https://pypi.org/) and can be i
 pip install scib
 ```
 
-or from the source code.
-```commandline
-pip install .
-```
-
 Import `scib` in python:
 
 ```python

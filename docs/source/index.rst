@@ -12,12 +12,11 @@ Single-cell integration benchmark ``scib``
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
    installation
-   scib_preprocessing
-   scib_integration
-   scib_metrics
+   user_guide
+   api
 
 Indices and tables
 ==================

@@ -1,45 +1,7 @@
-Preprocessing
-=============
-
-.. currentmodule:: scib.preprocessing
-
-Preprocessing functions are relevant both for preparing the data for integration as well as postprocessing the
-integration output.
-
-The most relevant preprocessing steps are:
-
-+ Normalization
-+ Scaling, batch-aware
-+ Highly variable gene selection, batch-aware
-+ Cell cycle scoring
-+ Principle component analysis (PCA)
-+ k-nearest neighbor graph (kNN graph)
-+ UMAP
-+ Clustering
-
-Note that some preprocessing steps depend on each other.
-Please refer to the `best_practices`_ for more details.
-
-.. _best_practices: sc-best-practices.org
-
-
-Functions
----------
-
-.. autosummary::
-    :toctree: api/
-
-    normalize
-    scale_batch
-    hvg_intersect
-    hvg_batch
-    score_cell_cycle
-    reduce_data
-
 .. _preprocessing:
 
-Preprocessing data for metrics
-------------------------------
+User Guide
+==========
 
 The metrics can either be used to evaluate a dataset or to evaluate the integration performance on different
 representations of the data.
@@ -82,11 +44,8 @@ contributions, which would classically be computed a full feature matrix but can
 embedding matrix.
 
 
-Code examples
--------------
-
 kNN graph output
-````````````````
+----------------
 
 KNN graph outputs can only be evaluated with metrics that use a kNN graph as input.
 The graph must be located in ``adata.obsp['neighbors']`` and ``adata.obsp['connectivities']``.
@@ -100,7 +59,7 @@ cluster assignment.
 
 
 Embedding output
-````````````````
+----------------
 
 The embedding should be stored in ``adata.obsm``, by default under key ``'X_emb'``.
 If the metric requires an embedding, no preprocessing is needed.
@@ -116,7 +75,7 @@ Some metrics require the following:
 
 
 Feature output
-``````````````
+--------------
 
 Feature output processing contains the same steps that are computed on unintegrated data before integration.
 Feature output requires processing of the count matrix in the following steps:

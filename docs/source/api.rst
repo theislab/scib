@@ -1,5 +1,102 @@
+API
+===
+
+Preprocessing
+-------------
+
+.. currentmodule:: scib.preprocessing
+
+Preprocessing functions are relevant both for preparing the data for integration as well as postprocessing the
+integration output.
+
+The most relevant preprocessing steps are:
+
++ Normalization
++ Scaling, batch-aware
++ Highly variable gene selection, batch-aware
++ Cell cycle scoring
++ Principle component analysis (PCA)
++ k-nearest neighbor graph (kNN graph)
++ UMAP
++ Clustering
+
+Note that some preprocessing steps depend on each other.
+Please refer to the `best_practices`_ for more details.
+
+.. _best_practices: sc-best-practices.org
+
+
+Functions
+`````````
+
+.. autosummary::
+    :toctree: api/
+
+    normalize
+    scale_batch
+    hvg_intersect
+    hvg_batch
+    score_cell_cycle
+    reduce_data
+
+
+Integration
+-----------
+
+Integration method functions require the preprocessed ``anndata`` object (here ``adata``) and the name of the batch column
+in ``adata.obs`` (here ``'batch'``).
+The methods can be called using the following, where ``integration_method`` is the name of the integration method.
+
+.. code-block:: python
+
+    scib.ig.integration_method(adata, batch="batch")
+
+
+For example, in order to run Scanorama, on a dataset, call:
+
+.. code-block:: python
+
+    scib.ig.scanorama(adata, batch="batch")
+
+.. warning::
+
+    The following notation is deprecated.
+
+    .. code-block:: python
+
+        scib.integration.runIntegrationMethod(adata, batch="batch")
+
+    Please use the snake_case naming without the ``run`` prefix.
+
+Some integration methods (e.g. :func:`~scib.integration.scgen`, :func:`~scib.integration.scanvi`) also use cell type
+labels as input.
+For these, you need to additionally provide the corresponding label column of ``adata.obs`` (here ``cell_type``).
+
+.. code-block:: python
+
+    scib.ig.scgen(adata, batch="batch", cell_type="cell_type")
+    scib.ig.scanvi(adata, batch="batch", labels="cell_type")
+
+
+.. automodapi:: scib.integration
+
+    :no-heading:
+
+    :skip: runBBKNN
+    :skip: runCombat
+    :skip: runMNN
+    :skip: runDESC
+    :skip: runSaucie
+    :skip: runScanorama
+    :skip: runScanvi
+    :skip: runScGen
+    :skip: runScvi
+    :skip: runTrVae
+    :skip: runTrVaep
+    :skip: issparse
+
 Metrics
-=======
+-------
 
 .. currentmodule:: scib.metrics
 
@@ -14,7 +111,7 @@ Most metrics require specific inputs that need to be preprocessed, which is desc
 
 
 Biological Conservation Metrics
--------------------------------
+```````````````````````````````
 
 Biological conservation metrics quantify either the integrity of cluster-based metrics based on clustering results of
 the integration output, or the difference in the feature spaces of integrated and unintegrated data.
@@ -36,7 +133,7 @@ the biological aspect that the metric addresses.
 
 
 Batch Correction Metrics
-------------------------
+````````````````````````
 
 Batch correction metrics values are scaled by default between 0 and 1, in which larger scores represent better batch
 removal.
@@ -52,7 +149,7 @@ removal.
 
 
 Metrics Wrapper Functions
--------------------------
+`````````````````````````
 
 For convenience, ``scib`` provides wrapper functions that, given integrated and unintegrated adata objects, apply
 multiple metrics and return all the results in a ``pandas.Dataframe``.
@@ -83,7 +180,7 @@ based on expected computation time:
 
 
 Auxiliary Functions
--------------------
+```````````````````
 
 Some parts of metrics can be used individually, these are listed below.
 
