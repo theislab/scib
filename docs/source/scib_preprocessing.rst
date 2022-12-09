@@ -133,5 +133,7 @@ evaluate an embedding.
 .. code-block:: python
 
     # use wrapper function for the first 3 steps
-    scib.pp.reduce_data(adata, n_top_genes=2000, pca=True, neighbors=True)
+    scib.pp.reduce_data(
+        adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=False
+    )
     scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")

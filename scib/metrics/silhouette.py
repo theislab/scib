@@ -15,33 +15,28 @@ def silhouette(adata, label_key, embed, metric="euclidean", scale=True):
         * -1 indicates core-periphery (non-cluster) structure
 
     By default, the score is scaled between 0 and 1 (``scale=True``).
-    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
-    integration outputs.
-    See below for examples of preprocessing and function calls.
 
     :param label_key: key in adata.obs of cell labels
     :param embed: embedding key in adata.obsm, default: 'X_pca'
+    :param metric: type of distance metric to use for the silhouette scores
     :param scale: default True, scale between 0 (worst) and 1 (best)
 
-    **Preprocessing: Feature output**
+    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
+    integration outputs.
+    Please note, that the metric cannot be used to evaluate kNN graph outputs.
+    See :ref:`preprocessing` for more information on preprocessing.
 
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
-
-    .. code-block:: python
-
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True)
-        scib.me.isolated_labels_asw(adata, label_key="celltype", embed="X_pca")
-
-    **Preprocessing Embedding output**
-
-    No preprocessing is required.
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
+    **Examples**
 
     .. code-block:: python
 
+        # full feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=False
+        )
+        scib.me.silhouette(adata, label_key="celltype", embed="X_pca")
+
+        # embedding output
         scib.me.silhouette(adata, label_key="celltype", embed="X_emb")
     """
     if embed not in adata.obsm.keys():
@@ -91,10 +86,6 @@ def silhouette_batch(
 
         batch \\, ASW_j = \\frac{1}{|C_j|} \\sum_{i \\in C_j} 1 - |silhouette(i)|
 
-    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
-    integration outputs.
-    See below for examples of preprocessing and function calls.
-
     :param batch_key: batch labels to be compared against
     :param label_key: group labels to be subset by e.g. cell type
     :param embed: name of column in adata.obsm
@@ -108,25 +99,22 @@ def silhouette_batch(
         Mean silhouette per group in pd.DataFrame (additionally, if return_all=True)
         Absolute silhouette scores per group label (additionally, if return_all=True)
 
-    **Preprocessing: Feature output**
+    The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
+    integration outputs.
+    Please note, that the metric cannot be used to evaluate kNN graph outputs.
+    See :ref:`preprocessing` for more information on preprocessing.
 
-    Feature output requires processing of the count matrix in the following steps:
-
-        1. Highly variable gene selection (skip, if working on feature space subset)
-        2. PCA
+    **Examples**
 
     .. code-block:: python
 
-        scib.pp.reduce_data(adata, n_top_genes=2000, pca=True)
+        # feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=False
+        )
         scib.me.silhouette_batch(adata, batch_key="batch", label_key="celltype", embed="X_pca")
 
-    **Preprocessing Embedding output**
-
-    No preprocessing is required.
-    The embedding should be stored in ``adata.obsm``, by default under key ``'X_embed'``.
-
-    .. code-block:: python
-
+        # embedding output
         scib.me.silhouette_batch(adata, batch_key="batch", label_key="celltype", embed="X_emb")
 
     """
