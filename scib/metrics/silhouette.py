@@ -50,6 +50,7 @@ def silhouette(adata, label_key, embed, metric="euclidean", scale=True):
     return asw
 
 
+@deprecated_arg_names({"group_key": "label_key"})
 def silhouette_batch(
     adata,
     batch_key,
