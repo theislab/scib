@@ -14,21 +14,30 @@ def kBET(
     adata,
     batch_key,
     label_key,
+    type_,
+    embed=None,
     scaled=True,
-    embed="X_pca",
-    type_=None,
     return_df=False,
     verbose=False,
 ):
     """kBET score
 
-    Compute the average of k-nearest neighbour batch effect test (`kBET`_) score per label.
+    Compute the average of k-nearest neighbour batch effect test (kBET) score per label.
+    This is a wrapper function of the implementation by `Büttner et al. 2019`_.
+    kBET measures the bias of a batch variable in the kNN graph.
+    Specifically, kBET is quantified as the average rejection rate of Chi-squared tests of local vs  global batch label
+    distributions.
+    This means that smaller values indicate better batch mixing.
+    By default the original kBET score is scaled between 0 and 1 so that larger scores are associated with better batch
+    mixing.
 
-    .. _kBET: https://doi.org/10.1038/s41592-018-0254-1
+    .. _Büttner et al. 2019: https://doi.org/10.1038/s41592-018-0254-1
 
     :param adata: anndata object to compute kBET on
     :param batch_key: name of batch column in adata.obs
     :param label_key: name of cell identity labels column in adata.obs
+    :param `type_`: type of data integration, one of 'knn', 'embed' or 'full'
+    :param embed: embedding key in ``adata.obsm`` for embedding and feature input
     :param scaled: whether to scale between 0 and 1
         with 0 meaning low batch mixing and 1 meaning optimal batch mixing
         if scaled=False, 0 means optimal batch mixing and 1 means low batch mixing
@@ -36,6 +45,28 @@ def kBET(
         kBET score (average of kBET per label) based on observed rejection rate.
         If ``return_df=True``, also return a ``pd.DataFrame`` with kBET observed
         rejection rate per cluster
+
+    This function can be applied to all integration output types and recomputes the kNN graph for feature and embedding
+    output with specific parameters.
+    Thus, no preprocessing is required, but the correct output type must be specified in ``type_``.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # full feature integration output or unintegrated data
+        scib.me.kBET(
+            adata, batch_key="batch", label_key="celltype", type_="full", embed="X_pca"
+        )
+
+        # embedding output
+        scib.me.kBET(
+            adata, batch_key="batch", label_key="celltype", type_="embed", embed="X_emb"
+        )
+
+        # kNN output
+        scib.me.kBET(adata, batch_key="batch", label_key="celltype", type_="knn")
+
     """
     try:
         import rpy2.rinterface_lib.callbacks
@@ -52,12 +83,12 @@ def kBET(
 
     try:
         ro.r("library(kBET)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError:
-        return np.nan
+    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
+        raise OptionalDependencyNotInstalled(e, "kBET")
 
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
-    if type_ != "knn":
+    if type_ != "knn" and embed is not None:
         adata_tmp = sc.pp.neighbors(adata, n_neighbors=50, use_rep=embed, copy=True)
     else:
         # check if pre-computed neighbours are stored in input file

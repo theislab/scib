@@ -309,9 +309,9 @@ def metrics(
         print("NMI...")
         nmi_score = nmi(
             adata_int,
-            group1=cluster_key,
-            group2=label_key,
-            method=nmi_method,
+            cluster_key=cluster_key,
+            label_key=label_key,
+            implementation=nmi_method,
             nmi_dir=nmi_dir,
         )
     else:
@@ -319,7 +319,7 @@ def metrics(
 
     if ari_:
         print("ARI...")
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+        ari_score = ari(adata_int, cluster_key=cluster_key, label_key=label_key)
     else:
         ari_score = np.nan
 
@@ -327,13 +327,13 @@ def metrics(
         print("Silhouette score...")
         # global silhouette coefficient
         asw_label = silhouette(
-            adata_int, group_key=label_key, embed=embed, metric=si_metric
+            adata_int, label_key=label_key, embed=embed, metric=si_metric
         )
         # silhouette coefficient per batch
         asw_batch = silhouette_batch(
             adata_int,
             batch_key=batch_key,
-            group_key=label_key,
+            label_key=label_key,
             embed=embed,
             metric=si_metric,
             return_all=False,

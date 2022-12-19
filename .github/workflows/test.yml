@@ -28,7 +28,7 @@ jobs:
             run: |
                 pre-commit run --color=always --show-diff-on-failure --all-files
 
-    test:
+    metrics:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
@@ -68,12 +68,6 @@ jobs:
                     --ignore=tests/integration/ \
                     --ignore=tests/metrics/rpy2 -vv
 
-        -   name: Test R metrics
-            if: ${{ matrix.os != 'macos-latest'}}
-            run: |
-                pip install '.[rpy2]'
-                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
-
         -   name: Upload coverage
             uses: codecov/codecov-action@v3
             with:
@@ -82,6 +76,43 @@ jobs:
                 env_vars: OS,PYTHON
                 fail_ci_if_error: ${{ github.repository == 'theislab/scib' }}
                 verbose: true
+
+    rpy2:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                r: [4.2]
+                python: [3.9]
+                os: [ubuntu-latest]
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python ${{ matrix.python }}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{ matrix.python }}
+        -   name: Set up R
+            uses: r-lib/actions/setup-r@v2
+            with:
+                r-version: ${{ matrix.r }}
+
+        -   name: Install dependencies
+            env:
+                GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+                python -m pip install --upgrade pip
+                pip install '.[test,rpy2]'
+                Rscript -e "install.packages('remotes')"
+                Rscript -e "remotes::install_github('theislab/kBET')"
+
+        -   name: Test with pytest
+            run: |
+                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
+        -   name: Upload coverage
+            env:
+                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
+            run: |
+                codecov --no-color --required --flags unittest
+
 
     integration:
         runs-on: ${{ matrix.os }}
@@ -103,7 +134,7 @@ jobs:
         -   name: Install dependencies
             run: |
                 python -m pip install --upgrade pip
-                pip install '.[test,scanorama,scvi]'
+                pip install '.[test,scanorama,scvi,harmony]'
 
         -   name: Test with pytest
             run: |
