@@ -21,9 +21,9 @@ The most relevant preprocessing steps are:
 + Clustering
 
 Note that some preprocessing steps depend on each other.
-Please refer to the `best_practices`_ for more details.
+Please refer to the `Single Cell Best Practices Book`_ for more details.
 
-.. _best_practices: sc-best-practices.org
+.. _Single Cell Best Practices Book: https://www.sc-best-practices.org
 
 .. autosummary::
     :toctree: api/
@@ -107,7 +107,7 @@ Most metrics require specific inputs that need to be preprocessed, which is desc
 
 
 Biological Conservation Metrics
-```````````````````````````````
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Biological conservation metrics quantify either the integrity of cluster-based metrics based on clustering results of
 the integration output, or the difference in the feature spaces of integrated and unintegrated data.
@@ -129,7 +129,7 @@ the biological aspect that the metric addresses.
 
 
 Batch Correction Metrics
-````````````````````````
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Batch correction metrics values are scaled by default between 0 and 1, in which larger scores represent better batch
 removal.
@@ -145,7 +145,7 @@ removal.
 
 
 Metrics Wrapper Functions
-`````````````````````````
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For convenience, ``scib`` provides wrapper functions that, given integrated and unintegrated adata objects, apply
 multiple metrics and return all the results in a ``pandas.Dataframe``.
@@ -176,7 +176,7 @@ based on expected computation time:
 
 
 Auxiliary Functions
-```````````````````
+^^^^^^^^^^^^^^^^^^^
 
 Some parts of metrics can be used individually, these are listed below.
 
