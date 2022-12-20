@@ -34,14 +34,11 @@ jobs:
             matrix:
                 python: [3.7, 3.9]
                 os: [ubuntu-latest, macos-latest]
-        env:
-            PYTHON: ${{ matrix.os }}
-            OS: ${{ matrix.os }}
 
         steps:
-        -   uses: actions/checkout@v2
+        -   uses: actions/checkout@v3
         -   name: Set up Python ${{ matrix.python }}
-            uses: actions/setup-python@v2
+            uses: actions/setup-python@v4
             with:
                 python-version: ${{ matrix.python }}
 
@@ -80,9 +77,9 @@ jobs:
                 python: [3.9]
                 os: [ubuntu-latest]
         steps:
-        -   uses: actions/checkout@v2
+        -   uses: actions/checkout@v3
         -   name: Set up Python ${{ matrix.python }}
-            uses: actions/setup-python@v2
+            uses: actions/setup-python@v4
             with:
                 python-version: ${{ matrix.python }}
         -   name: Set up R
@@ -119,9 +116,9 @@ jobs:
                 os: [ubuntu-latest]
 
         steps:
-        -   uses: actions/checkout@v2
+        -   uses: actions/checkout@v3
         -   name: Set up Python ${{ matrix.python }}
-            uses: actions/setup-python@v2
+            uses: actions/setup-python@v4
             with:
                 python-version: ${{ matrix.python }}
 
