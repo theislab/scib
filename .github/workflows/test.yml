@@ -10,13 +10,13 @@ jobs:
     lint:
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/checkout@v2
+        -   uses: actions/checkout@v3
         -   name: Set up Python
-            uses: actions/setup-python@v2
+            uses: actions/setup-python@v4
             with:
                 python-version: 3.9
 
-        -   uses: actions/cache@v2
+        -   uses: actions/cache@v3
             with:
                 path: ~/.cache/pre-commit
                 key: precommit-${{ env.pythonLocation }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
@@ -63,19 +63,14 @@ jobs:
         -   name: Test with pytest
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
-                python -m pytest --cov --cov-append \
-                    --cov-report=term-missing \
-                    --ignore=tests/integration/ \
-                    --ignore=tests/metrics/rpy2 -vv
+                pytest --cov=scib --cov-report=xml -vv --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv
+                mkdir -p coverage
+                mv coverage.xml "$(echo 'coverage/metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
-        -   name: Upload coverage
-            uses: codecov/codecov-action@v3
+        -   name: Upload coverage to GitHub Actions
+            uses: actions/upload-artifact@v3
             with:
-                token: ${{ secrets.CODECOV_TOKEN }}
-                flags: unittests
-                env_vars: OS,PYTHON
-                fail_ci_if_error: ${{ github.repository == 'theislab/scib' }}
-                verbose: true
+                path: coverage/*.xml
 
     rpy2:
         runs-on: ${{ matrix.os }}
@@ -106,12 +101,14 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                python -m pytest --cov --cov-append --cov-report=term-missing -k rpy2 -vv
-        -   name: Upload coverage
-            env:
-                CODECOV_NAME: ${{ matrix.os }}-${{ matrix.python }}
-            run: |
-                codecov --no-color --required --flags unittest
+                pytest --cov=scib --cov-report=xml -vv --tb=native -k rpy2
+                mkdir -p coverage
+                mv coverage.xml "$(echo 'coverage/rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
+
+        -   name: Upload coverage to GitHub Actions
+            uses: actions/upload-artifact@v3
+            with:
+                path: coverage/*.xml
 
 
     integration:
@@ -120,9 +117,6 @@ jobs:
             matrix:
                 python: [3.7, 3.9]
                 os: [ubuntu-latest]
-        env:
-            PYTHON: ${{ matrix.os }}
-            OS: ${{ matrix.os }}
 
         steps:
         -   uses: actions/checkout@v2
@@ -138,13 +132,35 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                python -m pytest --cov --cov-append --cov-report=term-missing -k integration -vv
+                pytest --cov=scib --cov-report=xml -vv --tb=native -k integration
+                mkdir -p coverage
+                mv coverage.xml "$(echo 'coverage/integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
+
+        -   name: Upload coverage to GitHub Actions
+            uses: actions/upload-artifact@v3
+            with:
+                path: coverage/*.xml
+
+
+    upload-codecov:
+        needs: [metrics, rpy2, integration]
+        runs-on: ubuntu-latest
+
+        steps:
+        -   uses: actions/checkout@v3
+            with:
+                fetch-depth: 0
+
+        -   name: Download coverage from GitHub Actions
+            uses: actions/download-artifact@v3
 
         -   name: Upload coverage
             uses: codecov/codecov-action@v3
             with:
                 token: ${{ secrets.CODECOV_TOKEN }}
                 flags: unittests
-                env_vars: OS,PYTHON
                 fail_ci_if_error: ${{ github.repository == 'theislab/scib' }}
                 verbose: true
+
+        -   name: Delete coverage artifacts
+            uses: geekyeggo/delete-artifact@v2
