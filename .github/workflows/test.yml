@@ -61,13 +61,13 @@ jobs:
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
                 pytest --cov=scib --cov-report=xml -vv --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv
-                mkdir -p coverage
-                mv coverage.xml "$(echo 'coverage/metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
+                mv coverage.xml "$(echo 'coverage_metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v3
             with:
-                path: coverage/*.xml
+                name: metrics
+                path: coverage_*.xml
 
     rpy2:
         runs-on: ${{ matrix.os }}
@@ -99,13 +99,13 @@ jobs:
         -   name: Test with pytest
             run: |
                 pytest --cov=scib --cov-report=xml -vv --tb=native -k rpy2
-                mkdir -p coverage
-                mv coverage.xml "$(echo 'coverage/rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
+                mv coverage.xml "$(echo 'coverage_rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v3
             with:
-                path: coverage/*.xml
+                name: rpy2
+                path: coverage_*.xml
 
 
     integration:
@@ -130,13 +130,13 @@ jobs:
         -   name: Test with pytest
             run: |
                 pytest --cov=scib --cov-report=xml -vv --tb=native -k integration
-                mkdir -p coverage
-                mv coverage.xml "$(echo 'coverage/integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
+                mv coverage.xml "$(echo 'coverage_integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v3
             with:
-                path: coverage/*.xml
+                name: integration
+                path: coverage_*.xml
 
 
     upload-codecov:
