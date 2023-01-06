@@ -55,7 +55,7 @@ jobs:
         -   name: Install package with test dependencies
             run: |
                 pip install dist/*.whl
-                pip install '.[test]'
+                pip install '.[test,louvain]'
 
         -   name: Test with pytest
             if: ${{ matrix.os != 'macos-latest'}}
