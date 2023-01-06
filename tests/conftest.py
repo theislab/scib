@@ -93,7 +93,7 @@ def adata_neighbors(adata):
 @pytest.fixture()
 def adata_clustered(adata_neighbors):
     adata_obj = adata_neighbors
-    scib.cl.opt_louvain(
+    scib.cl.cluster_optimal_resolution(
         adata_obj, cluster_key="cluster", label_key="celltype", verbose=True
     )
     yield adata_obj
