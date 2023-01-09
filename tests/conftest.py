@@ -94,6 +94,6 @@ def adata_neighbors(adata):
 def adata_clustered(adata_neighbors):
     adata_obj = adata_neighbors
     scib.cl.cluster_optimal_resolution(
-        adata_obj, cluster_key="cluster", label_key="celltype", verbose=True
+        adata_obj, label_key="celltype", cluster_key="cluster", verbose=True
     )
     yield adata_obj
