@@ -117,7 +117,7 @@ def cluster_optimal_resolution(
         print(f"optimal score: {score_max}")
 
     score_all = pd.DataFrame(
-        zip(resolutions, score_all), columns=("resolution", "score")
+        zip(resolutions, score_all), columns=["resolution", "score"]
     )
 
     adata.obs[cluster_key] = clustering

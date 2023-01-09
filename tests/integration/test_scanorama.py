@@ -12,16 +12,12 @@ def test_scanorama(adata_paul15_template):
     )
 
     # check NMI after clustering
-    res_max, score_max, _ = scib.cl.opt_louvain(
-        adata,
-        label_key="celltype",
-        cluster_key="cluster",
-        plot=False,
-        inplace=True,
+    res_max, score_max, _ = scib.cl.cluster_optimal_resolution(
+        adata, label_key="celltype", cluster_key="cluster", return_all=True
     )
     LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
 
-    assert_near_exact(score_max, 0.6440883682371078, 1e-2)
+    assert_near_exact(score_max, 0.6610082444492823, 1e-2)
 
 
 def test_scanorama_batch_cols(adata_paul15_template):
