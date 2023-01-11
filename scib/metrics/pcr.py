@@ -188,6 +188,9 @@ def pc_regression(
 
         if n_comps == min(matrix.shape):
             svd_solver = "full"
+            # convert to dense bc 'full' is not available for sparse matrices
+            if sparse.issparse(matrix):
+                matrix = matrix.todense()
 
         if verbose:
             print("compute PCA")
