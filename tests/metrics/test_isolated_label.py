@@ -46,9 +46,22 @@ def test_isolated_labels_ASW(adata_pca):
     assert_near_exact(score, 0.1938440054655075, diff=1e-3)
 
 
-def test_isolated_labels_perfect(adata_pca):
+def test_isolated_labels_f1_perfect(adata_pca):
     adata_pca.obsm["X_emb"] = _random_embedding(partition=adata_pca.obs["celltype"])
     score = scib.me.isolated_labels_f1(
+        adata_pca,
+        label_key="celltype",
+        batch_key="batch",
+        embed="X_emb",
+        verbose=True,
+    )
+    LOGGER.info(f"score: {score}")
+    assert_near_exact(score, 1, diff=1e-12)
+
+    
+def test_isolated_labels_asw_perfect(adata_pca):
+    adata_pca.obsm["X_emb"] = _random_embedding(partition=adata_pca.obs["celltype"])
+    score = scib.me.isolated_labels_asw(
         adata_pca,
         label_key="celltype",
         batch_key="batch",
