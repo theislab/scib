@@ -1,9 +1,7 @@
 import pandas as pd
-from sklearn.metrics import f1_score
-from sklearn.metrics import silhouette_samples
+from sklearn.metrics import f1_score, silhouette_samples
 
 from .clustering import cluster_optimal_resolution
-from .silhouette import silhouette
 
 
 def isolated_labels_f1(
@@ -228,7 +226,9 @@ def score_isolated_label(
     else:
         # AWS score between isolated label vs rest
         adata.obs[iso_label_key] = adata.obs[label_key] == isolated_label
-        adata.obs['silhouette_temp'] = silhouette_samples(adata.obsm[embed], adata.obs[iso_label_key])
+        adata.obs['silhouette_temp'] = silhouette_samples(
+            adata.obsm[embed], adata.obs[iso_label_key]
+        )
         score = adata.obs[adata.obs[iso_label_key]].silhouette_temp.mean()
 
     if verbose:
