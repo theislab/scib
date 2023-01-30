@@ -227,7 +227,7 @@ def score_isolated_label(
         # AWS score between isolated label vs rest
         adata.obs[iso_label_key] = adata.obs[label_key] == isolated_label
         adata.obs["silhouette_temp"] = silhouette_samples(
-            adata.obsm[embed], adata.obs[iso_label_key]
+            adata.obsm[embed], adata.obs[label_key]
         )
         score = adata.obs[adata.obs[iso_label_key]].silhouette_temp.mean()
 
