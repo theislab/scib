@@ -164,7 +164,12 @@ def isolated_labels(
     scores = {}
     for label in isolated_labels:
         score = score_isolated_label(
-            adata, label_key, label, embed, cluster, silhouette_pre=silhouette_pre,
+            adata,
+            label_key,
+            label,
+            embed,
+            cluster,
+            silhouette_pre=silhouette_pre,
             verbose=verbose
         )
         scores[label] = score
