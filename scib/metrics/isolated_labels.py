@@ -170,7 +170,7 @@ def isolated_labels(
             embed,
             cluster,
             silhouette_pre=silhouette_pre,
-            verbose=verbose
+            verbose=verbose,
         )
         scores[label] = score
     scores = pd.Series(scores)
