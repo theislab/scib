@@ -231,7 +231,7 @@ def score_isolated_label(
     else:
         # AWS score between isolated label vs rest
 
-        if adata.uns["precomputed_silhouette"] == False:
+        if not adata.uns["precomputed_silhouette"]:
             adata.obs["silhouette_temp"] = silhouette_samples(
                 adata.obsm[embed], adata.obs[label_key]
             )
