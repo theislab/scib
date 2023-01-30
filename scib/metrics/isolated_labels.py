@@ -109,7 +109,6 @@ def isolated_labels_asw(
     adata.obs["silhouette_temp"] = silhouette_samples(
         adata.obsm[embed], adata.obs[label_key]
     )
-    adata.uns["precomputed_silhouette"] = True
     return isolated_labels(
         adata,
         label_key=label_key,
@@ -117,6 +116,7 @@ def isolated_labels_asw(
         embed=embed,
         cluster=False,
         iso_threshold=iso_threshold,
+        silhouette_pre=True,
         verbose=verbose,
     )
 
@@ -129,6 +129,7 @@ def isolated_labels(
     cluster=True,
     iso_threshold=None,
     return_all=False,
+    silhouette_pre=False,
     verbose=True,
 ):
     """Isolated label score
@@ -163,7 +164,8 @@ def isolated_labels(
     scores = {}
     for label in isolated_labels:
         score = score_isolated_label(
-            adata, label_key, label, embed, cluster, verbose=verbose
+            adata, label_key, label, embed, cluster, silhouette_pre=silhouette_pre,
+            verbose=verbose
         )
         scores[label] = score
     scores = pd.Series(scores)
@@ -181,6 +183,7 @@ def score_isolated_label(
     embed,
     cluster=True,
     iso_label_key="iso_label",
+    silhouette_pre=False,
     verbose=False,
 ):
     """
@@ -231,7 +234,7 @@ def score_isolated_label(
     else:
         # AWS score between isolated label vs rest
 
-        if not adata.uns["precomputed_silhouette"]:
+        if not silhouette_pre:
             adata.obs["silhouette_temp"] = silhouette_samples(
                 adata.obsm[embed], adata.obs[label_key]
             )
