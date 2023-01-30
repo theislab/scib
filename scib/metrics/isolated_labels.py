@@ -243,8 +243,8 @@ def score_isolated_label(
             adata.obs["silhouette_temp"] = silhouette_samples(
                 adata.obsm[embed], adata.obs[label_key]
             )
-        adata.obs[iso_label_key] = adata.obs[label_key] == isolated_label
-        score = adata.obs[adata.obs[iso_label_key]].silhouette_temp.mean()
+        # aggregate silhouette scores for isolated label only
+        score = adata.obs[adata.obs[label_key] == isolated_label].silhouette_temp.mean()
 
     if verbose:
         print(f"{isolated_label}: {score}")
