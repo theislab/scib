@@ -108,7 +108,7 @@ def isolated_labels_asw(
     # precompute silhouette scores
     adata.obs["silhouette_temp"] = silhouette_samples(
         adata.obsm[embed], adata.obs[label_key]
-        )
+    )
     adata.uns["precomputed_silhouette"] = True
     return isolated_labels(
         adata,
@@ -231,7 +231,7 @@ def score_isolated_label(
     else:
         # AWS score between isolated label vs rest
 
-        if !adata.uns["precomputed_silhouette"]:
+        if !(adata.uns["precomputed_silhouette"]):
             adata.obs["silhouette_temp"] = silhouette_samples(
                 adata.obsm[embed], adata.obs[label_key]
             )
