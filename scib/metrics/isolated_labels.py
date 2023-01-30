@@ -225,7 +225,7 @@ def score_isolated_label(
         score = max_f1(adata, label_key, iso_label_key, isolated_label, argmax=False)
     else:
         # AWS score between isolated label vs rest
-        
+
         if "silhouette_temp" not in adata.obs:
             adata.obs["silhouette_temp"] = silhouette_samples(
                 adata.obsm[embed], adata.obs[label_key]
