@@ -57,8 +57,8 @@ def test_isolated_labels_f1_perfect(adata_pca):
     )
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 1, diff=1e-12)
-    
-    
+
+
 def test_isolated_labels_asw_perfect(adata_pca):
     adata_pca.obsm["X_emb"] = _random_embedding(partition=adata_pca.obs["celltype"])
     score = scib.me.isolated_labels_asw(
