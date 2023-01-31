@@ -158,9 +158,9 @@ def isolated_labels(
     # 2. compute isolated label score for each isolated label
     scores = {}
     if not cluster:
-            adata.obs["silhouette_temp"] = silhouette_samples(
-                adata.obsm[embed], adata.obs[label_key]
-            )
+        adata.obs["silhouette_temp"] = silhouette_samples(
+            adata.obsm[embed], adata.obs[label_key]
+        )
     for label in isolated_labels:
         score = score_isolated_label(
             adata,
