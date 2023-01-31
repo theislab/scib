@@ -105,7 +105,7 @@ def isolated_labels_asw(
         )
 
     """
-    )
+
     return isolated_labels(
         adata,
         label_key=label_key,
