@@ -105,6 +105,7 @@ def isolated_labels_asw(
         )
 
     """
+
     return isolated_labels(
         adata,
         label_key=label_key,
@@ -156,9 +157,18 @@ def isolated_labels(
 
     # 2. compute isolated label score for each isolated label
     scores = {}
+    if not cluster:
+        adata.obs["silhouette_temp"] = silhouette_samples(
+            adata.obsm[embed], adata.obs[label_key]
+        )
     for label in isolated_labels:
         score = score_isolated_label(
-            adata, label_key, label, embed, cluster, verbose=verbose
+            adata,
+            label_key,
+            label,
+            embed,
+            cluster,
+            verbose=verbose,
         )
         scores[label] = score
     scores = pd.Series(scores)
@@ -225,11 +235,13 @@ def score_isolated_label(
         score = max_f1(adata, label_key, iso_label_key, isolated_label, argmax=False)
     else:
         # AWS score between isolated label vs rest
-        adata.obs[iso_label_key] = adata.obs[label_key] == isolated_label
-        adata.obs["silhouette_temp"] = silhouette_samples(
-            adata.obsm[embed], adata.obs[iso_label_key]
-        )
-        score = adata.obs[adata.obs[iso_label_key]].silhouette_temp.mean()
+
+        if "silhouette_temp" not in adata.obs:
+            adata.obs["silhouette_temp"] = silhouette_samples(
+                adata.obsm[embed], adata.obs[label_key]
+            )
+        # aggregate silhouette scores for isolated label only
+        score = adata.obs[adata.obs[label_key] == isolated_label].silhouette_temp.mean()
 
     if verbose:
         print(f"{isolated_label}: {score}")
