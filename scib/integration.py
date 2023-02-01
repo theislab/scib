@@ -418,7 +418,7 @@ def combat(adata, batch):
     return adata_int
 
 
-def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
+def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False, gpu_id=None):
     """DESC wrapper function
 
     Based on `desc package <https://github.com/eleozzr/desc>`_ version 2.0.3.
@@ -457,6 +457,7 @@ def desc(adata, batch, res=0.8, ncores=None, tmp_dir=None, use_gpu=False):
         save_dir=tmp_dir,
         do_tsne=False,
         use_GPU=use_gpu,
+        GPU_id=gpu_id,
         num_Cores=ncores,
         use_ae_weights=False,
         do_umap=False,
