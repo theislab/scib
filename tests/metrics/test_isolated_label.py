@@ -16,7 +16,7 @@ def _random_embedding(partition):
     embedding = OneHotEncoder().fit_transform(
         LabelEncoder().fit_transform(partition)[:, None]
     )
-    embedding = embedding + np.random.uniform(-0.1, 0.1, embedding.shape)
+    embedding = embedding + np.random.uniform(-0.001, 0.001, embedding.shape)
     # convert to numpy array
     embedding = np.asarray(embedding)
     return embedding
@@ -43,10 +43,10 @@ def test_isolated_labels_ASW(adata_pca):
         verbose=True,
     )
     LOGGER.info(f"score: {score}")
-    assert_near_exact(score, 0.6101431176066399, diff=1e-3)
+    assert_near_exact(score, 0.5703811198472977, diff=1e-3)
 
 
-def test_isolated_labels_perfect(adata_pca):
+def test_isolated_labels_f1_perfect(adata_pca):
     adata_pca.obsm["X_emb"] = _random_embedding(partition=adata_pca.obs["celltype"])
     score = scib.me.isolated_labels_f1(
         adata_pca,
@@ -57,3 +57,16 @@ def test_isolated_labels_perfect(adata_pca):
     )
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 1, diff=1e-12)
+
+
+def test_isolated_labels_asw_perfect(adata_pca):
+    adata_pca.obsm["X_emb"] = _random_embedding(partition=adata_pca.obs["celltype"])
+    score = scib.me.isolated_labels_asw(
+        adata_pca,
+        label_key="celltype",
+        batch_key="batch",
+        embed="X_emb",
+        verbose=True,
+    )
+    LOGGER.info(f"score: {score}")
+    assert_near_exact(score, 1, diff=1e-2)

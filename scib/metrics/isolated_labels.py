@@ -1,8 +1,7 @@
 import pandas as pd
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, silhouette_samples
 
 from .clustering import cluster_optimal_resolution
-from .silhouette import silhouette
 
 
 def isolated_labels_f1(
@@ -68,6 +67,7 @@ def isolated_labels_asw(
     batch_key,
     embed,
     iso_threshold=None,
+    scale=True,
     verbose=True,
 ):
     """Isolated label score ASW
@@ -82,6 +82,7 @@ def isolated_labels_asw(
     :param iso_threshold: max number of batches per label for label to be considered as
         isolated, if iso_threshold is integer.
         If ``iso_threshold=None``, consider minimum number of batches that labels are present in
+    :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
     :return: Mean of ASW over all isolated labels
 
@@ -113,6 +114,7 @@ def isolated_labels_asw(
         embed=embed,
         cluster=False,
         iso_threshold=iso_threshold,
+        scale=scale,
         verbose=verbose,
     )
 
@@ -124,6 +126,7 @@ def isolated_labels(
     embed,
     cluster=True,
     iso_threshold=None,
+    scale=True,
     return_all=False,
     verbose=True,
 ):
@@ -143,6 +146,7 @@ def isolated_labels(
     :param iso_threshold: max number of batches per label for label to be considered as
         isolated, if iso_threshold is integer.
         If iso_threshold=None, consider minimum number of batches that labels are present in
+    :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param return_all: return scores for all isolated labels instead of aggregated mean
     :param verbose:
     :return:
@@ -157,9 +161,19 @@ def isolated_labels(
 
     # 2. compute isolated label score for each isolated label
     scores = {}
+    if not cluster:
+        adata.obs["silhouette_temp"] = silhouette_samples(
+            adata.obsm[embed], adata.obs[label_key]
+        )
     for label in isolated_labels:
         score = score_isolated_label(
-            adata, label_key, label, embed, cluster, verbose=verbose
+            adata,
+            label_key,
+            label,
+            embed,
+            cluster,
+            scale=scale,
+            verbose=verbose,
         )
         scores[label] = score
     scores = pd.Series(scores)
@@ -177,6 +191,7 @@ def score_isolated_label(
     embed,
     cluster=True,
     iso_label_key="iso_label",
+    scale=True,
     verbose=False,
 ):
     """
@@ -190,6 +205,7 @@ def score_isolated_label(
         silhouette score on grouping of isolated label vs all other remaining labels
     :param iso_label_key: name of key to use for cluster assignment for F1 score or
         isolated-vs-rest assignment for silhouette score
+    :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
     :return:
         Isolated label score
@@ -226,8 +242,14 @@ def score_isolated_label(
         score = max_f1(adata, label_key, iso_label_key, isolated_label, argmax=False)
     else:
         # AWS score between isolated label vs rest
-        adata.obs[iso_label_key] = adata.obs[label_key] == isolated_label
-        score = silhouette(adata, iso_label_key, embed)
+        if "silhouette_temp" not in adata.obs:
+            adata.obs["silhouette_temp"] = silhouette_samples(
+                adata.obsm[embed], adata.obs[label_key]
+            )
+        # aggregate silhouette scores for isolated label only
+        score = adata.obs[adata.obs[label_key] == isolated_label].silhouette_temp.mean()
+        if scale:
+            score = (score + 1) / 2
 
     if verbose:
         print(f"{isolated_label}: {score}")
