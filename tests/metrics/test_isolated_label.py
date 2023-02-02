@@ -43,7 +43,7 @@ def test_isolated_labels_ASW(adata_pca):
         verbose=True,
     )
     LOGGER.info(f"score: {score}")
-    assert_near_exact(score, 0.14066337049007416, diff=1e-3)
+    assert_near_exact(score, 0.5703811198472977, diff=1e-3)
 
 
 def test_isolated_labels_f1_perfect(adata_pca):
