@@ -1,4 +1,10 @@
 # fmt: off
+try:
+    from sklearnex import patch_sklearn
+    patch_sklearn()
+except ImportError:
+    print('INFO: sklearnex not installed.  No hardware acceleration for sklearn-based metrics available.')
+
 from .ari import ari
 from .cell_cycle import cell_cycle
 from .clustering import (cluster_optimal_resolution, get_resolutions,
