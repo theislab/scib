@@ -183,6 +183,7 @@ Some parts of metrics can be used individually, these are listed below.
 .. autosummary::
     :toctree: api/
 
+    cluster_optimal_resolution
     lisi_graph
     pcr
     pc_regression
