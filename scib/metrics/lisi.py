@@ -304,7 +304,6 @@ def lisi_graph_py(
         print("LISI score estimation")
 
     if n_cores > 1:
-
         if verbose:
             print(f"{n_cores} processes started.")
         pool = mp.Pool(processes=n_cores)
@@ -448,10 +447,13 @@ def compute_simpson_index_graph(
         return lists
 
     # read distances and indices with nan value handling
-    indices = pd.read_table(index_file, index_col=0, header=None, sep=",")
+    header = ["index"] + list(range(1, n_neighbors + 1))
+    indices = pd.read_table(index_file, index_col=0, header=None, sep=",", names=header)
     indices = indices.T
 
-    distances = pd.read_table(distance_file, index_col=0, header=None, sep=",")
+    distances = pd.read_table(
+        distance_file, index_col=0, header=None, sep=",", names=header
+    )
     distances = distances.T
 
     # get cell ids
