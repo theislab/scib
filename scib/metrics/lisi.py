@@ -447,11 +447,12 @@ def compute_simpson_index_graph(
         lists = np.zeros(0)
         return lists
 
+    names = ['index'] + [f'n_{i}' for i in range(n_neighbors)]
     # read distances and indices with nan value handling
-    indices = pd.read_table(index_file, index_col=0, header=None, sep=",")
+    indices = pd.read_table(index_file, index_col=0, header=None, sep=",", names=names)
     indices = indices.T
 
-    distances = pd.read_table(distance_file, index_col=0, header=None, sep=",")
+    distances = pd.read_table(distance_file, index_col=0, header=None, sep=",", names=names)
     distances = distances.T
 
     # get cell ids
