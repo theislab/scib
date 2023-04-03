@@ -172,7 +172,7 @@ def clisi_graph(
 
     """
     if batch_key is not None:
-        warnings.warn("'batch_key' is deprecated and will be ignore")
+        warnings.warn("'batch_key' is deprecated and will be ignore", stacklevel=1)
 
     check_adata(adata)
     check_batch(label_key, adata.obs)

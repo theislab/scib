@@ -194,7 +194,7 @@ def pc_regression(
 
         if verbose:
             print("compute PCA")
-        pca = sc.tl.pca(
+        X_pca, _, _, pca_var = sc.tl.pca(
             matrix,
             n_comps=n_comps,
             use_highly_variable=False,
@@ -202,9 +202,6 @@ def pc_regression(
             svd_solver=svd_solver,
             copy=True,
         )
-        X_pca = pca[0].copy()
-        pca_var = pca[3].copy()
-        del pca
     else:
         X_pca = matrix
         n_comps = matrix.shape[1]
