@@ -1,9 +1,20 @@
+from scipy.sparse import csr_matrix
+
 import scib
 from tests.common import LOGGER, add_embed, assert_near_exact
 
 
 def test_pc_regression(adata):
-    scib.me.pc_regression(adata.X, adata.obs["batch"])
+    score = scib.me.pc_regression(adata.X, adata.obs["batch"])
+    LOGGER.info(f"using embedding: {score}")
+    assert_near_exact(score, 0, diff=1e-4)
+
+
+def test_pc_regression_sparse(adata):
+    x = csr_matrix(adata.X)
+    score = scib.me.pc_regression(x, adata.obs["batch"], n_comps=x.shape[1])
+    LOGGER.info(f"using embedding: {score}")
+    assert_near_exact(score, 0, diff=1e-4)
 
 
 def test_pcr_batch(adata):

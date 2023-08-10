@@ -12,16 +12,12 @@ def test_scanorama(adata_paul15_template):
     )
 
     # check NMI after clustering
-    res_max, score_max, _ = scib.cl.opt_louvain(
-        adata,
-        label_key="celltype",
-        cluster_key="cluster",
-        plot=False,
-        inplace=True,
+    res_max, score_max, _ = scib.cl.cluster_optimal_resolution(
+        adata, label_key="celltype", cluster_key="cluster", return_all=True
     )
     LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
 
-    assert_near_exact(score_max, 0.6440883682371078, 1e-2)
+    assert_near_exact(score_max, 0.6610082444492823, 1e-2)
 
 
 def test_scanorama_batch_cols(adata_paul15_template):
@@ -32,19 +28,3 @@ def test_scanorama_batch_cols(adata_paul15_template):
     batch_after = adata.obs["batch"].value_counts()
 
     pd.testing.assert_series_equal(batch_before, batch_after)
-
-
-# def test_scanorama_dup_cols(adata_paul15_template):
-#     adata = adata_paul15_template
-#     adata.var[['1', '2']] = (0, 2)
-#     # create adata with multiple variables with same name
-#     adata.var = adata.var.rename(
-#         columns={name: 'ambig_column' for name in adata.var.columns.values}
-#     )
-#
-#     LOGGER.info(adata)
-#
-#     # concatenate adatas with ambiguous column naming
-#     anndata.AnnData.concatenate(
-#         adata, adata, index_unique=None
-#     )

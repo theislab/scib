@@ -1,52 +1,88 @@
 import os
 import subprocess
 
+from scanpy._utils import deprecated_arg_names
 from sklearn.metrics.cluster import normalized_mutual_info_score
 
 from ..utils import check_adata, check_batch
 
 
-def nmi(adata, group1, group2, method="arithmetic", nmi_dir=None):
+@deprecated_arg_names(
+    {"group1": "cluster_key", "group2": "label_key", "method": "implementation"}
+)
+def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None):
     """Normalized mutual information
 
-    Wrapper for normalized mutual information NMI between two different cluster assignments
+    The normalized mutual information is a version of the mutual information corrected by the entropy of clustering and
+    ground truth labels (e.g. cell type).
+    The score ranges between 0 and 1, with 0 representing no sharing and 1 representing perfect sharing of information
+    between clustering and annotated cell labels.
 
-    :param adata: Anndata object
-    :param group1: column name of ``adata.obs``
-    :param group2: column name of ``adata.obs``
-    :param method: NMI implementation.
-        'max': scikit method with ``average_method='max'``;
-        'min': scikit method with ``average_method='min'``;
-        'geometric': scikit method with ``average_method='geometric'``;
-        'arithmetic': scikit method with ``average_method='arithmetic'``;
-        'Lancichinetti': implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
-        'ONMI': implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
+    :param adata: anndata object with cluster assignments in ``adata.obs[cluster_key]``
+    :param cluster_key: string of column in adata.obs containing cluster assignments
+    :param label_key: string of column in adata.obs containing labels
+    :param implementation: NMI implementation.
+        ``'max'``: scikit method with ``average_method='max'``;
+        ``'min'``: scikit method with ``average_method='min'``;
+        ``'geometric'``: scikit method with ``average_method='geometric'``;
+        ``'arithmetic'``: scikit method with ``average_method='arithmetic'``;
+        ``'Lancichinetti'``: implementation by A. Lancichinetti 2009 et al. https://sites.google.com/site/andrealancichinetti/mutual;
+        ``'ONMI'``: implementation by Aaron F. McDaid et al. https://github.com/aaronmcdaid/Overlapping-NMI
     :param nmi_dir: directory of compiled C code if 'Lancichinetti' or 'ONMI' are specified as ``method``.
         These packages need to be compiled as specified in the corresponding READMEs.
     :return: Normalized mutual information NMI value
+
+    This function can be applied to all integration output types.
+    The ``adata`` must contain cluster assignments that are based off the knn graph given or derived from the integration
+    method output.
+    For this metric you need to include all steps that are needed for clustering.
+    See :ref:`preprocessing` for more information on preprocessing.
+
+    **Examples**
+
+    .. code-block:: python
+
+        # feature output
+        scib.pp.reduce_data(
+            adata, n_top_genes=2000, batch_key="batch", pca=True, neighbors=True
+        )
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
+        # embedding output
+        sc.pp.neighbors(adata, use_rep="X_emb")
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
+        # knn output
+        scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", label_key="celltype")
+        scib.me.nmi(adata, cluster_key="cluster", label_key="celltype")
+
     """
 
     check_adata(adata)
-    check_batch(group1, adata.obs)
-    check_batch(group2, adata.obs)
+    check_batch(cluster_key, adata.obs)
+    check_batch(label_key, adata.obs)
 
-    group1 = adata.obs[group1].tolist()
-    group2 = adata.obs[group2].tolist()
+    cluster_key = adata.obs[cluster_key].tolist()
+    label_key = adata.obs[label_key].tolist()
 
-    if len(group1) != len(group2):
+    if len(cluster_key) != len(label_key):
         raise ValueError(
-            f"different lengths in group1 ({len(group1)}) and group2 ({len(group2)})"
+            f"different lengths in cluster_key ({len(cluster_key)}) and label_key ({len(label_key)})"
         )
 
     # choose method
-    if method in ["max", "min", "geometric", "arithmetic"]:
-        nmi_value = normalized_mutual_info_score(group1, group2, average_method=method)
-    elif method == "Lancichinetti":
-        nmi_value = nmi_Lanc(group1, group2, nmi_dir=nmi_dir)
-    elif method == "ONMI":
-        nmi_value = onmi(group1, group2, nmi_dir=nmi_dir)
+    if implementation in ["max", "min", "geometric", "arithmetic"]:
+        nmi_value = normalized_mutual_info_score(
+            cluster_key, label_key, average_method=implementation
+        )
+    elif implementation == "Lancichinetti":
+        nmi_value = nmi_Lanc(cluster_key, label_key, nmi_dir=nmi_dir)
+    elif implementation == "ONMI":
+        nmi_value = onmi(cluster_key, label_key, nmi_dir=nmi_dir)
     else:
-        raise ValueError(f"Method {method} not valid")
+        raise ValueError(f"Method {implementation} not valid")
 
     return nmi_value
 

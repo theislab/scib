@@ -16,6 +16,7 @@ def wrap_func_naming(func, name):
             f"Mixed case function naming is deprecated for '{name}'. "
             f"Please use '{func.__name__}' instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         return func(*args, **kwargs)
 

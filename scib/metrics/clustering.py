@@ -26,6 +26,7 @@ def cluster_optimal_resolution(
     force=True,
     verbose=True,
     return_all=False,
+    metric_kwargs=None,
     **kwargs,
 ):
     """Optimised clustering
@@ -37,9 +38,9 @@ def cluster_optimal_resolution(
         optimised against
     :param cluster_key: name of column to be added to adata.obs during clustering.
         Will be overwritten if exists and ``force=True``
-    :param cluster_function:
+    :param cluster_function: a clustering function that takes an anndata.Anndata object. Default: Leiden clustering
     :param metric: function that computes the cost to be optimised over. Must take as
-        arguments ``(adata, group1, group2, **kwargs)`` and returns a number for maximising
+        arguments ``(adata, label_key, cluster_key, **metric_kwargs)`` and returns a number for maximising
         Default is :func:`~scib.metrics.nmi()`
     :param resolutions: list of resolutions to be optimised over. If ``resolutions=None``,
         default resolutions of 10 values ranging between 0.1 and 2 will be used
@@ -48,6 +49,7 @@ def cluster_optimal_resolution(
     :param force: whether to overwrite the cluster assignments in the ``.obs[cluster_key]``
     :param verbose: whether to print out intermediate results
     :param return_all: whether to results for all resolutions
+    :param metric_kwargs: arguments to be passed to metric
     :param kwargs: arguments to pass to clustering function
     :returns:
         Only if ``return_all=True``, return tuple of ``(res_max, score_max, score_all)``
@@ -73,6 +75,9 @@ def cluster_optimal_resolution(
     if metric is None:
         metric = nmi
 
+    if metric_kwargs is None:
+        metric_kwargs = {}
+
     if resolutions is None:
         resolutions = get_resolutions(n=10, max=2)
 
@@ -94,7 +99,7 @@ def cluster_optimal_resolution(
 
     for res in resolutions:
         cluster_function(adata, resolution=res, key_added=cluster_key, **kwargs)
-        score = metric(adata, label_key, cluster_key)
+        score = metric(adata, label_key, cluster_key, **metric_kwargs)
         if verbose:
             print(f"resolution: {res}, {metric.__name__}: {score}")
         score_all.append(score)
@@ -112,7 +117,7 @@ def cluster_optimal_resolution(
         print(f"optimal score: {score_max}")
 
     score_all = pd.DataFrame(
-        zip(resolutions, score_all), columns=("resolution", "score")
+        zip(resolutions, score_all), columns=["resolution", "score"]
     )
 
     adata.obs[cluster_key] = clustering
