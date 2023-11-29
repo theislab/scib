@@ -441,10 +441,13 @@ def compute_simpson_index_graph(
     logU = np.log(perplexity)
 
     # check if the target file is not empty
-    if os.stat(index_file).st_size == 0:
-        print("File has no entries. Doing nothing.")
-        lists = np.zeros(0)
-        return lists
+    try:
+        if os.stat(index_file).st_size == 0:
+            print("File has no entries. Doing nothing.")
+            return np.zeros(0)
+    except FileNotFoundError:
+        print("File not found. Doing nothing.")
+        return np.zeros(0)
 
     # read distances and indices with nan value handling
     header = ["index"] + list(range(1, n_neighbors + 1))
