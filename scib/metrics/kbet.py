@@ -108,9 +108,10 @@ def kBET(
     size_max = 2**31 - 1
 
     # check if neighborhood size too small or only one batch in subset
-    counts = adata_tmp.obs.groupby(label_key).agg({label_key: 'count',
-                                                   batch_key: 'nunique'})
-    labels = counts.query(f'{label_key}>=10 and {batch_key} > 1').index
+    counts = adata_tmp.obs.groupby(label_key).agg(
+        {label_key: "count", batch_key: "nunique"}
+    )
+    labels = counts.query(f"{label_key}>=10 and {batch_key} > 1").index
     skipped = counts.index.difference(labels)
     print(f"{len(skipped)} labels consist of a single batch or is too small. Skip.")
     # prepare call of kBET per cluster
@@ -169,9 +170,9 @@ def kBET(
                 nn_index_tmp[:] = np.nan
 
                 try:
-                    nn_index_tmp[idx_nonan] = diffusion_nn(
-                        adata_sub_sub, k=k0
-                    ).astype("float")
+                    nn_index_tmp[idx_nonan] = diffusion_nn(adata_sub_sub, k=k0).astype(
+                        "float"
+                    )
                     # call kBET
                     score = kBET_single(
                         matrix=matrix,
