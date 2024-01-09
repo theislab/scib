@@ -365,10 +365,6 @@ def compute_simpson_index_graph(
     index_file = file_prefix + "_indices_" + str(chunk_no) + ".txt"
     distance_file = file_prefix + "_distances_" + str(chunk_no) + ".txt"
 
-    # initialize
-    P = np.zeros(n_neighbors)
-    logU = np.log(perplexity)
-
     # check if the target file is not empty
     if os.stat(index_file).st_size == 0:
         print("File has no entries. Doing nothing.")
@@ -388,7 +384,8 @@ def compute_simpson_index_graph(
     # get cell ids
     chunk_ids = indices.columns.values.astype("int")
 
-    # define result vector
+    # initialize
+    logU = np.log(perplexity)
     simpson = np.zeros(len(chunk_ids))
 
     # loop over all cells in chunk
@@ -465,6 +462,7 @@ def Hbeta(D_row, beta):
     return H, P
 
 
+@njit
 def convert_to_one_hot(vector, num_classes=None):
     """
     Converts an input 1-D vector of integers into an output 2-D array of one-hot vectors,
@@ -495,6 +493,7 @@ def convert_to_one_hot(vector, num_classes=None):
     #    assert num_classes > 0
     #    assert num_classes >= np.max(vector)
 
-    result = np.zeros(shape=(len(vector), num_classes))
-    result[np.arange(len(vector)), vector] = 1
-    return result.astype(int)
+    # result = np.zeros(shape=(len(vector), num_classes))
+    # result[np.arange(len(vector)), vector] = 1
+    # return result.astype(int)
+    return np.eye(num_classes)[vector]
