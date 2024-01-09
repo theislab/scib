@@ -269,71 +269,69 @@ def lisi_graph_py(
     connectivities.data[large_enough is False] = 3e-308
 
     # temporary file
-    tmpdir = tempfile.TemporaryDirectory(prefix="lisi_")
-    prefix = tmpdir.name + "/graph_lisi"
-    mtx_file_path = prefix + "_input.mtx"
+    with tempfile.TemporaryDirectory(prefix="lisi_") as tmpdir:
+        prefix = f"{tmpdir}/graph_lisi"
+        mtx_file_path = prefix + "_input.mtx"
+        mmwrite(mtx_file_path, connectivities, symmetry="general")
 
-    mmwrite(mtx_file_path, connectivities, symmetry="general")
-    # call knn-graph computation in Cpp
+        # call knn-graph computation in Cpp
+        root = pathlib.Path(scib.__file__).parent  # get current root directory
+        cpp_file_path = (
+            root / "knn_graph/knn_graph.o"
+        )  # create POSIX path to file to execute compiled cpp-code
+        # comment: POSIX path needs to be converted to string - done below with 'as_posix()'
+        # create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
+        args_int = [
+            cpp_file_path.as_posix(),
+            mtx_file_path,
+            prefix,
+            str(n_neighbors),
+            str(n_cores),  # number of splits
+            str(subset),
+        ]
 
-    root = pathlib.Path(scib.__file__).parent  # get current root directory
-    cpp_file_path = (
-        root / "knn_graph/knn_graph.o"
-    )  # create POSIX path to file to execute compiled cpp-code
-    # comment: POSIX path needs to be converted to string - done below with 'as_posix()'
-    # create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
-    args_int = [
-        cpp_file_path.as_posix(),
-        mtx_file_path,
-        prefix,
-        str(n_neighbors),
-        str(n_cores),  # number of splits
-        str(subset),
-    ]
-    if verbose:
-        print(f'call {" ".join(args_int)}')
-    try:
-        subprocess.run(args_int)
-    except RuntimeError as ex:
-        print(f"Error computing LISI kNN graph {ex}\nSetting value to np.nan")
-        return np.nan
+        try:
+            if verbose:
+                print(f'call {" ".join(args_int)}')
+            subprocess.run(args_int)
+        except RuntimeError as ex:
+            print(f"Error computing LISI kNN graph {ex}\nSetting value to np.nan")
+            return np.nan
 
-    if verbose:
-        print("LISI score estimation")
-
-    if n_cores > 1:
         if verbose:
-            print(f"{n_cores} processes started.")
-        pool = mp.Pool(processes=n_cores)
-        chunk_no = np.arange(0, n_cores)
+            print("LISI score estimation")
 
-        # create argument list for each worker
-        results = pool.starmap(
-            compute_simpson_index_graph,
-            zip(
-                itertools.repeat(prefix),
-                itertools.repeat(batch_labels),
-                itertools.repeat(n_batches),
-                itertools.repeat(n_neighbors),
-                itertools.repeat(perplexity),
-                chunk_no,
-            ),
-        )
-        pool.close()
-        pool.join()
+        if n_cores > 1:
+            if verbose:
+                print(f"{n_cores} processes started.")
+            pool = mp.Pool(processes=n_cores)
+            chunk_no = np.arange(0, n_cores)
 
-        simpson_estimate_batch = np.concatenate(results)
+            # create argument list for each worker
+            results = pool.starmap(
+                compute_simpson_index_graph,
+                zip(
+                    itertools.repeat(prefix),
+                    itertools.repeat(batch_labels),
+                    itertools.repeat(n_batches),
+                    itertools.repeat(n_neighbors),
+                    itertools.repeat(perplexity),
+                    chunk_no,
+                ),
+            )
+            pool.close()
+            pool.join()
 
-    else:
-        simpson_estimate_batch = compute_simpson_index_graph(
-            file_prefix=prefix,
-            batch_labels=batch_labels,
-            n_batches=n_batches,
-            perplexity=perplexity,
-            n_neighbors=n_neighbors,
-        )
+            simpson_estimate_batch = np.concatenate(results)
 
-    tmpdir.cleanup()
+        else:
+            simpson_estimate_batch = compute_simpson_index_graph(
+                file_prefix=prefix,
+                batch_labels=batch_labels,
+                n_batches=n_batches,
+                perplexity=perplexity,
+                n_neighbors=n_neighbors,
+            )
 
     return 1 / simpson_estimate_batch
 
