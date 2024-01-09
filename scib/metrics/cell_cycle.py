@@ -122,8 +122,12 @@ def cell_cycle(
 
     if agg_func is None:
         return pd.DataFrame(
-            [batches, scores_before, scores_after, scores_final],
-            columns=["batch", "before", "after", "score"],
+            {
+                "batch": pd.Series(batches, dtype=str),
+                "before": pd.Series(scores_before, dtype=float),
+                "after": pd.Series(scores_after, dtype=float),
+                "score": pd.Series(scores_final, dtype=float),
+            }
         )
     else:
         return agg_func(scores_final)

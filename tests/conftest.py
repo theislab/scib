@@ -44,8 +44,8 @@ def adata_pbmc_template():
     adata_concat = adata_ref.concatenate(adata, batch_categories=["ref", "new"])
     adata_concat.obs.louvain = adata_concat.obs.louvain.astype("category")
     # fix category ordering
-    adata_concat.obs.louvain.cat.reorder_categories(
-        adata_ref.obs.louvain.cat.categories, inplace=True
+    adata_concat.obs["louvain"] = adata_concat.obs["louvain"].cat.set_categories(
+        adata_ref.obs["louvain"].cat.categories
     )
     adata_concat.obs["celltype"] = adata_concat.obs["louvain"]
 
