@@ -1,13 +1,11 @@
 import numpy as np
 import pandas as pd
 import scipy.special
-from scanpy._utils import deprecated_arg_names
 from sklearn.metrics.cluster import adjusted_rand_score
 
 from ..utils import check_adata, check_batch
 
 
-@deprecated_arg_names({"group1": "cluster_key", "group2": "label_key"})
 def ari(adata, cluster_key, label_key, implementation=None):
     """Adjusted Rand Index
 
