@@ -1,10 +1,8 @@
 import numpy as np
 import pandas as pd
-from scanpy._utils import deprecated_arg_names
 from sklearn.metrics.cluster import silhouette_samples, silhouette_score
 
 
-@deprecated_arg_names({"group_key": "label_key"})
 def silhouette(adata, label_key, embed, metric="euclidean", scale=True):
     """Average silhouette width (ASW)
 
@@ -50,7 +48,6 @@ def silhouette(adata, label_key, embed, metric="euclidean", scale=True):
     return asw
 
 
-@deprecated_arg_names({"group_key": "label_key"})
 def silhouette_batch(
     adata,
     batch_key,
