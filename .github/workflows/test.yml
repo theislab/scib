@@ -140,7 +140,7 @@ jobs:
 
 
     upload-codecov:
-        needs: [metrics, rpy2, integration]
+        needs: [metrics, rpy2]
         runs-on: ubuntu-latest
 
         steps:
