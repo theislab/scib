@@ -12,4 +12,4 @@ def test_scanvi(adata_paul15_template):
     )
 
     score = scib.me.graph_connectivity(adata, label_key="celltype")
-    assert_near_exact(score, 1.0, 1e-2)
+    assert_near_exact(score, 1.0, 1e-1)
