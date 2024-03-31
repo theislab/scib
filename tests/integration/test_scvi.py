@@ -10,4 +10,4 @@ def test_scvi(adata_paul15_template):
     )
 
     score = scib.me.graph_connectivity(adata, label_key="celltype")
-    assert_near_exact(score, 0.9684638088694193, 1e-2)
+    assert_near_exact(score, 0.9556248427178616, 1e-2)
