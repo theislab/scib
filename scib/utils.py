@@ -76,4 +76,4 @@ def todense(adata):
     import scipy
 
     if isinstance(adata.X, scipy.sparse.csr_matrix):
-        adata.X = adata.X.todense()
+        adata.X = adata.X.toarray()

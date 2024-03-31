@@ -190,7 +190,7 @@ def pc_regression(
             svd_solver = "full"
             # convert to dense bc 'full' is not available for sparse matrices
             if sparse.issparse(matrix):
-                matrix = matrix.todense()
+                matrix = matrix.toarray()
 
         if verbose:
             print("compute PCA")
