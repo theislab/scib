@@ -32,7 +32,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: ['3.8', '3.10']
+                python: ['3.9', '3.11']
                 os: [ubuntu-latest, macos-latest]
 
         steps:
@@ -112,7 +112,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: ['3.8', '3.10']
+                python: ['3.9', '3.11']
                 os: [ubuntu-latest]
 
         steps:
@@ -140,7 +140,7 @@ jobs:
 
 
     upload-codecov:
-        needs: [metrics, rpy2, integration]
+        needs: [metrics, rpy2]
         runs-on: ubuntu-latest
 
         steps:
