@@ -1,7 +1,6 @@
 import warnings
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
@@ -10,11 +9,27 @@ from deprecated import deprecated
 from .nmi import nmi
 
 
-def get_resolutions(n=20, min=0.1, max=2):
-    min = np.max([1, int(min * 10)])
-    max = np.max([min, max * 10])
-    frac = n / 10
-    return [frac * x / n for x in range(min, max + 1)]
+def get_resolutions(n=20, min=0, max=2):
+    """
+    Get equally spaced resolutions for optimised clustering
+
+    :param n: number of resolutions
+    :param min: minimum resolution
+    :param max: maximum resolution
+
+    .. code-block:: python
+
+        scib.cl.get_resolutions(n=10)
+
+    Output:
+
+    .. code-block::
+
+        [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
+
+    """
+    res_range = max - min
+    return [res_range * (x + 1) / n for x in range(n)]
 
 
 def cluster_optimal_resolution(
