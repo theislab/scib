@@ -13,7 +13,11 @@ def test_scanorama(adata_paul15_template):
 
     # check NMI after clustering
     res_max, score_max, _ = scib.cl.cluster_optimal_resolution(
-        adata, label_key="celltype", cluster_key="cluster", return_all=True
+        adata,
+        label_key="celltype",
+        cluster_key="cluster",
+        use_rep="X_emb",
+        return_all=True,
     )
     LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
 
