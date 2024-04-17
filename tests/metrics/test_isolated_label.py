@@ -22,7 +22,7 @@ def _random_embedding(partition):
     return embedding
 
 
-def test_isolated_labels_F1(adata_neighbors):
+def test_isolated_labels_f1(adata_neighbors):
     score = scib.me.isolated_labels_f1(
         adata_neighbors,
         label_key="celltype",
@@ -34,7 +34,22 @@ def test_isolated_labels_F1(adata_neighbors):
     assert_near_exact(score, 0.5581395348837209, diff=1e-12)
 
 
-def test_isolated_labels_ASW(adata_pca):
+def test_isolated_labels_f1_precomputed(adata_clustered):
+    score = scib.me.isolated_labels_f1(
+        adata_clustered,
+        label_key="celltype",
+        batch_key="batch",
+        embed="X_pca",
+        cluster_key="cluster",
+        verbose=True,
+    )
+    assert "iso_label" not in adata_clustered.obs.columns
+
+    LOGGER.info(f"score: {score}")
+    assert_near_exact(score, 0.5581395348837209, diff=1e-12)
+
+
+def test_isolated_labels_asw(adata_pca):
     score = scib.me.isolated_labels_asw(
         adata_pca,
         label_key="celltype",
