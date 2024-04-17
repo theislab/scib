@@ -27,7 +27,7 @@ def test_cluster_optimal_resolution_louvain(adata_neighbors):
         label_key="celltype",
         cluster_key="cluster",
         cluster_function=sc.tl.louvain,
-        resolutions=scib.cl.get_resolutions(n=20, min=0.1, max=2),
+        resolutions=scib.cl.get_resolutions(n=10, min=0, max=1),
         return_all=True,
     )
     assert isinstance(score_all, pd.DataFrame)
@@ -44,6 +44,7 @@ def test_cluster_optimal_resolution_leiden(adata_neighbors):
         label_key="celltype",
         cluster_key="cluster",
         cluster_function=sc.tl.leiden,
+        resolutions=scib.cl.get_resolutions(n=10, min=0, max=1),
         return_all=True,
     )
     assert isinstance(score_all, pd.DataFrame)
@@ -55,7 +56,7 @@ def test_cluster_optimal_resolution_leiden(adata_neighbors):
 
 
 def test_precomputed_cluster(adata):
-    resolutions = scib.cl.get_resolutions(n=5, min=0.1, max=2)
+    resolutions = scib.cl.get_resolutions(n=10, min=0, max=1)
     for res in resolutions:
         adata.obs[f"cluster_{res}"] = adata.obs["celltype"]
 
@@ -71,7 +72,7 @@ def test_precomputed_cluster(adata):
 
 
 def test_precomputed_cluster_force(adata_neighbors):
-    resolutions = scib.cl.get_resolutions(n=5, min=0.1, max=2)
+    resolutions = scib.cl.get_resolutions(n=10, min=0, max=1)
     for res in resolutions:
         adata_neighbors.obs[f"cluster_{res}"] = adata_neighbors.obs["celltype"]
 
