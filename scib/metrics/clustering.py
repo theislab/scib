@@ -67,13 +67,13 @@ def cluster_optimal_resolution(
             )
 
         # check or recompute neighbours
-        if "neighbors" not in adata.uns or use_rep != adata.uns["neighbors"].get(
-            "use_rep"
-        ):
-            print(f"Recompute neighbors on rep {use_rep}")
+        knn_rep = adata.uns.get("neighbors", {}).get("params", {}).get("use_rep")
+        if use_rep is not None and use_rep != knn_rep:
+            print(f"Recompute neighbors on rep {use_rep} instead of {knn_rep}")
             sc.pp.neighbors(adata, use_rep=use_rep)
 
         # call clustering function
+        print(f"Cluster for {resolution_key} with {cluster_function.__name__}")
         cluster_function(adata, resolution=res, key_added=resolution_key, **kwargs)
 
     if cluster_function is None:
