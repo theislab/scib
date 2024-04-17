@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 from sklearn.metrics import f1_score, silhouette_samples
 
@@ -311,6 +313,13 @@ def get_isolated_labels(adata, label_key, batch_key, iso_threshold, verbose):
     # threshold for determining when label is considered isolated
     if iso_threshold is None:
         iso_threshold = batch_per_lab.min().tolist()[0]
+
+    if iso_threshold == adata.obs[batch_key].nunique():
+        warnings.warn(
+            "iso_threshold is equal to number of batches in data, no isolated labels will be found",
+            stacklevel=2,
+        )
+        return []
 
     if verbose:
         print(f"isolated labels: no more than {iso_threshold} batches per label")
