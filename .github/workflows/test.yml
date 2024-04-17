@@ -160,4 +160,4 @@ jobs:
                 verbose: true
 
         -   name: Delete coverage artifacts
-            uses: geekyeggo/delete-artifact@v3
+            uses: GeekyEggo/delete-artifact@v3
