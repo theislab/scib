@@ -29,15 +29,15 @@ def isolated_labels_f1(
         isolated, if iso_threshold is integer.
         If ``iso_threshold=None``, consider minimum number of batches that labels are present in
     :param cluster_key: clustering key prefix to look or recompute for each resolution in resolutions.
-        Is passed to :func:`~scib.clustering.cluster_optimal_resolution`
-    :param resolutions: list of resolutions to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+        Is passed to :func:`~scib.metrics.cluster_optimal_resolution`
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param verbose:
-    :params kwargs: additional arguments to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return: Mean of F1 scores over all isolated labels
 
     This function performs clustering on a kNN graph and can be applied to all integration output types.
     For this metric the ``adata`` needs a kNN graph and can optionally make use of precomputed clustering (see example below).
-    The precomputed clusters must be saved under ``adata.obs[cluster_key]`` as well as ``adata.obs[f"{cluster_key}_{resolution}"] for all resolutions.
+    The precomputed clusters must be saved under ``adata.obs[cluster_key]`` as well as ``adata.obs[f"{cluster_key}_{resolution}"]`` for all resolutions.
 
     See :ref:`preprocessing` for more information on preprocessing.
 
@@ -103,7 +103,7 @@ def isolated_labels_asw(
         If ``iso_threshold=None``, consider minimum number of batches that labels are present in
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
-    :params kwargs: additional arguments to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return: Mean of ASW over all isolated labels
 
     The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
@@ -169,12 +169,12 @@ def isolated_labels(
     :param iso_threshold: max number of batches per label for label to be considered as
         isolated, if iso_threshold is integer.
         If iso_threshold=None, consider minimum number of batches that labels are present in
-    :param cluster_key: name of key to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
-    :param resolutions: list of resolutions to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+    :param cluster_key: name of key to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param return_all: return scores for all isolated labels instead of aggregated mean
     :param verbose:
-    :param kwargs: additional arguments to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return:
         Mean of scores for each isolated label
         or dictionary of scores for each label if `return_all=True`
@@ -238,9 +238,10 @@ def score_isolated_label(
         silhouette score on grouping of isolated label vs all other remaining labels
     :param cluster_key: name of key to use for cluster assignment for F1 score or
         isolated-vs-rest assignment for silhouette score
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
-    :param kwargs: additional arguments to be passed to :func:`~scib.clustering.cluster_optimal_resolution`
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return:
         Isolated label score
     """
