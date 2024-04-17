@@ -1,3 +1,5 @@
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -23,7 +25,7 @@ def cluster_optimal_resolution(
     metric=None,
     resolutions=None,
     use_rep=None,
-    force=True,
+    force=False,
     verbose=True,
     return_all=False,
     metric_kwargs=None,
@@ -57,20 +59,28 @@ def cluster_optimal_resolution(
         ``score_max``: maximum score;
         ``score_all``: ``pd.DataFrame`` containing all scores at resolutions. Can be used to plot the score profile.
     """
-    if cluster_key in adata.obs.columns:
-        if force:
-            print(
-                f"WARNING: cluster key {cluster_key} already exists in adata.obs and will be overwritten because "
-                "force=True "
+
+    def call_cluster_function(adata, res, resolution_key, cluster_function, **kwargs):
+        if resolution_key in adata.obs.columns:
+            warnings.warn(
+                f"Overwriting existing key {resolution_key} in adata.obs", stacklevel=2
             )
-        else:
-            raise ValueError(
-                f"cluster key {cluster_key} already exists in adata, please remove the key or choose a different "
-                "name. If you want to force overwriting the key, specify `force=True` "
-            )
+
+        # check or recompute neighbours
+        if "neighbors" not in adata.uns or use_rep != adata.uns["neighbors"].get(
+            "use_rep"
+        ):
+            print(f"Recompute neighbors on rep {use_rep}")
+            sc.pp.neighbors(adata, use_rep=use_rep)
+
+        # call clustering function
+        cluster_function(adata, resolution=res, key_added=resolution_key, **kwargs)
 
     if cluster_function is None:
         cluster_function = sc.tl.leiden
+
+    if cluster_key is None:
+        cluster_key = cluster_function.__name__
 
     if metric is None:
         metric = nmi
@@ -86,30 +96,27 @@ def cluster_optimal_resolution(
     clustering = None
     score_all = []
 
-    if use_rep is None:
-        try:
-            adata.uns["neighbors"]
-        except KeyError:
-            raise RuntimeError(
-                "Neighbours must be computed when setting use_rep to None"
-            )
-    else:
-        print(f"Compute neighbors on rep {use_rep}")
-        sc.pp.neighbors(adata, use_rep=use_rep)
-
     for res in resolutions:
-        cluster_function(adata, resolution=res, key_added=cluster_key, **kwargs)
-        score = metric(adata, label_key, cluster_key, **metric_kwargs)
-        if verbose:
-            print(f"resolution: {res}, {metric.__name__}: {score}")
+        resolution_key = f"{cluster_key}_{res}"
+
+        # check if clustering exists
+        if resolution_key not in adata.obs.columns or force:
+            call_cluster_function(
+                adata, res, resolution_key, cluster_function, **kwargs
+            )
+
+        # score cluster resolution
+        score = metric(adata, label_key, resolution_key, **metric_kwargs)
         score_all.append(score)
+
+        if verbose:
+            print(f"resolution: {res}, {metric.__name__}: {score}", flush=True)
 
         # optimise score
         if score_max < score:
             score_max = score
             res_max = res
-            clustering = adata.obs[cluster_key]
-        del adata.obs[cluster_key]
+            clustering = adata.obs[resolution_key]
 
     if verbose:
         print(f"optimised clustering against {label_key}")
@@ -120,10 +127,16 @@ def cluster_optimal_resolution(
         zip(resolutions, score_all), columns=["resolution", "score"]
     )
 
+    # save optimal clustering in adata.obs
+    if cluster_key in adata.obs.columns:
+        warnings.warn(
+            f"Overwriting existing key {cluster_key} in adata.obs", stacklevel=2
+        )
     adata.obs[cluster_key] = clustering
 
     if return_all:
         return res_max, score_max, score_all
+    return res_max, score_max
 
 
 @deprecated
