@@ -11,17 +11,9 @@ def test_scanorama(adata_paul15_template):
         adata, n_top_genes=200, neighbors=True, use_rep="X_emb", pca=True, umap=False
     )
 
-    # check NMI after clustering
-    res_max, score_max, _ = scib.cl.cluster_optimal_resolution(
-        adata,
-        label_key="celltype",
-        cluster_key="cluster",
-        use_rep="X_emb",
-        return_all=True,
-    )
-    LOGGER.info(f"max resolution: {res_max}, max score: {score_max}")
-
-    assert_near_exact(score_max, 0.6610082444492823, 1e-2)
+    score = scib.me.graph_connectivity(adata, label_key="celltype")
+    LOGGER.info(f"score: {score}")
+    assert_near_exact(score, 0.9922324725135062, 1e-2)
 
 
 def test_scanorama_batch_cols(adata_paul15_template):
