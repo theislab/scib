@@ -91,6 +91,22 @@ For these, you need to additionally provide the corresponding label column of ``
     :skip: runTrVaep
     :skip: issparse
 
+
+Clustering
+----------
+.. currentmodule:: scib.metrics
+
+After integration, one of the first ways to determine the quality of the integration is to cluster the integrated data and compare the clusters to the original annotations.
+This is exactly what some of the metrics do.
+
+.. autosummary::
+    :toctree: api/
+
+    cluster_optimal_resolution
+    get_resolutions
+    opt_louvain
+
+
 Metrics
 -------
 
@@ -184,6 +200,7 @@ Some parts of metrics can be used individually, these are listed below.
     :toctree: api/
 
     cluster_optimal_resolution
+    get_resolutions
     lisi_graph
     pcr
     pc_regression

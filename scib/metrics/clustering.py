@@ -53,14 +53,15 @@ def cluster_optimal_resolution(
     :param adata: anndata object
     :param label_key: name of column in adata.obs containing biological labels to be
         optimised against
-    :param cluster_key: name of column to be added to adata.obs during clustering.
-        Will be overwritten if exists and ``force=True``
+    :param cluster_key: name and prefix of columns to be added to adata.obs during clustering.
+        Each resolution will be saved under "{cluster_key}_{resolution}", while the optimal clustering will be under ``cluster_key``.
+        If ``force=True`` and one of the keys already exists, it will be overwritten.
     :param cluster_function: a clustering function that takes an anndata.Anndata object. Default: Leiden clustering
     :param metric: function that computes the cost to be optimised over. Must take as
         arguments ``(adata, label_key, cluster_key, **metric_kwargs)`` and returns a number for maximising
         Default is :func:`~scib.metrics.nmi()`
     :param resolutions: list of resolutions to be optimised over. If ``resolutions=None``,
-        default resolutions of 10 values ranging between 0.1 and 2 will be used
+        by default 10 equally spaced resolutions ranging between 0 and 2 will be used (see :func:`~scib.metrics.get_resolutions`)
     :param use_rep: key of embedding to use only if ``adata.uns['neighbors']`` is not
         defined, otherwise will be ignored
     :param force: whether to overwrite the cluster assignments in the ``.obs[cluster_key]``
@@ -73,6 +74,9 @@ def cluster_optimal_resolution(
         ``res_max``: resolution of maximum score;
         ``score_max``: maximum score;
         ``score_all``: ``pd.DataFrame`` containing all scores at resolutions. Can be used to plot the score profile.
+
+    If you specify an embedding that was not used for the kNN graph (i.e. ``adata.uns["neighbors"]["params"]["use_rep"]`` is not the same as ``use_rep``),
+    the neighbors will be recomputed in-place.
     """
 
     def call_cluster_function(adata, res, resolution_key, cluster_function, **kwargs):
@@ -169,6 +173,8 @@ def opt_louvain(
     **kwargs,
 ):
     """Optimised Louvain clustering
+
+    DEPRECATED: Use :func:`~scib.metrics.cluster_optimal_resolution` instead
 
     Louvain clustering with resolution optimised against a metric
 
