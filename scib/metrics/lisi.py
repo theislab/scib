@@ -239,7 +239,7 @@ def lisi_graph_py(
 
     adata.obs[obs_key] = adata.obs[obs_key].astype("category")
     batch_labels = adata.obs[obs_key].cat.codes.values
-    n_batches = len(batch_labels)
+    n_batches = adata.obs[obs_key].nunique()
 
     if perplexity is None or perplexity >= n_neighbors:
         # use LISI default
