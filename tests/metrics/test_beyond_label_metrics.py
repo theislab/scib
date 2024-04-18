@@ -28,6 +28,7 @@ def test_cell_cycle_sparse(adata_paul15):
 
     # sparse matrix
     adata.X = csr_matrix(adata.X)
+    adata_int.X = csr_matrix(adata.X)
 
     # only final score
     score = scib.me.cell_cycle(

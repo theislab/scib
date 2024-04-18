@@ -32,7 +32,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: ['3.8', '3.10']
+                python: ['3.9', '3.11']
                 os: [ubuntu-latest, macos-latest]
 
         steps:
@@ -73,7 +73,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                r: [4.2]
+                r: ['4.2']
                 python: ['3.10']
                 os: [ubuntu-latest]
         steps:
@@ -112,7 +112,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: ['3.8', '3.10']
+                python: ['3.9', '3.11']
                 os: [ubuntu-latest]
 
         steps:
@@ -140,7 +140,7 @@ jobs:
 
 
     upload-codecov:
-        needs: [metrics, rpy2, integration]
+        needs: [metrics, rpy2]
         runs-on: ubuntu-latest
 
         steps:
@@ -152,7 +152,7 @@ jobs:
             uses: actions/download-artifact@v3
 
         -   name: Upload coverage
-            uses: codecov/codecov-action@v3
+            uses: codecov/codecov-action@v4
             with:
                 token: ${{ secrets.CODECOV_TOKEN }}
                 flags: unittests
@@ -160,4 +160,4 @@ jobs:
                 verbose: true
 
         -   name: Delete coverage artifacts
-            uses: geekyeggo/delete-artifact@v2
+            uses: geekyeggo/delete-artifact@v4
