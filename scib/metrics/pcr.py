@@ -13,7 +13,7 @@ def pcr_comparison(
     embed=None,
     n_comps=50,
     linreg_method="sklearn",
-    recompute_pca=True,
+    recompute_pca=False,
     scale=True,
     verbose=False,
 ):
@@ -95,7 +95,7 @@ def pcr(
     covariate,
     embed=None,
     n_comps=50,
-    recompute_pca=True,
+    recompute_pca=False,
     linreg_method="sklearn",
     verbose=False,
 ):
