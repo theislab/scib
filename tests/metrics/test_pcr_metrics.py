@@ -30,6 +30,7 @@ def test_pcr_timing(adata_pca, linreg_method):
     print(f"compute PCA on {adata.n_obs} cells...")
     sc.pp.pca(adata)
 
+    runs = 10
     timing = timeit.timeit(
         lambda: scib.me.pcr(
             adata,
@@ -38,9 +39,9 @@ def test_pcr_timing(adata_pca, linreg_method):
             verbose=False,
             n_threads=10,
         ),
-        number=10,
+        number=runs,
     )
-    LOGGER.info(f"timeit: {timing}")
+    LOGGER.info(f"timeit: {timing:.2f}s for {runs} runs")
 
     # test pcr value
     score = scib.me.pcr(
