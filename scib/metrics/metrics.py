@@ -4,7 +4,7 @@ import pandas as pd
 from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
-from .clustering import opt_louvain
+from .clustering import cluster_optimal_resolution
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
@@ -290,16 +290,15 @@ def metrics(
 
     # clustering
     if nmi_ or ari_:
-        res_max, nmi_max, nmi_all = opt_louvain(
+        res_max, nmi_max, nmi_all = cluster_optimal_resolution(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
+            metric=nmi,
             use_rep=embed,
-            function=nmi,
-            plot=False,
-            verbose=verbose,
-            inplace=True,
             force=True,
+            verbose=verbose,
+            return_all=True,
         )
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
