@@ -1,5 +1,5 @@
 import scib
-from tests.common import assert_near_exact
+from tests.common import LOGGER, assert_near_exact
 
 
 def test_scvi(adata_paul15_template):
@@ -10,4 +10,5 @@ def test_scvi(adata_paul15_template):
     )
 
     score = scib.me.graph_connectivity(adata, label_key="celltype")
+    LOGGER.info(f"score: {score}")
     assert_near_exact(score, 0.96, 1e-1)
