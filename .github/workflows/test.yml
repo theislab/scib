@@ -60,7 +60,7 @@ jobs:
         -   name: Test with pytest
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
-                pytest --cov=scib --cov-report=xml -vv --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv --durations 0
+                pytest --cov=scib --cov-report=xml -vv --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
@@ -98,7 +98,7 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                pytest --cov=scib --cov-report=xml -vv --tb=native -k rpy2 --durations 0
+                pytest --cov=scib --cov-report=xml -vv --tb=native -k rpy2 --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
@@ -129,7 +129,7 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                pytest --cov=scib --cov-report=xml -vv --tb=native -k integration --durations 0
+                pytest --cov=scib --cov-report=xml -vv --tb=native -k integration --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
