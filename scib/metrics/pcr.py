@@ -286,7 +286,5 @@ def linreg_sklearn(X, y):
 
 def linreg_np(X, y):
     coefficients, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
-    predicted = np.dot(X, coefficients)
-    tss = np.sum((y - np.mean(y)) ** 2)
-    rss = np.sum((y - predicted) ** 2)
-    return 1 - (rss / tss)
+    tss = np.sum((y - y.mean()) ** 2)
+    return 1 - (residuals[0] / tss)
