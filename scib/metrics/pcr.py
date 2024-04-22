@@ -1,7 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 import pandas as pd
 import scanpy as sc
 from scipy import sparse
+from tqdm import tqdm
 
 from ..utils import check_adata, check_batch
 
@@ -16,6 +19,7 @@ def pcr_comparison(
     recompute_pca=False,
     scale=True,
     verbose=False,
+    n_threads=1,
 ):
     """Principal component regression score
 
@@ -64,6 +68,7 @@ def pcr_comparison(
         recompute_pca=recompute_pca,
         n_comps=n_comps,
         linreg_method=linreg_method,
+        n_threads=n_threads,
         verbose=verbose,
     )
 
@@ -74,6 +79,7 @@ def pcr_comparison(
         recompute_pca=recompute_pca,
         n_comps=n_comps,
         linreg_method=linreg_method,
+        n_threads=n_threads,
         verbose=verbose,
     )
 
@@ -98,6 +104,7 @@ def pcr(
     recompute_pca=False,
     linreg_method="sklearn",
     verbose=False,
+    n_threads=1,
 ):
     """Principal component regression for anndata object
 
@@ -151,6 +158,7 @@ def pcr(
             covariate_values,
             n_comps=n_comps,
             linreg_method=linreg_method,
+            n_threads=n_threads,
         )
 
     # use existing PCA computation
@@ -162,6 +170,7 @@ def pcr(
             covariate_values,
             pca_var=adata.uns["pca"]["variance"],
             linreg_method=linreg_method,
+            n_threads=n_threads,
         )
 
     # recompute PCA
@@ -173,6 +182,7 @@ def pcr(
             covariate_values,
             n_comps=n_comps,
             linreg_method=linreg_method,
+            n_threads=n_threads,
         )
 
 
@@ -184,6 +194,7 @@ def pc_regression(
     svd_solver="arpack",
     linreg_method="sklearn",
     verbose=False,
+    n_threads=1,
 ):
     """Principal component regression
 
@@ -210,7 +221,6 @@ def pc_regression(
     :return:
         Variance contribution of regression
     """
-
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
         matrix = data
     else:
@@ -264,11 +274,17 @@ def pc_regression(
         covariate = pd.get_dummies(covariate).to_numpy()
 
     # fit linear model for n_comps PCs
-    r2 = []
-    for i in range(n_comps):
-        pc = X_pca[:, [i]]
-        r2_score = linreg_method(X=covariate, y=pc)
-        r2.append(np.maximum(0, r2_score))
+    if verbose:
+        print(f"Use {n_threads} threads for regression...")
+    if n_threads == 1:
+        r2 = []
+        for i in tqdm(range(n_comps), total=n_comps):
+            r2_score = linreg_method(X=covariate, y=X_pca[:, [i]])
+            r2.append(np.maximum(0, r2_score))
+    else:
+        with ThreadPoolExecutor(max_workers=n_threads) as executor:
+            run_r2 = executor.map(linreg_method, [covariate] * n_comps, X_pca.T)
+            r2 = list(tqdm(run_r2, total=n_comps))
 
     Var = pca_var / sum(pca_var) * 100
     R2Var = sum(r2 * Var) / 100
@@ -281,10 +297,13 @@ def linreg_sklearn(X, y):
 
     lm = LinearRegression()
     lm.fit(X, y)
-    return lm.score(X, y)
+    r2_score = lm.score(X, y)
+    np.maximum(0, r2_score)
+    return r2_score
 
 
 def linreg_np(X, y):
     coefficients, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
     tss = np.sum((y - y.mean()) ** 2)
-    return 1 - (residuals[0] / tss)
+    r2_score = 1 - (residuals[0] / tss)
+    return np.maximum(0, r2_score)

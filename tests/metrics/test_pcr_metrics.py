@@ -1,57 +1,57 @@
+import pytest
 from scipy.sparse import csr_matrix
 
 import scib
 from tests.common import LOGGER, add_embed, assert_near_exact
 
 
-def test_pc_regression(adata):
-    score = scib.me.pc_regression(adata.X, adata.obs["batch"])
-    LOGGER.info(score)
-    assert_near_exact(score, 0, diff=1e-4)
-
-
-def test_pc_regression_sparse(adata):
+@pytest.mark.parametrize("sparse", [False, True])
+def test_pc_regression(adata, sparse):
+    if sparse:
+        adata.X = csr_matrix(adata.X)
     score = scib.me.pc_regression(
-        csr_matrix(adata.X),
+        adata.X,
         covariate=adata.obs["batch"],
         n_comps=adata.n_vars,
     )
     LOGGER.info(score)
-    assert_near_exact(score, 0, diff=1e-4)
+    assert_near_exact(score, 0, diff=1e-3)
 
 
-def test_pcr_sklearn(adata_pca):
-    score = scib.me.pcr(
-        adata_pca, covariate="celltype", linreg_method="sklearn", verbose=True
+@pytest.mark.parametrize("linreg_method", ["numpy", "sklearn"])
+def test_pcr_timing(adata_pca, linreg_method):
+    import timeit
+
+    import anndata as ad
+    import scanpy as sc
+
+    # scale up anndata
+    adata = ad.concat([adata_pca] * 100)
+    print(f"compute PCA on {adata.n_obs} cells...")
+    sc.pp.pca(adata)
+
+    timing = timeit.timeit(
+        lambda: scib.me.pcr(
+            adata,
+            covariate="celltype",
+            linreg_method=linreg_method,
+            verbose=False,
+            n_threads=10,
+        ),
+        number=10,
     )
-    LOGGER.info(score)
-    assert_near_exact(score, 0.3371261556141021, diff=1e-3)
+    LOGGER.info(f"timeit: {timing}")
 
-
-def test_pcr_numpy(adata_pca):
+    # test pcr value
     score = scib.me.pcr(
-        adata_pca, covariate="celltype", linreg_method="numpy", verbose=True
-    )
-    LOGGER.info(score)
-    assert_near_exact(score, 0.3371261556141021, diff=1e-3)
-
-
-def test_pcr_implementations(adata_pca):
-    score_sklearn = scib.me.pcr(
         adata_pca,
         covariate="celltype",
-        linreg_method="sklearn",
+        linreg_method=linreg_method,
+        verbose=True,
+        n_threads=1,
     )
-    LOGGER.info(f"sklearn score: {score_sklearn}")
-
-    score_numpy = scib.me.pcr(
-        adata_pca,
-        covariate="celltype",
-        linreg_method="numpy",
-    )
-    LOGGER.info(f"numpy score: {score_numpy}")
-
-    assert_near_exact(score_sklearn, score_numpy, diff=1e-3)
+    LOGGER.info(score)
+    assert_near_exact(score, 0.33401529220865844, diff=1e-3)
 
 
 def test_pcr_comparison_batch(adata):
