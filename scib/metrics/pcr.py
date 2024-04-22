@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from scipy import sparse
-from sklearn.linear_model import LinearRegression
 
 from ..utils import check_adata, check_batch
 
@@ -145,7 +144,13 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
 
 
 def pc_regression(
-    data, covariate, pca_var=None, n_comps=50, svd_solver="arpack", verbose=False
+    data,
+    covariate,
+    pca_var=None,
+    n_comps=50,
+    svd_solver="arpack",
+    linreg_method="sklearn",
+    verbose=False,
 ):
     """Principal component regression
 
@@ -180,6 +185,13 @@ def pc_regression(
             f"invalid type: {data.__class__} is not a numpy array or sparse matrix"
         )
 
+    if linreg_method == "sklearn":
+        linreg_method = linreg_sklearn
+    elif linreg_method == "numpy":
+        linreg_method = linreg_np
+    else:
+        raise ValueError(f"invalid linreg_method: {linreg_method}")
+
     # perform PCA if no variance contributions are given
     if pca_var is None:
 
@@ -193,7 +205,7 @@ def pc_regression(
                 matrix = matrix.toarray()
 
         if verbose:
-            print("compute PCA")
+            print("compute PCA...")
         X_pca, _, _, pca_var = sc.tl.pca(
             matrix,
             n_comps=n_comps,
@@ -216,18 +228,32 @@ def pc_regression(
     else:
         if verbose:
             print("one-hot encode categorical values")
-        covariate = pd.get_dummies(covariate)
+        covariate = pd.get_dummies(covariate).to_numpy()
 
     # fit linear model for n_comps PCs
     r2 = []
     for i in range(n_comps):
         pc = X_pca[:, [i]]
-        lm = LinearRegression()
-        lm.fit(covariate, pc)
-        r2_score = np.maximum(0, lm.score(covariate, pc))
-        r2.append(r2_score)
+        r2_score = linreg_method(X=covariate, y=pc)
+        r2.append(np.maximum(0, r2_score))
 
     Var = pca_var / sum(pca_var) * 100
     R2Var = sum(r2 * Var) / 100
 
     return R2Var
+
+
+def linreg_sklearn(X, y):
+    from sklearn.linear_model import LinearRegression
+
+    lm = LinearRegression()
+    lm.fit(X, y)
+    return lm.score(X, y)
+
+
+def linreg_np(X, y):
+    coefficients, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
+    predicted = np.dot(X, coefficients)
+    tss = np.sum((y - np.mean(y)) ** 2)
+    rss = np.sum((y - predicted) ** 2)
+    return 1 - (rss / tss)
