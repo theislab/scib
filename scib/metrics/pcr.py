@@ -7,7 +7,15 @@ from ..utils import check_adata, check_batch
 
 
 def pcr_comparison(
-    adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False
+    adata_pre,
+    adata_post,
+    covariate,
+    embed=None,
+    n_comps=50,
+    linreg_method="sklearn",
+    recompute_pca=True,
+    scale=True,
+    verbose=False,
 ):
     """Principal component regression score
 
@@ -24,6 +32,8 @@ def pcr_comparison(
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
+    :param recompute_pca: Whether to recompute PCA with default settings
+    :param linreg_method: Method for linear regression, either 'sklearn' or 'numpy'
     :param scale: If True, scale score between 0 and 1 (default)
     :param verbose:
     :return:
@@ -51,8 +61,9 @@ def pcr_comparison(
     pcr_before = pcr(
         adata_pre,
         covariate=covariate,
-        recompute_pca=True,
+        recompute_pca=recompute_pca,
         n_comps=n_comps,
+        linreg_method=linreg_method,
         verbose=verbose,
     )
 
@@ -60,8 +71,9 @@ def pcr_comparison(
         adata_post,
         covariate=covariate,
         embed=embed,
-        recompute_pca=True,
+        recompute_pca=recompute_pca,
         n_comps=n_comps,
+        linreg_method=linreg_method,
         verbose=verbose,
     )
 
@@ -78,7 +90,15 @@ def pcr_comparison(
         return pcr_after - pcr_before
 
 
-def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
+def pcr(
+    adata,
+    covariate,
+    embed=None,
+    n_comps=50,
+    recompute_pca=True,
+    linreg_method="sklearn",
+    verbose=False,
+):
     """Principal component regression for anndata object
 
     Wraps :func:`~scib.metrics.pc_regression` while checking whether to:
@@ -126,21 +146,34 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         assert embed in adata.obsm
         if verbose:
             print(f"Compute PCR on embedding n_comps: {n_comps}")
-        return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
+        return pc_regression(
+            adata.obsm[embed],
+            covariate_values,
+            n_comps=n_comps,
+            linreg_method=linreg_method,
+        )
 
     # use existing PCA computation
     elif (recompute_pca is False) and ("X_pca" in adata.obsm) and ("pca" in adata.uns):
         if verbose:
             print("using existing PCA")
         return pc_regression(
-            adata.obsm["X_pca"], covariate_values, pca_var=adata.uns["pca"]["variance"]
+            adata.obsm["X_pca"],
+            covariate_values,
+            pca_var=adata.uns["pca"]["variance"],
+            linreg_method=linreg_method,
         )
 
     # recompute PCA
     else:
         if verbose:
             print(f"compute PCA n_comps: {n_comps}")
-        return pc_regression(adata.X, covariate_values, n_comps=n_comps)
+        return pc_regression(
+            adata.X,
+            covariate_values,
+            n_comps=n_comps,
+            linreg_method=linreg_method,
+        )
 
 
 def pc_regression(
