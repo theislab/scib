@@ -282,8 +282,13 @@ def pc_regression(
             r2_score = linreg_method(X=covariate, y=X_pca[:, [i]])
             r2.append(np.maximum(0, r2_score))
     else:
+        # parallelise over all principal components
         with ThreadPoolExecutor(max_workers=n_threads) as executor:
-            run_r2 = executor.map(linreg_method, [covariate] * n_comps, X_pca.T)
+            run_r2 = executor.map(
+                linreg_method,
+                [covariate] * n_comps,  # repeat covariate for each PC
+                X_pca.T,  # transpose matrix, so that function iterates each column
+            )
             r2 = list(tqdm(run_r2, total=n_comps))
 
     Var = pca_var / sum(pca_var) * 100
