@@ -19,7 +19,8 @@ def test_pc_regression(adata, sparse):
 
 
 @pytest.mark.parametrize("linreg_method", ["numpy", "sklearn"])
-def test_pcr_timing(adata_pca, linreg_method):
+@pytest.mark.parametrize("n_threads", [1, 2])
+def test_pcr_timing(adata_pca, n_threads, linreg_method):
     import timeit
 
     import anndata as ad
@@ -37,7 +38,7 @@ def test_pcr_timing(adata_pca, linreg_method):
             covariate="celltype",
             linreg_method=linreg_method,
             verbose=False,
-            n_threads=10,
+            n_threads=n_threads,
         ),
         number=runs,
     )
