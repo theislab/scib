@@ -138,7 +138,7 @@ def diffusion_nn(adata, k, max_iterations=26):
         )
 
     M.setdiag(0)
-    k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
+    k_indices = np.argpartition(M.toarray(), -k, axis=1)[:, -k:]
 
     return k_indices
 
