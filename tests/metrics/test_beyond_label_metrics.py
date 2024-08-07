@@ -23,6 +23,7 @@ def test_cell_cycle(adata_paul15, n_threads):
         # recompute_cc=True,
         verbose=False,
         n_threads=n_threads,
+        linreg_method="numpy",
     )
     LOGGER.info(f"score: {score}")
     assert_near_exact(score, 1, diff=1e-12)
