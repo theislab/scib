@@ -12,7 +12,7 @@ def cell_cycle(
     adata_post,
     batch_key,
     embed=None,
-    agg_func=np.mean,
+    agg_func=np.nanmean,
     organism="mouse",
     n_comps=50,
     recompute_cc=True,
