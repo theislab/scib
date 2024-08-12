@@ -18,20 +18,18 @@ def test_pc_regression(adata, sparse):
     assert_near_exact(score, 0, diff=1e-3)
 
 
-@pytest.mark.parametrize("linreg_method", ["numpy", "sklearn"])
 @pytest.mark.parametrize("n_threads", [1, 2])
+@pytest.mark.parametrize("linreg_method", ["numpy", "sklearn"])
 def test_pcr_timing(adata_pca, n_threads, linreg_method):
     import timeit
 
     import anndata as ad
-    import scanpy as sc
 
     # scale up anndata
     adata = ad.concat([adata_pca] * 100)
-    print(f"compute PCA on {adata.n_obs} cells...")
-    sc.pp.pca(adata)
+    adata.uns = adata_pca.uns
 
-    runs = 10
+    runs = 5
     timing = timeit.timeit(
         lambda: scib.me.pcr(
             adata,
@@ -39,6 +37,7 @@ def test_pcr_timing(adata_pca, n_threads, linreg_method):
             linreg_method=linreg_method,
             verbose=False,
             n_threads=n_threads,
+            recompute_pca=False,
         ),
         number=runs,
     )

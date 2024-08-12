@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -280,19 +278,23 @@ def pc_regression(
         r2 = []
         for i in tqdm(range(n_comps), total=n_comps):
             r2_score = linreg_method(X=covariate, y=X_pca[:, [i]])
-            r2.append(np.maximum(0, r2_score))
+            r2.append(r2_score)
     else:
-        # parallelise over all principal components
-        with ThreadPoolExecutor(max_workers=n_threads) as executor:
-            run_r2 = executor.map(
-                linreg_method,
-                [covariate] * n_comps,  # repeat covariate for each PC
-                X_pca.T,  # transpose matrix, so that function iterates each column
-            )
-            r2 = list(tqdm(run_r2, total=n_comps))
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    Var = pca_var / sum(pca_var) * 100
-    R2Var = sum(r2 * Var) / 100
+        r2 = []
+        # parallelise over all principal components
+        with tqdm(total=n_comps) as pbar:
+            with ThreadPoolExecutor(max_workers=n_threads) as executor:
+                futures = [
+                    executor.submit(linreg_method, X=covariate, y=pc) for pc in X_pca.T
+                ]
+                for future in as_completed(futures):
+                    r2.append(future.result())
+                    pbar.update(1)
+
+    Var = pca_var / sum(pca_var)  # * 100
+    R2Var = sum(r2 * Var)  # / 100
 
     return R2Var
 
@@ -304,11 +306,12 @@ def linreg_sklearn(X, y):
     lm.fit(X, y)
     r2_score = lm.score(X, y)
     np.maximum(0, r2_score)
-    return r2_score
+    return np.maximum(0, r2_score)
 
 
 def linreg_np(X, y):
-    coefficients, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
+    _, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
+    rss = residuals[0] if len(residuals) > 0 else 0
     tss = np.sum((y - y.mean()) ** 2)
-    r2_score = 1 - (residuals[0] / tss)
+    r2_score = 1 - (rss / tss)
     return np.maximum(0, r2_score)
