@@ -311,6 +311,8 @@ def linreg_sklearn(X, y):
 
 def linreg_np(X, y):
     _, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
+    if residuals.size == 0:
+        residuals = np.array([0])
     rss = residuals[0] if len(residuals) > 0 else 0
     tss = np.sum((y - y.mean()) ** 2)
     r2_score = 1 - (rss / tss)
