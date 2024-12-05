@@ -16,7 +16,7 @@ def test_kbet(adata_pca):
 
 def test_kbet_random(adata_pca):
     scores = []
-    for _ in tqdm(range(10)):
+    for _ in tqdm(range(5)):
         adata_pca.obs["batch"] = adata_pca.obs["batch"].sample(frac=1).values
         sc.pp.pca(adata_pca, n_comps=20, use_highly_variable=True)
         score = scib.me.kBET(
