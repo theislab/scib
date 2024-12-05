@@ -64,7 +64,7 @@ jobs:
                 mv coverage.xml "$(echo 'coverage_metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4.1.7
             with:
                 name: metrics
                 path: coverage_*.xml
@@ -102,7 +102,7 @@ jobs:
                 mv coverage.xml "$(echo 'coverage_rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4.1.7
             with:
                 name: rpy2
                 path: coverage_*.xml
@@ -133,7 +133,7 @@ jobs:
                 mv coverage.xml "$(echo 'coverage_integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4.1.7
             with:
                 name: integration
                 path: coverage_*.xml
