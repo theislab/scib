@@ -686,7 +686,7 @@ def score_cell_cycle(adata, organism="mouse"):
             f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
         )
 
-    sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+    sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
 
 
 def save_seurat(adata, path, batch, hvgs=None):
