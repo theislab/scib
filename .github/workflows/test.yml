@@ -112,7 +112,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: ['3.9', '3.11']
+                python: ['3.10', '3.12']
                 os: [ubuntu-latest]
 
         steps:
