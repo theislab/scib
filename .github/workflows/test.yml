@@ -66,7 +66,7 @@ jobs:
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v4
             with:
-                name: metrics
+                name: pytest-metrics-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
     rpy2:
@@ -104,7 +104,7 @@ jobs:
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v4
             with:
-                name: rpy2
+                name: pytest-rpy2-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
 
@@ -135,7 +135,7 @@ jobs:
         -   name: Upload coverage to GitHub Actions
             uses: actions/upload-artifact@v4
             with:
-                name: integration
+                name: pytest-integration-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
 
