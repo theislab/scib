@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from ..preprocessing import score_cell_cycle
 from ..utils import check_adata
@@ -11,12 +12,14 @@ def cell_cycle(
     adata_post,
     batch_key,
     embed=None,
-    agg_func=np.mean,
+    agg_func=np.nanmean,
     organism="mouse",
     n_comps=50,
     recompute_cc=True,
     precompute_pcr_key=None,
     verbose=False,
+    linreg_method="numpy",
+    n_threads=1,
 ):
     """Cell cycle conservation score
 
@@ -44,6 +47,7 @@ def cell_cycle(
         precomputed scores if available as 'S_score' and 'G2M_score' in ``adata_post.obs``
     :param precompute_pcr_key: Key in adata_pre for precomputed PCR values for cell
         cycle scores. Ignores cell cycle scores in adata_pre if present.
+    :param n_threads: Number of threads for linear regressions per principle component
 
     :return:
         A score between 1 and 0. The larger the score, the stronger the cell cycle
@@ -70,11 +74,6 @@ def cell_cycle(
     if embed == "X_pca":
         embed = None
 
-    batches = adata_pre.obs[batch_key].unique()
-    scores_final = []
-    scores_before = []
-    scores_after = []
-
     recompute_cc = (
         recompute_cc
         or "S_score" not in adata_pre.obs_keys()
@@ -84,7 +83,12 @@ def cell_cycle(
         precompute_pcr_key is None or precompute_pcr_key not in adata_pre.uns_keys()
     )
 
-    for batch in batches:
+    batches = adata_pre.obs[batch_key].unique()
+    scores_before = []
+    scores_after = []
+    scores_final = []
+
+    for batch in tqdm(batches):
         before, after = get_pcr_before_after(
             adata_pre,
             adata_post,
@@ -92,11 +96,13 @@ def cell_cycle(
             batch=batch,
             embed=embed,
             organism=organism,
+            pcr_key=precompute_pcr_key,
             recompute_cc=recompute_cc,
             recompute_pcr=recompute_pcr,
-            pcr_key=precompute_pcr_key,
             n_comps=n_comps,
             verbose=verbose,
+            n_threads=n_threads,
+            linreg_method=linreg_method,
         )
 
         # scale result
@@ -140,11 +146,13 @@ def get_pcr_before_after(
     batch,
     embed,
     organism,
-    recompute_cc,
-    recompute_pcr,
     pcr_key,
-    n_comps,
-    verbose,
+    recompute_cc=False,
+    recompute_pcr=False,
+    n_comps=50,
+    verbose=True,
+    n_threads=1,
+    linreg_method="numpy",
 ):
     """
     Principle component regression value on cell cycle scores for one batch
@@ -190,16 +198,28 @@ def get_pcr_before_after(
     covariate = raw_sub.obs[["S_score", "G2M_score"]]
 
     # PCR on adata before integration
-    if recompute_pcr:
+    if recompute_pcr:  # TODO: does this work for precomputed values?
         before = pc_regression(
-            raw_sub.X, covariate, pca_var=None, n_comps=n_comps, verbose=verbose
+            raw_sub.X,
+            covariate,
+            pca_var=None,
+            n_comps=n_comps,
+            verbose=verbose,
+            n_threads=n_threads,
+            linreg_method=linreg_method,
         )
     else:
         before = pd.Series(raw_sub.uns[pcr_key])
 
     # PCR on adata after integration
     after = pc_regression(
-        int_sub, covariate, pca_var=None, n_comps=n_comps, verbose=verbose
+        int_sub,
+        covariate,
+        pca_var=None,
+        n_comps=n_comps,
+        verbose=verbose,
+        n_threads=n_threads,
+        linreg_method=linreg_method,
     )
 
     return before, after

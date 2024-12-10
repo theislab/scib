@@ -2,13 +2,21 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from scipy import sparse
-from sklearn.linear_model import LinearRegression
 
 from ..utils import check_adata, check_batch
 
 
 def pcr_comparison(
-    adata_pre, adata_post, covariate, embed=None, n_comps=50, scale=True, verbose=False
+    adata_pre,
+    adata_post,
+    covariate,
+    embed=None,
+    n_comps=50,
+    linreg_method="sklearn",
+    recompute_pca=False,
+    scale=True,
+    verbose=False,
+    n_threads=1,
 ):
     """Principal component regression score
 
@@ -25,6 +33,8 @@ def pcr_comparison(
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
+    :param recompute_pca: Whether to recompute PCA with default settings
+    :param linreg_method: Method for linear regression, either 'sklearn' or 'numpy'
     :param scale: If True, scale score between 0 and 1 (default)
     :param verbose:
     :return:
@@ -52,8 +62,10 @@ def pcr_comparison(
     pcr_before = pcr(
         adata_pre,
         covariate=covariate,
-        recompute_pca=True,
+        recompute_pca=recompute_pca,
         n_comps=n_comps,
+        linreg_method=linreg_method,
+        n_threads=n_threads,
         verbose=verbose,
     )
 
@@ -61,8 +73,10 @@ def pcr_comparison(
         adata_post,
         covariate=covariate,
         embed=embed,
-        recompute_pca=True,
+        recompute_pca=recompute_pca,
         n_comps=n_comps,
+        linreg_method=linreg_method,
+        n_threads=n_threads,
         verbose=verbose,
     )
 
@@ -79,7 +93,16 @@ def pcr_comparison(
         return pcr_after - pcr_before
 
 
-def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=False):
+def pcr(
+    adata,
+    covariate,
+    embed=None,
+    n_comps=50,
+    recompute_pca=False,
+    linreg_method="sklearn",
+    verbose=False,
+    n_threads=1,
+):
     """Principal component regression for anndata object
 
     Wraps :func:`~scib.metrics.pc_regression` while checking whether to:
@@ -127,25 +150,48 @@ def pcr(adata, covariate, embed=None, n_comps=50, recompute_pca=True, verbose=Fa
         assert embed in adata.obsm
         if verbose:
             print(f"Compute PCR on embedding n_comps: {n_comps}")
-        return pc_regression(adata.obsm[embed], covariate_values, n_comps=n_comps)
+        return pc_regression(
+            adata.obsm[embed],
+            covariate_values,
+            n_comps=n_comps,
+            linreg_method=linreg_method,
+            n_threads=n_threads,
+        )
 
     # use existing PCA computation
     elif (recompute_pca is False) and ("X_pca" in adata.obsm) and ("pca" in adata.uns):
         if verbose:
             print("using existing PCA")
         return pc_regression(
-            adata.obsm["X_pca"], covariate_values, pca_var=adata.uns["pca"]["variance"]
+            adata.obsm["X_pca"],
+            covariate_values,
+            pca_var=adata.uns["pca"]["variance"],
+            linreg_method=linreg_method,
+            n_threads=n_threads,
         )
 
     # recompute PCA
     else:
         if verbose:
             print(f"compute PCA n_comps: {n_comps}")
-        return pc_regression(adata.X, covariate_values, n_comps=n_comps)
+        return pc_regression(
+            adata.X,
+            covariate_values,
+            n_comps=n_comps,
+            linreg_method=linreg_method,
+            n_threads=n_threads,
+        )
 
 
 def pc_regression(
-    data, covariate, pca_var=None, n_comps=50, svd_solver="arpack", verbose=False
+    data,
+    covariate,
+    pca_var=None,
+    n_comps=50,
+    svd_solver="arpack",
+    linreg_method="sklearn",
+    verbose=False,
+    n_threads=1,
 ):
     """Principal component regression
 
@@ -172,13 +218,19 @@ def pc_regression(
     :return:
         Variance contribution of regression
     """
-
     if isinstance(data, (np.ndarray, sparse.csr_matrix, sparse.csc_matrix)):
         matrix = data
     else:
         raise TypeError(
             f"invalid type: {data.__class__} is not a numpy array or sparse matrix"
         )
+
+    if linreg_method == "sklearn":
+        linreg_method = linreg_multiple_sklearn
+    elif linreg_method == "numpy":
+        linreg_method = linreg_multiple_np
+    else:
+        raise ValueError(f"invalid linreg_method: {linreg_method}")
 
     # perform PCA if no variance contributions are given
     if pca_var is None:
@@ -193,7 +245,7 @@ def pc_regression(
                 matrix = matrix.toarray()
 
         if verbose:
-            print("compute PCA")
+            print("compute PCA...")
         X_pca, _, _, pca_var = sc.tl.pca(
             matrix,
             n_comps=n_comps,
@@ -216,18 +268,70 @@ def pc_regression(
     else:
         if verbose:
             print("one-hot encode categorical values")
-        covariate = pd.get_dummies(covariate)
+        covariate = pd.get_dummies(covariate).to_numpy()
 
     # fit linear model for n_comps PCs
-    r2 = []
-    for i in range(n_comps):
-        pc = X_pca[:, [i]]
-        lm = LinearRegression()
-        lm.fit(covariate, pc)
-        r2_score = np.maximum(0, lm.score(covariate, pc))
-        r2.append(r2_score)
+    if verbose:
+        print(f"Use {n_threads} threads for regression...")
 
-    Var = pca_var / sum(pca_var) * 100
-    R2Var = sum(r2 * Var) / 100
+    r2 = linreg_method(X_pca, covariate, n_jobs=n_threads)
+    r2 = [np.maximum(0, x) for x in r2]
+
+    Var = pca_var / sum(pca_var)  # * 100
+    R2Var = sum(r2 * Var)  # / 100
 
     return R2Var
+
+
+def linreg_sklearn(X, y):
+    from sklearn.linear_model import LinearRegression
+
+    lm = LinearRegression()
+    lm.fit(X, y)
+    r2_score = lm.score(X, y)
+    return np.maximum(0, r2_score)
+
+
+def linreg_np(X, y):
+    _, residuals, _, _ = np.linalg.lstsq(X, y, rcond=None)
+    if residuals.size == 0:
+        residuals = np.array([0])
+    rss = residuals[0] if len(residuals) > 0 else 0
+    tss = np.sum((y - y.mean()) ** 2)
+    r2_score = 1 - (rss / tss)
+    return np.maximum(0, r2_score)
+
+
+def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import r2_score
+
+    X = covariate
+    Y = X_pca
+
+    if not sparse.issparse(X):
+        X = sparse.csr_matrix(X)
+        # X = X.toarray()
+
+    model = LinearRegression(fit_intercept=True, n_jobs=n_jobs)
+    model.fit(X, Y)
+    Y_pred = model.predict(X)
+    return [r2_score(Y[:, i], Y_pred[:, i]) for i in range(Y.shape[1])]
+
+
+def linreg_multiple_np(X_pca, covariate, n_jobs=None):
+    """
+    :param n_jobs: Number of threads ignored
+    """
+    X = covariate
+    Y = X_pca
+
+    X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
+    beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
+    Y_pred = X @ beta
+
+    # Compute r2 scores
+    ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
+    ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
+
+    return 1 - ss_residual / ss_total
