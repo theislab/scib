@@ -52,7 +52,7 @@ def test_pcr_timing(adata_pca, n_threads, linreg_method):
         n_threads=1,
     )
     LOGGER.info(score)
-    assert_near_exact(score, 0.33401529220865844, diff=1e-3)
+    assert_near_exact(score, 0.33431789694498437, diff=1e-3)
 
 
 def test_pcr_comparison_batch(adata):
