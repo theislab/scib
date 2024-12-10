@@ -227,9 +227,9 @@ def pc_regression(
         )
 
     if linreg_method == "sklearn":
-        linreg_method = linreg_sklearn
+        linreg_method = linreg_multiple_sklearn
     elif linreg_method == "numpy":
-        linreg_method = linreg_np
+        linreg_method = linreg_multiple_np
     else:
         raise ValueError(f"invalid linreg_method: {linreg_method}")
 
@@ -274,24 +274,9 @@ def pc_regression(
     # fit linear model for n_comps PCs
     if verbose:
         print(f"Use {n_threads} threads for regression...")
-    if n_threads == 1:
-        r2 = []
-        for i in tqdm(range(n_comps), total=n_comps):
-            r2_score = linreg_method(X=covariate, y=X_pca[:, [i]])
-            r2.append(r2_score)
-    else:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        r2 = []
-        # parallelise over all principal components
-        with tqdm(total=n_comps) as pbar:
-            with ThreadPoolExecutor(max_workers=n_threads) as executor:
-                futures = [
-                    executor.submit(linreg_method, X=covariate, y=pc) for pc in X_pca.T
-                ]
-                for future in as_completed(futures):
-                    r2.append(future.result())
-                    pbar.update(1)
+    r2 = linreg_method(X_pca, covariate, n_jobs=n_threads)
+    r2 = [np.maximum(0, x) for x in r2]
 
     Var = pca_var / sum(pca_var)  # * 100
     R2Var = sum(r2 * Var)  # / 100
@@ -305,7 +290,6 @@ def linreg_sklearn(X, y):
     lm = LinearRegression()
     lm.fit(X, y)
     r2_score = lm.score(X, y)
-    np.maximum(0, r2_score)
     return np.maximum(0, r2_score)
 
 
@@ -317,3 +301,45 @@ def linreg_np(X, y):
     tss = np.sum((y - y.mean()) ** 2)
     r2_score = 1 - (rss / tss)
     return np.maximum(0, r2_score)
+
+
+def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import r2_score
+
+    X = covariate
+    Y = X_pca
+
+    if not sparse.issparse(X):
+        X = sparse.csr_matrix(X)
+        # X = X.toarray()
+
+    model = LinearRegression(fit_intercept=True, n_jobs=n_jobs)
+    model.fit(X, Y)
+    Y_pred = model.predict(X)
+    return [r2_score(Y[:, i], Y_pred[:, i]) for i in range(Y.shape[1])]
+
+
+def linreg_multiple_np(X_pca, covariate, n_jobs=None):
+    """
+    :param n_jobs: Number of threads ignored
+    """
+    r2 = []
+    n_comps = X_pca.shape[1]
+    for i in tqdm(range(n_comps), total=n_comps):
+        r2_score = linreg_np(X=covariate, y=X_pca[:, [i]])
+        r2.append(r2_score)
+    return r2
+
+    X = covariate
+    Y = X_pca
+
+    X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
+    beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
+    Y_pred = X @ beta
+
+    # Compute r2 scores
+    ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
+    ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
+
+    return 1 - ss_residual / ss_total
