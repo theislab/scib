@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from scipy import sparse
-from tqdm import tqdm
 
 from ..utils import check_adata, check_batch
 
@@ -324,13 +323,6 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
     """
     :param n_jobs: Number of threads ignored
     """
-    r2 = []
-    n_comps = X_pca.shape[1]
-    for i in tqdm(range(n_comps), total=n_comps):
-        r2_score = linreg_np(X=covariate, y=X_pca[:, [i]])
-        r2.append(r2_score)
-    return r2
-
     X = covariate
     Y = X_pca
 
