@@ -198,7 +198,7 @@ def get_pcr_before_after(
     covariate = raw_sub.obs[["S_score", "G2M_score"]]
 
     # PCR on adata before integration
-    if recompute_pcr:  # TODO: does this work for precomputed values?
+    if recompute_pcr:
         before = pc_regression(
             raw_sub.X,
             covariate,
