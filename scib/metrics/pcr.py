@@ -229,6 +229,8 @@ def pc_regression(
         linreg_method = linreg_multiple_sklearn
     elif linreg_method == "numpy":
         linreg_method = linreg_multiple_np
+    elif linreg_method == "sequential":
+        linreg_method = linreg_sklearn
     else:
         raise ValueError(f"invalid linreg_method: {linreg_method}")
 
@@ -283,13 +285,23 @@ def pc_regression(
     return R2Var
 
 
-def linreg_sklearn(X, y):
+def linreg_sklearn(X_pca, covariate, n_jobs=None):
+    from concurrent.futures import ThreadPoolExecutor
+
     from sklearn.linear_model import LinearRegression
 
-    lm = LinearRegression()
-    lm.fit(X, y)
-    r2_score = lm.score(X, y)
-    return np.maximum(0, r2_score)
+    if n_jobs is None:
+        n_jobs = 1
+
+    def compute_r2(pc):
+        model = LinearRegression()
+        model.fit(covariate, pc)
+        return model.score(covariate, pc)
+
+    # Parallelizing with ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        r2 = list(executor.map(compute_r2, X_pca.T))
+    return r2
 
 
 def linreg_np(X, y):
