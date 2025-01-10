@@ -642,7 +642,6 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-# Cell Cycle
 def score_cell_cycle(
     adata: ad.AnnData,
     organism: str = "mouse",
@@ -656,57 +655,44 @@ def score_cell_cycle(
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
 
-    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
-    well conserved across species.
+    See more on gene sets in :func:`~scib.preprocessing.get_cell_cycle_genes`.
+
+    This function picks gene IDs or gene names of the cell cycle genes, depending on what is present in the adata object.
 
     :param adata: anndata object containing
     :param organism: organism of gene names to match cell cycle genes
     :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
-    from pathlib import Path
 
-    root = Path(__file__).parent
-    cc_files = {
-        "mouse": [
-            root / "resources/s_genes_tirosh.txt",
-            root / "resources/g2m_genes_tirosh.txt",
-        ],
-        "human": [
-            root / "resources/s_genes_tirosh_hm.txt",
-            root / "resources/g2m_genes_tirosh_hm.txt",
-        ],
-    }
+    def filter_genes(adata: ad.AnnData, df: pd.DataFrame, columns: list = None):
+        if columns is None:
+            columns = ["gene_name", "gene_id"]
+        elif isinstance(columns, str):
+            columns = [columns]
 
-    organism_map = {
-        "mus_musculus": "mouse",
-        "mus musculus": "mouse",
-        "homo_sapiens": "human",
-        "homo sapiens": "human",
-    } | {x: x for x in cc_files.keys()}
+        n_genes = 0
+        for col in columns:
+            _genes = [g for g in df[col] if g in adata.var_names]
+            if len(_genes) > n_genes:  # pick largest overlapping set
+                n_genes = len(_genes)
+                genes = _genes
 
-    assert organism in organism_map, f"organism {organism} not supported"
-    organism = organism_map[organism]
-
-    with open(cc_files[organism][0]) as f:
-        s_genes = [x.strip() for x in f.readlines()]
-
-    with open(cc_files[organism][1]) as f:
-        g2m_genes = [x.strip() for x in f.readlines()]
-
-    def filter_genes(genes, adata):
-        genes = [x for x in genes if x in adata.var.index]
-        if len(genes) == 0:
+        if n_genes == 0:
             rand_choice = np.random.randint(1, adata.n_vars, 10)
             rand_genes = adata.var_names[rand_choice].tolist()
             raise ValueError(
-                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
+                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}\n cell cycle genes:\n {df}"
             )
         return genes
 
-    s_genes = filter_genes(s_genes, adata)
-    g2m_genes = filter_genes(g2m_genes, adata)
+    # get gene sets
+    gene_map = get_cell_cycle_genes(organism)
 
-    # compute gene scores
+    # filter gene sets across data
+    s_genes = filter_genes(adata, gene_map.query("phase == 'S'"))
+    g2m_genes = filter_genes(adata, gene_map.query("phase == 'G2/M'"))
+
+    # compute scores
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
 
