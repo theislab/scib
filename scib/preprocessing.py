@@ -566,6 +566,7 @@ def reduce_data(
     n_bins=20,
     pca=True,
     pca_comps=50,
+    svd_solver="arpack",
     overwrite_hvg=True,
     neighbors=True,
     use_rep="X_pca",
@@ -629,7 +630,7 @@ def reduce_data(
             adata,
             n_comps=pca_comps,
             use_highly_variable=use_hvgs,
-            svd_solver="arpack",
+            svd_solver=svd_solver,
             return_info=True,
         )
 
@@ -693,7 +694,7 @@ def score_cell_cycle(
     g2m_genes = filter_genes(adata, gene_map.query("phase == 'G2/M'"))
 
     # compute scores
-    sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+    sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
 
 
 def get_cell_cycle_genes(organism: str):

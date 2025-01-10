@@ -80,7 +80,12 @@ def adata_pca(adata):
 def adata_neighbors(adata):
     adata_obj = adata
     scib.pp.reduce_data(
-        adata_obj, pca=True, n_top_genes=200, neighbors=True, umap=False
+        adata_obj,
+        pca=True,
+        svd_solver="auto",
+        n_top_genes=200,
+        neighbors=True,
+        umap=False,
     )
     yield adata_obj
 
