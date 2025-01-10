@@ -710,6 +710,46 @@ def score_cell_cycle(
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
 
+def get_cell_cycle_genes(organism: str):
+    """
+    Get cell cycle genes for a given organism
+
+    Tirosh et al. cell cycle marker genes downloaded from
+    https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
+
+    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
+    well conserved across species
+
+    For organisms other than human or mouse, orthlogy-mapped datasets from Tinyaltas were used:
+    https://github.com/hbc/tinyatlas/tree/master/cell_cycle
+
+    :param organism: organism of gene names to match cell cycle genes
+    :param identifier: gene identifier to use. options: "gene_name", "gene_id"
+    """
+    from pathlib import Path
+
+    organism_map = {
+        "mouse": "mus_musculus",
+        "mus musculus": "mus_musculus",
+        "human": "homo_sapiens",
+        "homo sapiens": "homo_sapiens",
+        "c_elegans": "caenorhabditis_elegans",
+        "caenorhabditis elegans": "caenorhabditis_elegans",
+        "c elegans": "caenorhabditis_elegans",
+        "zebrafish": "danio_rerio",
+        "danio rerio": "danio_rerio",
+    }
+    organism_map |= {x: x for x in organism_map.values()}
+
+    assert organism in organism_map, f"organism {organism} not supported"
+    organism = organism_map[organism.lower()]
+
+    # read gene sets
+    gene_file = Path(__file__).parent / "resources" / f"cell_cycle_genes_{organism}.tsv"
+    assert gene_file.exists(), f"{gene_file} doesn't exist"
+    return pd.read_table(gene_file)
+
+
 def save_seurat(adata, path, batch, hvgs=None):
     """Save an ``anndata`` object to file as a Seurat object
 

@@ -33,6 +33,7 @@ Please refer to the `Single Cell Best Practices Book`_ for more details.
     hvg_intersect
     hvg_batch
     score_cell_cycle
+    get_cell_cycle_genes
     reduce_data
 
 
