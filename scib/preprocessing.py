@@ -2,6 +2,7 @@ import logging
 import re
 import tempfile
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -642,7 +643,10 @@ def reduce_data(
 
 
 # Cell Cycle
-def score_cell_cycle(adata, organism="mouse"):
+def score_cell_cycle(
+    adata: ad.AnnData,
+    organism: str = "mouse",
+):
     """Score cell cycle score given an organism
 
     Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
@@ -659,10 +663,9 @@ def score_cell_cycle(adata, organism="mouse"):
     :param organism: organism of gene names to match cell cycle genes
     :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
-    import pathlib
+    from pathlib import Path
 
-    root = pathlib.Path(__file__).parent
-
+    root = Path(__file__).parent
     cc_files = {
         "mouse": [
             root / "resources/s_genes_tirosh.txt",
@@ -674,18 +677,36 @@ def score_cell_cycle(adata, organism="mouse"):
         ],
     }
 
+    organism_map = {
+        "mus_musculus": "mouse",
+        "mus musculus": "mouse",
+        "homo_sapiens": "human",
+        "homo sapiens": "human",
+    } | {x: x for x in cc_files.keys()}
+
+    assert organism in organism_map, f"organism {organism} not supported"
+    organism = organism_map[organism]
+
     with open(cc_files[organism][0]) as f:
-        s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+        s_genes = [x.strip() for x in f.readlines()]
+
     with open(cc_files[organism][1]) as f:
-        g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+        g2m_genes = [x.strip() for x in f.readlines()]
 
-    if (len(s_genes) == 0) or (len(g2m_genes) == 0):
-        rand_choice = np.random.randint(1, adata.n_vars, 10)
-        rand_genes = adata.var_names[rand_choice].tolist()
-        raise ValueError(
-            f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
-        )
+    def filter_genes(genes, adata):
+        genes = [x for x in genes if x in adata.var.index]
+        if len(genes) == 0:
+            rand_choice = np.random.randint(1, adata.n_vars, 10)
+            rand_genes = adata.var_names[rand_choice].tolist()
+            raise ValueError(
+                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
+            )
+        return genes
 
+    s_genes = filter_genes(s_genes, adata)
+    g2m_genes = filter_genes(g2m_genes, adata)
+
+    # compute gene scores
     sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
 
 
