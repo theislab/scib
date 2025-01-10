@@ -92,3 +92,36 @@ def adata_clustered(adata_neighbors):
         adata_obj, label_key="celltype", cluster_key="cluster", verbose=True
     )
     yield adata_obj
+
+
+DATASETS = {
+    "c_elegans": "https://github.com/Munfred/wormcells-data/releases/download/cao2017/cao2017.h5ad",
+    "zebrafish": "https://figshare.com/ndownloader/files/27265280",
+    # from https://cellrank.readthedocs.io/en/stable/_modules/cellrank/datasets.html
+}
+
+
+@pytest.fixture()
+def adata_from_url(request):
+    from io import BytesIO
+
+    import requests
+
+    dataset_name = request.param
+    url = DATASETS[dataset_name]
+
+    response = requests.get(url)
+    response.raise_for_status()
+
+    adata = sc.read_h5ad(BytesIO(response.content))
+    assert adata is not None
+    adata.uns["dataset_name"] = dataset_name
+
+    if "gene_id" in adata.var.columns:
+        adata.var_names = adata.var["gene_id"]
+
+    if dataset_name == "zebrafish":
+        adata.var_names = adata.var_names.str.lower()
+        adata = adata[:, ~adata.var_names.duplicated()].copy()
+
+    yield adata
