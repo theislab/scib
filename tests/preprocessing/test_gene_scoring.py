@@ -27,10 +27,9 @@ def test_human(adata_paul15):
         )
 
 
-def test_zebrafish(adata_paul15):
-    with pytest.raises(AssertionError):
-        scib.pp.score_cell_cycle(
-            adata_paul15,
-            organism="zebrafish",
-        )
-    # TODO
+@pytest.mark.parametrize("adata_from_url", ["c_elegans", "zebrafish"], indirect=True)
+def test_organism(adata_from_url):
+    scib.pp.score_cell_cycle(
+        adata_from_url,
+        organism=adata_from_url.uns["dataset_name"],
+    )
