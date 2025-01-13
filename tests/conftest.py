@@ -108,17 +108,10 @@ DATASETS = {
 
 @pytest.fixture()
 def adata_from_url(request):
-    from io import BytesIO
-
-    import requests
-
     dataset_name = request.param
     url = DATASETS[dataset_name]
 
-    response = requests.get(url)
-    response.raise_for_status()
-
-    adata = sc.read_h5ad(BytesIO(response.content))
+    adata = sc.read(f"{dataset_name}.h5ad", backup_url=url)
     assert adata is not None
     adata.uns["dataset_name"] = dataset_name
 
