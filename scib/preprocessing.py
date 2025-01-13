@@ -1,6 +1,7 @@
 import logging
 import re
 import tempfile
+from typing import Literal
 
 import anndata as ad
 import numpy as np
@@ -645,7 +646,21 @@ def reduce_data(
 
 def score_cell_cycle(
     adata: ad.AnnData,
-    organism: str = "mouse",
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ] = "mouse",
 ):
     """Score cell cycle score given an organism
 
@@ -697,7 +712,23 @@ def score_cell_cycle(
     sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
 
 
-def get_cell_cycle_genes(organism: str):
+def get_cell_cycle_genes(
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ]
+):
     """
     Get cell cycle genes for a given organism
 
