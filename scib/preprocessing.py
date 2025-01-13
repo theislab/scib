@@ -757,10 +757,18 @@ def get_cell_cycle_genes(
         "zebrafish": "danio_rerio",
         "danio rerio": "danio_rerio",
     }
+    # additionally map each key to itself to make them available as well
     organism_map |= {x: x for x in organism_map.values()}
 
-    assert organism in organism_map, f"organism {organism} not supported"
-    organism = organism_map[organism.lower()]
+    # get lower-case organism name
+    organism = organism.lower()
+
+    assert (
+        organism in organism_map
+    ), f"organism '{organism}' not supported. Supported organisms: {list(organism_map.keys())}"
+
+    # get organism name needed for retrieving correct file
+    organism = organism_map[organism]
 
     # read gene sets
     gene_file = Path(__file__).parent / "resources" / f"cell_cycle_genes_{organism}.tsv"
