@@ -225,14 +225,14 @@ def pc_regression(
             f"invalid type: {data.__class__} is not a numpy array or sparse matrix"
         )
 
-    if linreg_method == "sklearn":
-        linreg_method = linreg_multiple_sklearn
-    elif linreg_method == "numpy":
-        linreg_method = linreg_multiple_np
-    elif linreg_method == "sequential":
-        linreg_method = linreg_sklearn
-    else:
+    linreg_methods = {
+        "sklearn": linreg_multiple_sklearn,
+        "numpy": linreg_multiple_np,
+        "sequential": linreg_sklearn,
+    }
+    if linreg_method not in linreg_methods:
         raise ValueError(f"invalid linreg_method: {linreg_method}")
+    linreg_method = linreg_methods[linreg_method]
 
     # perform PCA if no variance contributions are given
     if pca_var is None:
@@ -299,9 +299,9 @@ def _encode_covariate(covariate, as_sparse=False):
     covariate_arr = _to_covariate_2d(covariate)
 
     # Use a single dtype check for all input containers (Series, DataFrame, ndarray).
-    is_numeric = pd.DataFrame(covariate_arr).dtypes.map(
-        pd.api.types.is_numeric_dtype
-    ).all()
+    is_numeric = (
+        pd.DataFrame(covariate_arr).dtypes.map(pd.api.types.is_numeric_dtype).all()
+    )
 
     if is_numeric:
         return sparse.csr_matrix(covariate_arr) if as_sparse else covariate_arr
