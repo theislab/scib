@@ -11,6 +11,7 @@ from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph, lisi_graph
 from .metrics import metrics, metrics_all, metrics_fast, metrics_slim
 from .nmi import nmi
-from .pcr import pc_regression, pcr, pcr_comparison
+from .pcr import (linreg_multiple_np, linreg_multiple_sklearn, linreg_sklearn,
+                  pc_regression, pcr, pcr_comparison)
 from .silhouette import silhouette, silhouette_batch
 from .trajectory import trajectory_conservation

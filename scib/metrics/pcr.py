@@ -21,22 +21,32 @@ def pcr_comparison(
     """Principal component regression score
 
     Compare the explained variance before and after integration using :func:`~scib.metrics.pc_regression`.
-    Return either the difference of variance contribution before and after integration
-    or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
-    changed. The larger the score, the more different the variance contributions are before
-    and after integration.
+    Return either the raw difference in variance contribution before and after integration
+    or a scaled score (``scale=True``).
 
-    :param adata_pre: anndata object before integration
-    :param adata_post: anndata object after integration
+    With ``scale=True``, the score is computed as
+    ``(pcr_before - pcr_after) / pcr_before`` and clipped to 0 if it becomes negative
+    (i.e. when variance contribution increases after integration).
+
+    :param adata_pre: Anndata object before integration
+    :param adata_post: Anndata object after integration
     :param covariate: Key for ``adata_post.obs`` column to regress against
     :param embed: Embedding to use for principal component analysis.
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
-    :param recompute_pca: Whether to recompute PCA with default settings
-    :param linreg_method: Method for linear regression, either 'sklearn' or 'numpy'
-    :param scale: If True, scale score between 0 and 1 (default)
-    :param verbose:
+    :param linreg_method: Method for linear regression passed to
+        :func:`~scib.metrics.pc_regression` (``'sklearn'``, ``'numpy'``, or
+        ``'sequential'``).
+    :param recompute_pca: Whether to recompute PCA. If ``False`` (default), use existing PCA
+        stored in ``adata.obsm["X_pca"]`` and ``adata.uns["pca"]["variance"]`` if available.
+    :param scale: If ``True`` (default), scale score between 0 and 1, where 0 means no change
+        in variance contribution after integration. If ``False``, return the raw difference
+        of variance contributions (post minus pre).
+    :param verbose: If ``True``, print progress information
+    :param n_threads: Number of threads to pass to the selected regression backend
+        (for example BLAS/OpenMP thread limits for ``'numpy'`` and estimator-level
+        parallelism where supported).
     :return:
         Difference of variance contribution of PCR (scaled between 0 and 1 by default)
 
@@ -213,7 +223,17 @@ def pc_regression(
     :param pca_var: Iterable of variances for ``n_comps`` components.
         If ``pca_sd`` is not ``None``, it is assumed that the matrix contains PC,
         otherwise PCA is computed on ``data``.
+    :param linreg_method: Regression backend. One of ``'sklearn'``, ``'numpy'``, or ``'sequential'``.
+
+        - ``'sequential'`` calls :func:`~scib.metrics.pcr.linreg_sklearn`, the
+            original implementation that fits one model per PC and is typically
+            much slower.
+        - ``'sklearn'`` calls :func:`~scib.metrics.pcr.linreg_multiple_sklearn`,
+            a multi-output linear regression backend.
+        - ``'numpy'`` calls :func:`~scib.metrics.pcr.linreg_multiple_np`, a
+            vectorized numpy backend with a categorical one-way ANOVA shortcut.
     :param svd_solver:
+    :param n_threads: Number of threads passed to the selected regression backend.
     :param verbose:
     :return:
         Variance contribution of regression
@@ -496,4 +516,3 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
 
         X = _encode_covariate(covariate, as_sparse=False)
         return _fit_numpy_regression(X, X_pca)
-
