@@ -378,18 +378,119 @@ def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
 
 
 def linreg_multiple_np(X_pca, covariate, n_jobs=None):
+    """Compute per-PC :math:`R^2` with a dense numpy regression backend.
+
+    Execution has two paths:
+        1) If exactly one non-numeric covariate is provided, use a fast
+           one-way ANOVA formulation based on between-group variance.
+        2) Otherwise, run dense least-squares regression using an intercept
+           and pseudo-inverse.
+
+    One-way ANOVA path:
+        For a single categorical covariate, compute per-PC
+        ``R2 = SS_between / SS_total`` where
+        ``SS_between = sum_g n_g * (mu_g - mu)^2`` and
+        ``SS_total = sum_i (y_i - mu)^2``.
+        This is algebraically equivalent to linear regression with categorical
+        indicators and an intercept, but avoids explicit design-matrix solves.
+
+    Thread control:
+        If ``n_jobs`` is provided and ``threadpoolctl`` is installed,
+        BLAS/LAPACK thread pools are limited for the full function scope
+        (including shortcut checks and dense regression). This keeps runtime
+        behavior reproducible across environments and avoids BLAS oversubscription.
+
+    Used by ``linreg_method='numpy'`` in :func:`~scib.metrics.pc_regression`.
+
+    :param n_jobs: Preferred number of BLAS/LAPACK threads for numpy linalg calls.
+        If ``None``, keep the runtime default. If ``threadpoolctl`` is unavailable,
+        this hint is ignored.
+    Uses a categorical shortcut automatically for one non-numeric covariate.
     """
-    :param n_jobs: Number of threads ignored
-    """
-    X = covariate
-    Y = X_pca
 
-    X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
-    beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
-    Y_pred = X @ beta
+    def _fit_numpy_regression(X, Y):
+        X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
+        beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
+        Y_pred = X @ beta
 
-    # Compute r2 scores
-    ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
-    ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
+        ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
+        ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
 
-    return 1 - ss_residual / ss_total
+        return 1 - ss_residual / ss_total
+
+
+    def _fit_one_way_anova(covariate, Y):
+        """Compute per-target R2 from one-way ANOVA decomposition."""
+        if isinstance(covariate, pd.Series) and isinstance(covariate.dtype, pd.CategoricalDtype):
+            # Reuse existing categorical encoding directly when available.
+            codes = covariate.cat.codes.to_numpy(copy=False)
+            n_categories = len(covariate.cat.categories)
+        else:
+            categories = pd.Categorical(covariate)
+            n_categories = len(categories.categories)
+            codes = categories.codes
+
+        # Pandas categorical missing values are encoded as -1 in cat.codes.
+        if np.any(codes < 0):
+            raise ValueError(
+                "linreg_method='numpy' does not support missing covariate values"
+            )
+
+        if n_categories <= 1:
+            return np.zeros(Y.shape[1], dtype=Y.dtype)
+
+        mean_global = Y.mean(axis=0, keepdims=True)
+        counts = np.bincount(codes, minlength=n_categories).astype(Y.dtype)
+
+        # Sparse one_hot (n_categories × n_cells) @ Y  →  per-group sums for all PCs at once.
+        # Equivalent to a one-hot encoding but stored as sparse to avoid the n×k dense matrix.
+        one_hot = sparse.csr_matrix(
+            (
+                np.ones(len(codes), dtype=Y.dtype), # one non-zero per cell
+                (
+                    codes, # rows=group
+                    np.arange(len(codes), dtype=np.int32) # cols=cell
+                )
+            ),
+            shape=(n_categories, Y.shape[0]),
+        )
+        sums = one_hot @ Y  # shape: (n_categories, n_pcs)
+
+        # Divide in-place: sums becomes per-group means, avoiding a second allocation.
+        sums /= counts[:, None]
+        ss_between = np.sum(counts[:, None] * (sums - mean_global) ** 2, axis=0)
+        # Computational formula avoids a full (n_cells × n_pcs) copy:
+        #   Σ(y - μ)² = Σy² - n·μ²
+        ss_total = np.einsum("ij,ij->j", Y, Y) - Y.shape[0] * mean_global.ravel() ** 2
+        return np.divide(
+            ss_between,
+            ss_total,
+            out=np.zeros_like(ss_between),
+            where=ss_total > 0,
+        )
+
+
+    from contextlib import nullcontext
+
+    threadpool_context = nullcontext()
+    if n_jobs is not None:
+        try:
+            from threadpoolctl import threadpool_limits
+
+            threadpool_context = threadpool_limits(limits=n_jobs)
+        except ImportError:
+            pass
+
+    with threadpool_context:
+        # a Series[category] with numeric-valued categories must still use ANOVA.
+        if isinstance(covariate, pd.Series) and not pd.api.types.is_numeric_dtype(covariate):
+            return _fit_one_way_anova(covariate, X_pca)
+
+        covariate = _to_covariate_2d(covariate)
+
+        # Fallback for non-numeric ndarray/list inputs (e.g. object dtype strings)
+        if covariate.shape[1] == 1 and not np.issubdtype(covariate.dtype, np.number):
+            return _fit_one_way_anova(pd.Series(covariate[:, 0]), X_pca)
+
+        X = _encode_covariate(covariate, as_sparse=False)
+        return _fit_numpy_regression(X, X_pca)
