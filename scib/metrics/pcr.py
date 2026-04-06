@@ -418,10 +418,11 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
 
         return 1 - ss_residual / ss_total
 
-
     def _fit_one_way_anova(covariate, Y):
         """Compute per-target R2 from one-way ANOVA decomposition."""
-        if isinstance(covariate, pd.Series) and isinstance(covariate.dtype, pd.CategoricalDtype):
+        if isinstance(covariate, pd.Series) and isinstance(
+            covariate.dtype, pd.CategoricalDtype
+        ):
             # Reuse existing categorical encoding directly when available.
             codes = covariate.cat.codes.to_numpy(copy=False)
             n_categories = len(covariate.cat.categories)
@@ -446,11 +447,11 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
         # Equivalent to a one-hot encoding but stored as sparse to avoid the n×k dense matrix.
         one_hot = sparse.csr_matrix(
             (
-                np.ones(len(codes), dtype=Y.dtype), # one non-zero per cell
+                np.ones(len(codes), dtype=Y.dtype),  # one non-zero per cell
                 (
-                    codes, # rows=group
-                    np.arange(len(codes), dtype=np.int32) # cols=cell
-                )
+                    codes,  # rows=group
+                    np.arange(len(codes), dtype=np.int32),  # cols=cell
+                ),
             ),
             shape=(n_categories, Y.shape[0]),
         )
@@ -469,7 +470,6 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
             where=ss_total > 0,
         )
 
-
     from contextlib import nullcontext
 
     threadpool_context = nullcontext()
@@ -483,7 +483,9 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
 
     with threadpool_context:
         # a Series[category] with numeric-valued categories must still use ANOVA.
-        if isinstance(covariate, pd.Series) and not pd.api.types.is_numeric_dtype(covariate):
+        if isinstance(covariate, pd.Series) and not pd.api.types.is_numeric_dtype(
+            covariate
+        ):
             return _fit_one_way_anova(covariate, X_pca)
 
         covariate = _to_covariate_2d(covariate)
@@ -494,3 +496,4 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
 
         X = _encode_covariate(covariate, as_sparse=False)
         return _fit_numpy_regression(X, X_pca)
+
