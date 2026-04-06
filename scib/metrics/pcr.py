@@ -264,14 +264,6 @@ def pc_regression(
     if verbose:
         print("fit regression on PCs")
 
-    # handle categorical values
-    if pd.api.types.is_numeric_dtype(covariate):
-        covariate = np.array(covariate).reshape(-1, 1)
-    else:
-        if verbose:
-            print("one-hot encode categorical values")
-        covariate = pd.get_dummies(covariate).to_numpy()
-
     # fit linear model for n_comps PCs
     if verbose:
         print(f"Use {n_threads} threads for regression...")
@@ -285,7 +277,58 @@ def pc_regression(
     return R2Var
 
 
+def _to_covariate_2d(covariate):
+    """Return covariate as a 2D ndarray with shape (n_samples, n_covariates)."""
+    if isinstance(covariate, pd.Series):
+        return covariate.to_numpy(copy=False)[:, None]
+    if isinstance(covariate, pd.DataFrame):
+        return covariate.to_numpy(copy=False)
+
+    covariate_arr = np.asarray(covariate)
+    if covariate_arr.ndim == 1:
+        covariate_arr = covariate_arr[:, None]
+    return covariate_arr
+
+
+def _encode_covariate(covariate, as_sparse=False):
+    """Encode covariates for regression backends.
+
+    :param as_sparse: Return a scipy sparse matrix for numeric and categorical
+        covariates when ``True``. Otherwise return a dense numpy array.
+    """
+    covariate_arr = _to_covariate_2d(covariate)
+
+    # Use a single dtype check for all input containers (Series, DataFrame, ndarray).
+    is_numeric = pd.DataFrame(covariate_arr).dtypes.map(
+        pd.api.types.is_numeric_dtype
+    ).all()
+
+    if is_numeric:
+        return sparse.csr_matrix(covariate_arr) if as_sparse else covariate_arr
+
+    if as_sparse:
+        from sklearn.preprocessing import OneHotEncoder
+
+        try:
+            # Drop one reference level since downstream linear models fit an intercept.
+            # This avoids a rank-deficient design matrix (dummy-variable trap) and
+            # tends to scale better as category count increases.
+            encoder = OneHotEncoder(
+                sparse_output=True, handle_unknown="ignore", drop="first"
+            )
+        except TypeError:
+            encoder = OneHotEncoder(sparse=True, handle_unknown="ignore", drop="first")
+        return encoder.fit_transform(covariate_arr)
+    return pd.get_dummies(pd.DataFrame(covariate_arr), drop_first=True).to_numpy()
+
+
 def linreg_sklearn(X_pca, covariate, n_jobs=None):
+    """Sequential sklearn regression backend for PCR.
+
+    Fits one ``LinearRegression`` model per principal component and returns one
+    :math:`R^2` value per component. This is the original implementation used by
+    ``linreg_method='sequential'`` in :func:`~scib.metrics.pc_regression`.
+    """
     from concurrent.futures import ThreadPoolExecutor
 
     from sklearn.linear_model import LinearRegression
@@ -293,10 +336,12 @@ def linreg_sklearn(X_pca, covariate, n_jobs=None):
     if n_jobs is None:
         n_jobs = 1
 
+    X = _encode_covariate(covariate, as_sparse=False)
+
     def compute_r2(pc):
         model = LinearRegression()
-        model.fit(covariate, pc)
-        return model.score(covariate, pc)
+        model.fit(X, pc)
+        return model.score(X, pc)
 
     # Parallelizing with ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
@@ -315,15 +360,16 @@ def linreg_np(X, y):
 
 
 def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
+    """Multi-output sklearn regression backend for PCR.
+
+    Encodes the covariate once and fits a single multi-output
+    ``LinearRegression`` model against all PCs.
+    """
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import r2_score
 
-    X = covariate
+    X = _encode_covariate(covariate, as_sparse=True)
     Y = X_pca
-
-    if not sparse.issparse(X):
-        X = sparse.csr_matrix(X)
-        # X = X.toarray()
 
     model = LinearRegression(fit_intercept=True, n_jobs=n_jobs)
     model.fit(X, Y)
