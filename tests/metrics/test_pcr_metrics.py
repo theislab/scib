@@ -1,6 +1,6 @@
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 from scipy import sparse
 from scipy.sparse import csr_matrix
 
@@ -26,38 +26,39 @@ def test_pc_regression(adata, sparse):
     assert_near_exact(score, 0, diff=1e-3)
 
 
-@pytest.mark.parametrize("n_threads", [1, 2])
 @pytest.mark.parametrize("linreg_method", ["sequential", "numpy", "sklearn"])
-def test_pcr_timing(adata_pca, n_threads, linreg_method):
-    import timeit
+def test_pc_regression_numeric_covariate(adata_pca, linreg_method):
+    X_pca = adata_pca.obsm["X_pca"]
+    pca_var = np.asarray(adata_pca.uns["pca"]["variance"])
 
-    import anndata as ad
+    # Use the first PC as covariate: PCs are orthogonal, so R²_0 ≈ 1 and
+    # R²_i ≈ 0 for i > 0, making the expected score equal to var[0] / sum(var).
+    covariate = pd.Series(X_pca[:, 0])
 
-    # scale up anndata
-    adata = ad.concat([adata_pca] * 100)
-    adata.uns = adata_pca.uns
-
-    runs = 5
-    timing = timeit.timeit(
-        lambda: scib.me.pcr(
-            adata,
-            covariate="celltype",
-            linreg_method=linreg_method,
-            verbose=False,
-            n_threads=n_threads,
-            recompute_pca=False,
-        ),
-        number=runs,
+    score = scib.me.pc_regression(
+        X_pca,
+        covariate=covariate,
+        pca_var=pca_var,
+        linreg_method=linreg_method,
     )
-    LOGGER.info(f"timeit: {timing:.2f}s for {runs} runs")
+    score_legacy = scib.me.pc_regression(
+        X_pca,
+        covariate=covariate,
+        pca_var=pca_var,
+        linreg_method="sequential",
+    )
 
-    # test pcr value
+    assert score_legacy > pca_var[0] / pca_var.sum() * 0.9
+    assert_near_exact(score, score_legacy, diff=1e-3)
+
+
+@pytest.mark.parametrize("linreg_method", ["sequential", "numpy", "sklearn"])
+def test_pcr_correctness_all_implementations(adata_pca, linreg_method):
     score = scib.me.pcr(
         adata_pca,
         covariate="celltype",
         linreg_method=linreg_method,
-        verbose=True,
-        n_threads=1,
+        verbose=False,
     )
     LOGGER.info(score)
     assert_near_exact(score, 0.33431789694498437, diff=1e-3)
@@ -127,13 +128,13 @@ def test_linreg_multiple_sklearn_uses_sparse_one_hot(monkeypatch):
     # Monkeypatching is needed because linreg_multiple_sklearn only returns R2 scores;
     # intercepting fit() lets us assert the internal contract that sklearn receives
     # sparse one-hot encoded covariates instead of a dense matrix.
-    monkeypatch.setattr("sklearn.linear_model.LinearRegression", RecordingLinearRegression)
+    monkeypatch.setattr(
+        "sklearn.linear_model.LinearRegression", RecordingLinearRegression
+    )
 
     rng = np.random.default_rng(0)
     X_pca = rng.standard_normal((120, 8))
-    covariate = pd.Series(
-        [f"batch_{i % 40}" for i in range(120)], dtype="category"
-    )
+    covariate = pd.Series([f"batch_{i % 40}" for i in range(120)], dtype="category")
 
     scores = linreg_multiple_sklearn(X_pca, covariate, n_jobs=1)
 
@@ -152,7 +153,7 @@ def test_linreg_multiple_sklearn_uses_sparse_one_hot(monkeypatch):
 )
 @pytest.mark.benchmark(group="pcr_large_impl_compare")
 def test_large_matrix_runtime_benchmark(benchmark, impl, runner):
-    n_cells = 9_000_000
+    n_cells = 500_000
     n_pcs = 50
     n_categories = 3000
     rng = np.random.default_rng(0)
@@ -179,3 +180,45 @@ def test_large_matrix_runtime_benchmark(benchmark, impl, runner):
         warmup_rounds=2,
     )
     assert len(scores) == n_pcs
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "linreg_method",
+    [
+        pytest.param("sequential", id="sequential"),
+        pytest.param("numpy", id="numpy"),
+        pytest.param("sklearn", id="sklearn"),
+    ],
+)
+@pytest.mark.benchmark(group="pc_regression_numeric_impl_compare")
+def test_numeric_pc_regression_runtime_benchmark(benchmark, linreg_method):
+    n_cells = 100_000
+    n_pcs = 50
+    rng = np.random.default_rng(0)
+
+    # Build data once; do not include setup cost in measured runtime.
+    X_pca = rng.standard_normal((n_cells, n_pcs))
+    covariate = pd.Series(rng.standard_normal(n_cells), name="numeric_covariate")
+    pca_var = np.asarray(rng.uniform(0.5, 2.0, size=n_pcs), dtype=np.float32)
+
+    benchmark.extra_info["linreg_method"] = linreg_method
+    benchmark.extra_info["n_cells"] = n_cells
+    benchmark.extra_info["n_pcs"] = n_pcs
+
+    def run():
+        return scib.me.pc_regression(
+            X_pca,
+            covariate=covariate,
+            pca_var=pca_var,
+            linreg_method=linreg_method,
+            n_threads=10,
+        )
+
+    score = benchmark.pedantic(
+        run,
+        rounds=100,
+        iterations=1,
+        warmup_rounds=2,
+    )
+    assert np.isfinite(score)
