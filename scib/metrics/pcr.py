@@ -402,7 +402,8 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
 
     Execution has two paths:
         1) If exactly one non-numeric covariate is provided, use a fast
-           one-way ANOVA formulation based on between-group variance.
+           one-way ANOVA formulation based on between-group variance. This
+           is automatically used for one non-numeric covariate.
         2) Otherwise, run dense least-squares regression using an intercept
            and pseudo-inverse.
 
@@ -425,7 +426,6 @@ def linreg_multiple_np(X_pca, covariate, n_jobs=None):
     :param n_jobs: Preferred number of BLAS/LAPACK threads for numpy linalg calls.
         If ``None``, keep the runtime default. If ``threadpoolctl`` is unavailable,
         this hint is ignored.
-    Uses a categorical shortcut automatically for one non-numeric covariate.
     """
 
     def _fit_numpy_regression(X, Y):

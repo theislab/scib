@@ -429,9 +429,8 @@ def hvg_intersect(
     hvg_res = []
 
     for i in split:
-        sc.pp.filter_genes(
-            i, min_cells=1
-        )  # remove genes unexpressed (otherwise hvg might break)
+        # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(i, min_cells=1)
         hvg_res.append(
             sc.pp.highly_variable_genes(
                 i, flavor=flavor, n_top_genes=n_hvg, n_bins=n_bins, inplace=False

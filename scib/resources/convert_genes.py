@@ -36,9 +36,8 @@ def get_gene_id_from_ensembl(gene_names: list, species: str):
         if response.status_code == 200:
             data = response.json()
             if data:
-                gene_id = data[0].get(
-                    "id", gene_name
-                )  # Get the first result's Ensembl ID
+                # Get the first result's Ensembl ID
+                gene_id = data[0].get("id", gene_name)
                 gene_ids.append(gene_id)
             else:
                 gene_ids.append("Not Found")
