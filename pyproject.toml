@@ -1,7 +1,53 @@
 [project]
 name = "scib"
 dynamic = ["version"]
+description = "Evaluating single-cell data integration methods"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "MIT"}
+authors = [
+    {name = "Malte D. Luecken", email = "malte.luecken@helmholtz-muenchen.de"},
+    {name = "Maren Buettner"},
+    {name = "Daniel C. Strobl"},
+    {name = "Michaela F. Mueller", email = "michaela.mueller@helmholtz-muenchen.de"},
+]
+keywords = ["benchmarking", "single cell", "data integration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
 requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas>=2",
+    "seaborn",
+    "matplotlib",
+    "numba",
+    "scanpy>=1.5",
+    "anndata>=0.7.2",
+    "h5py",
+    "scipy",
+    "scikit-learn",
+    "scikit-misc",
+    "leidenalg",
+    "umap-learn",
+    "pydot",
+    "igraph>=0.10",
+    "llvmlite",
+    "deprecated",
+    "zarr",
+]
+
+[project.urls]
+Homepage = "https://github.com/theislab/scib"
+Pipeline = "https://github.com/theislab/scib-pipeline"
+Reproducibility = "https://theislab.github.io/scib-reproducibility"
+"Bug Tracker" = "https://github.com/theislab/scib/issues"
 
 [project.optional-dependencies]
 rpy2 = ["rpy2>=3,<3.5", "anndata2ri<2"]
@@ -20,11 +66,27 @@ desc = ["desc==2.0.3"]
 harmony = ["harmony-pytorch"]
 
 [build-system]
-requires = [
-    "setuptools",
-    "wheel",
-]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION.txt"}
+
+[tool.setuptools.packages.find]
+include = ["scib", "scib.*"]
+
+[tool.setuptools.package-data]
+scib = ["resources/*", "knn_graph/*"]
+
+[tool.bumpversion]
+current_version = "1.1.7"
+commit = true
+tag = true
+
+[[tool.bumpversion.files]]
+filename = "VERSION.txt"
+search = "{current_version}"
+replace = "{new_version}"
 
 [tool.pytest.ini_options]
 log_cli = true
