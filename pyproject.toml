@@ -39,6 +39,7 @@ dependencies = [
     "llvmlite",
     "deprecated",
     "zarr",
+    'setuptools',
 ]
 
 [project.urls]
