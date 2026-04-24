@@ -205,3 +205,19 @@ Some parts of metrics can be used individually, these are listed below.
     lisi_graph
     pcr
     pc_regression
+
+
+PCR Regression Backends
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The principal component regression metric can use multiple linear regression
+backends. These helpers are exposed here for advanced usage and benchmarking.
+
+.. currentmodule:: scib.metrics.pcr
+
+.. autosummary::
+    :toctree: api/
+
+    linreg_sklearn
+    linreg_multiple_sklearn
+    linreg_multiple_np
