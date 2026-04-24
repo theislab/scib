@@ -52,7 +52,7 @@ Reproducibility = "https://theislab.github.io/scib-reproducibility"
 [project.optional-dependencies]
 rpy2 = ["rpy2>=3.6,<4", "anndata2ri>=2.0,<3"]
 test = ["pytest", "pytest-icdiff", "pytest-cov", "pytest-benchmark", "codecov"]
-dev = ["build", "twine", "isort", "bump2version", "pre-commit"]
+dev = ["build", "twine", "isort", "pre-commit"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst_parser", "sphinx-automodapi"]
 louvain = ["igraph", "louvain>=0.8"]
 bbknn = ["bbknn==1.3.9"]
@@ -77,16 +77,6 @@ include = ["scib", "scib.*"]
 
 [tool.setuptools.package-data]
 scib = ["resources/*", "knn_graph/*"]
-
-[tool.bumpversion]
-current_version = "1.1.7"
-commit = true
-tag = true
-
-[[tool.bumpversion.files]]
-filename = "VERSION.txt"
-search = "{current_version}"
-replace = "{new_version}"
 
 [tool.pytest.ini_options]
 log_cli = true

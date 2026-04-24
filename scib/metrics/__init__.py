@@ -8,6 +8,7 @@ from .isolated_labels import isolated_labels, isolated_labels_asw, isolated_labe
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph, lisi_graph
 from .metrics import metrics, metrics_all, metrics_fast, metrics_slim
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import (
     linreg_multiple_np,
