@@ -28,7 +28,9 @@ def harmony(adata, batch, hvg=None, **kwargs):
 
     utils.check_sanity(adata, batch, hvg)
     sc.tl.pca(adata)
-    adata.obsm["X_emb"] = harmonize(adata.obsm["X_pca"], adata.obs, batch_key=batch)
+    adata.obsm["X_emb"] = harmonize(
+        adata.obsm["X_pca"], adata.obs, batch_key=batch, **kwargs
+    )
 
     return adata
 
