@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "tag-format": "v${version}",
+      "version-file": "VERSION.txt",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": false
+    }
+  }
+}
