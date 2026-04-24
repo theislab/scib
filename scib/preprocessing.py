@@ -242,10 +242,12 @@ def normalize(
     :param log: whether to performing log1p-transformation after normalisation
     """
     try:
-        import anndata2ri
         import rpy2.rinterface_lib.callbacks
         import rpy2.rinterface_lib.embedded
         import rpy2.robjects as ro
+        import rpy2.robjects.numpy2ri
+        from rpy2.robjects import pandas2ri
+        from rpy2.robjects.conversion import localconverter
 
         rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
     except ModuleNotFoundError as e:
@@ -277,8 +279,6 @@ def normalize(
     except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
-    anndata2ri.activate()
-
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
 
@@ -293,42 +293,54 @@ def normalize(
         else:
             X = X.tocsc()
 
-    ro.globalenv["data_mat"] = X
+    with localconverter(
+        ro.default_converter + rpy2.robjects.numpy2ri.converter + pandas2ri.converter
+    ):
+        ro.globalenv["data_mat"] = X
 
-    if precluster:
-        # Preliminary clustering for differentiated normalisation
-        adata_pp = adata.copy()
-        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
-        sc.pp.log1p(adata_pp)
-        sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
-        sc.pp.neighbors(adata_pp)
-        if cluster_method == "louvain":
-            sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
-        elif cluster_method == "leiden":
-            sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
-        else:
-            raise NotImplementedError(
-                "Choose `cluster_method` from 'louvain', 'leiden'"
+        if precluster:
+            # Preliminary clustering for differentiated normalisation
+            adata_pp = adata.copy()
+            sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
+            sc.pp.log1p(adata_pp)
+            sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
+            sc.pp.neighbors(adata_pp)
+            if cluster_method == "louvain":
+                sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+            elif cluster_method == "leiden":
+                sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
+            else:
+                raise NotImplementedError(
+                    "Choose `cluster_method` from 'louvain', 'leiden'"
+                )
+
+            ro.globalenv["input_groups"] = adata_pp.obs["groups"]
+            size_factors = ro.r(
+                "sizeFactors("
+                "   computeSumFactors("
+                "       SingleCellExperiment(list(counts=data_mat)),"
+                "       clusters = input_groups,"
+                f"       min.mean = {min_mean}"
+                "   )"
+                ")"
             )
 
-        ro.globalenv["input_groups"] = adata_pp.obs["groups"]
-        size_factors = ro.r(
-            "sizeFactors("
-            "   computeSumFactors("
-            "       SingleCellExperiment(list(counts=data_mat)),"
-            "       clusters = input_groups,"
-            f"       min.mean = {min_mean}"
-            "   )"
-            ")"
-        )
+            del adata_pp
 
-        del adata_pp
+        else:
+            size_factors = ro.r(
+                "sizeFactors(computeSumFactors(SingleCellExperiment("
+                f"list(counts=data_mat)), min.mean = {min_mean}))"
+            )
 
-    else:
-        size_factors = ro.r(
-            "sizeFactors(computeSumFactors(SingleCellExperiment("
-            f"list(counts=data_mat)), min.mean = {min_mean}))"
-        )
+        # Free memory in R
+        ro.r("rm(list=ls())")
+        # ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
+        # ro.r(
+        #     'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
+        #     "detach, character.only=TRUE, unload=TRUE))"
+        # )
+        ro.r("gc()")
 
     # modify adata
     adata.obs["size_factors"] = size_factors
@@ -344,17 +356,6 @@ def normalize(
         adata.X = sparse.csr_matrix(adata.X)
 
     adata.raw = adata  # Store the full data set in 'raw' as log-normalised data for statistical testing
-
-    # Free memory in R
-    ro.r("rm(list=ls())")
-    # ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
-    # ro.r(
-    #     'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
-    #     "detach, character.only=TRUE, unload=TRUE))"
-    # )
-    ro.r("gc()")
-
-    anndata2ri.deactivate()
 
 
 def scale_batch(adata, batch):

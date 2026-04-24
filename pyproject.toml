@@ -50,7 +50,7 @@ Reproducibility = "https://theislab.github.io/scib-reproducibility"
 "Bug Tracker" = "https://github.com/theislab/scib/issues"
 
 [project.optional-dependencies]
-rpy2 = ["rpy2>=3,<3.5", "anndata2ri<2"]
+rpy2 = ["rpy2>=3.6,<4", "anndata2ri>=2.0,<3"]
 test = ["pytest", "pytest-icdiff", "pytest-cov", "pytest-benchmark", "codecov"]
 dev = ["build", "twine", "isort", "bump2version", "pre-commit"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst_parser", "sphinx-automodapi"]
