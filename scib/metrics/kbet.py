@@ -212,10 +212,12 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     :returns: kBET observed rejection rate
     """
     try:
-        import anndata2ri
         import rpy2.rinterface_lib.callbacks
         import rpy2.rinterface_lib.embedded
         import rpy2.robjects as ro
+        import rpy2.robjects.numpy2ri
+        from rpy2.robjects import pandas2ri
+        from rpy2.robjects.conversion import localconverter
 
         rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
     except ModuleNotFoundError as e:
@@ -226,38 +228,37 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         RLibraryNotFound(ex)
 
-    anndata2ri.activate()
+    with localconverter(
+        ro.default_converter + rpy2.robjects.numpy2ri.converter + pandas2ri.converter
+    ):
+        if verbose:
+            print("importing expression matrix")
+        ro.globalenv["data_mtrx"] = matrix
+        ro.globalenv["batch"] = batch
 
-    if verbose:
-        print("importing expression matrix")
-    ro.globalenv["data_mtrx"] = matrix
-    ro.globalenv["batch"] = batch
+        if verbose:
+            print("kBET estimation")
 
-    if verbose:
-        print("kBET estimation")
+        ro.globalenv["knn_graph"] = knn
+        ro.globalenv["k0"] = k0
+        ro.r(
+            "batch.estimate <- kBET("
+            "  data_mtrx,"
+            "  batch,"
+            "  knn=knn_graph,"
+            "  k0=k0,"
+            "  plot=FALSE,"
+            "  do.pca=FALSE,"
+            "  heuristic=FALSE,"
+            "  adapt=FALSE,"
+            f"  verbose={str(verbose).upper()}"
+            ")"
+        )
 
-    ro.globalenv["knn_graph"] = knn
-    ro.globalenv["k0"] = k0
-    ro.r(
-        "batch.estimate <- kBET("
-        "  data_mtrx,"
-        "  batch,"
-        "  knn=knn_graph,"
-        "  k0=k0,"
-        "  plot=FALSE,"
-        "  do.pca=FALSE,"
-        "  heuristic=FALSE,"
-        "  adapt=FALSE,"
-        f"  verbose={str(verbose).upper()}"
-        ")"
-    )
-
-    try:
-        score = ro.r("batch.estimate$summary$kBET.observed")[0]
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        print(f"Error computing kBET: {ex}\nSetting value to np.nan")
-        score = np.nan
-
-    anndata2ri.deactivate()
+        try:
+            score = ro.r("batch.estimate$summary$kBET.observed")[0]
+        except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+            print(f"Error computing kBET: {ex}\nSetting value to np.nan")
+            score = np.nan
 
     return score
