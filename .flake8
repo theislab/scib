@@ -1,0 +1,32 @@
+[flake8]
+max-line-length = 100
+ignore =
+    W503
+    W504
+    E501
+    E203
+    E231
+    E126
+    E262
+    E731
+    E741
+    D104
+    F401
+    D100
+    D107
+    B008
+    D105
+    E203
+    P101
+    RST304
+    C408
+exclude =
+    .git
+    __pycache__
+    build
+    docs/_build
+    dist
+per-file-ignores =
+    scib/*: D
+    tests/*: D
+    */__init__.py: F401
