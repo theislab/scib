@@ -30,8 +30,13 @@ def morans_i_score(adata, hvgs):
     """
     # Make sure that genes used for computation are non-constant
     hvg_data = adata[:, hvgs].X
-    hvg_data = hvg_data.A if issparse(hvg_data) else hvg_data
-    std_hvgs = np.asarray(hvg_data.std(axis=0)).squeeze()
+    if issparse(hvg_data):
+        mean = np.asarray(hvg_data.mean(axis=0)).ravel()
+        mean_sq = np.asarray(hvg_data.multiply(hvg_data).mean(axis=0)).ravel()
+        # std = sqrt(E[X^2] - (E[X])^2)
+        std_hvgs = np.sqrt(mean_sq - np.square(mean))
+    else:
+        std_hvgs = hvg_data.std(axis=0).squeeze()
     hvgs_used = np.array(hvgs)[std_hvgs > 1e-8]
 
     if len(hvgs) > len(hvgs_used):
