@@ -4,7 +4,7 @@ import pandas as pd
 from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
-from .clustering import opt_louvain
+from .clustering import cluster_optimal_resolution
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
@@ -298,16 +298,15 @@ def metrics(
 
     # clustering
     if nmi_ or ari_:
-        res_max, nmi_max, nmi_all = opt_louvain(
+        res_max, nmi_max, nmi_all = cluster_optimal_resolution(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
+            metric=nmi,
             use_rep=embed,
-            function=nmi,
-            plot=False,
-            verbose=verbose,
-            inplace=True,
             force=True,
+            verbose=verbose,
+            return_all=True,
         )
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
@@ -317,9 +316,9 @@ def metrics(
         print("NMI...")
         nmi_score = nmi(
             adata_int,
-            group1=cluster_key,
-            group2=label_key,
-            method=nmi_method,
+            cluster_key=cluster_key,
+            label_key=label_key,
+            implementation=nmi_method,
             nmi_dir=nmi_dir,
         )
     else:
@@ -327,7 +326,7 @@ def metrics(
 
     if ari_:
         print("ARI...")
-        ari_score = ari(adata_int, group1=cluster_key, group2=label_key)
+        ari_score = ari(adata_int, cluster_key=cluster_key, label_key=label_key)
     else:
         ari_score = np.nan
 
@@ -335,13 +334,13 @@ def metrics(
         print("Silhouette score...")
         # global silhouette coefficient
         asw_label = silhouette(
-            adata_int, group_key=label_key, embed=embed, metric=si_metric
+            adata_int, label_key=label_key, embed=embed, metric=si_metric
         )
         # silhouette coefficient per batch
         asw_batch = silhouette_batch(
             adata_int,
             batch_key=batch_key,
-            group_key=label_key,
+            label_key=label_key,
             embed=embed,
             metric=si_metric,
             return_all=False,

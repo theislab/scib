@@ -1,8 +1,10 @@
-class IntegrationMethodNotFound(ModuleNotFoundError):
-    def __init__(self, exception):
+class OptionalDependencyNotInstalled(ModuleNotFoundError):
+    def __init__(self, exception, module_name=None):
+        if module_name is None:
+            module_name = exception.name
         self.message = (
-            f"\n{exception.name} is not installed by default, "
-            "please make sure you install it manually."
+            f"\n'{module_name}' is an optional dependency and not installed by default. "
+            f"Please make sure you install it manually."
         )
         super().__init__(self.message)
 

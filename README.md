@@ -13,7 +13,7 @@ In [our study](https://doi.org/10.1038/s41592-021-01336-8), we benchmark 16 meth
 preprocessing steps leading to 68 methods combinations on 85 batches of gene expression and chromatin accessibility
 data.
 
-![Workflow](https://raw.githubusercontent.com/theislab/scib/main/figure.png)
+![Workflow](https://raw.githubusercontent.com/theislab/scib/main/docs/source/_static/figure.png)
 
 ## Resources
 
@@ -42,7 +42,7 @@ integration methods are in `scib.integration` or for short `scib.ig` and metrics
 
 The `scib` python package is available on [PyPI](https://pypi.org/) and can be installed through
 
-```shell
+```commandline
 pip install scib
 ```
 
@@ -50,6 +50,25 @@ Import `scib` in python:
 
 ```python
 import scib
+```
+
+### Optional Dependencies
+
+The package contains optional dependencies that need to be installed manually if needed.
+These include R dependencies (`rpy2`, `anndata2ri`) which require an installation of R integration method packages.
+All optional dependencies are listed under `setup.cfg` under `[options.extras_require]` and can be installed through pip.
+
+e.g. for installing `rpy2` and `bbknn` dependencies:
+```commandline
+pip install 'scib[rpy2,bbknn]'
+```
+
+Optional dependencies outside of python need to be installed separately.
+For instance, in order to run kBET, install it via the following command in R:
+
+```R
+install.packages('remotes')
+remotes::install_github('theislab/kBET')
 ```
 
 ## Metrics

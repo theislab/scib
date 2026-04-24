@@ -30,8 +30,15 @@ def check_sanity(adata, batch, hvg):
 
 
 def split_batches(adata, batch, hvg=None, return_categories=False):
+    """Split batches and preserve category information
+
+    :param adata:
+    :param batch: name of column in ``adata.obs``. The data type of the column must be of ``Category``.
+    :param hvg: list of highly variable genes
+    :param return_categories: whether to return the categories object of ``batch``
+    """
     split = []
-    batch_categories = adata.obs[batch].unique()
+    batch_categories = adata.obs[batch].cat.categories
     if hvg is not None:
         adata = adata[:, hvg]
     for i in batch_categories:
@@ -41,40 +48,32 @@ def split_batches(adata, batch, hvg=None, return_categories=False):
     return split
 
 
-def merge_adata(adata_list, sep="-"):
-    """
-    merge adatas from list and remove duplicated obs and var columns
+def merge_adata(*adata_list, **kwargs):
+    """Merge adatas from list while remove duplicated ``obs`` and ``var`` columns
+
+    :param adata_list: ``anndata`` objects to be concatenated
+    :param kwargs: arguments to be passed to ``anndata.AnnData.concatenate``
     """
 
     if len(adata_list) == 1:
         return adata_list[0]
 
-    adata = adata_list[0].concatenate(
-        *adata_list[1:], index_unique=None, batch_key="tmp"
-    )
-    del adata.obs["tmp"]
+    # Make sure that adatas do not contain duplicate columns
+    for _adata in adata_list:
+        for attr in ("obs", "var"):
+            df = getattr(_adata, attr)
+            dup_mask = df.columns.duplicated()
+            if dup_mask.any():
+                print(
+                    f"Deleting duplicated keys `{list(df.columns[dup_mask].unique())}` from `adata.{attr}`."
+                )
+                setattr(_adata, attr, df.loc[:, ~dup_mask])
 
-    if len(adata.obs.columns) > 0:
-        # if there is a column with separator
-        if sum(adata.obs.columns.str.contains(sep)) > 0:
-            columns_to_keep = [
-                name.split(sep)[1] == "0" for name in adata.var.columns.values
-            ]
-            clean_var = adata.var.loc[:, columns_to_keep]
-        else:
-            clean_var = adata.var
-
-    if len(adata.var.columns) > 0:
-        if sum(adata.var.columns.str.contains(sep)) > 0:
-            adata.var = clean_var.rename(
-                columns={name: name.split("-")[0] for name in clean_var.columns.values}
-            )
-
-    return adata
+    return anndata.AnnData.concatenate(*adata_list, **kwargs)
 
 
 def todense(adata):
     import scipy
 
     if isinstance(adata.X, scipy.sparse.csr_matrix):
-        adata.X = adata.X.todense()
+        adata.X = adata.X.toarray()

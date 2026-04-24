@@ -1,11 +1,11 @@
 import logging
+import re
 import tempfile
+from typing import Literal
 
-import anndata2ri
+import anndata as ad
 import numpy as np
-import rpy2.rinterface_lib.callbacks  # rpy2 for running R code
-import rpy2.rinterface_lib.embedded
-import rpy2.robjects as ro
+import pandas as pd
 import scanpy as sc
 import seaborn
 import seaborn as sns
@@ -13,10 +13,8 @@ from matplotlib import pyplot as plt
 from scipy import sparse
 
 from . import utils  # TODO: move util fcns (eg reader) elsewhere
-from .exceptions import RLibraryNotFound
+from .exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 
-# Ignore R warning messages
-rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
 seaborn.set_context("talk")
 
 
@@ -222,7 +220,14 @@ def plot_count_filter(
 
 
 # Normalisation
-def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
+def normalize(
+    adata,
+    min_mean=0.1,
+    log=True,
+    precluster=True,
+    cluster_method="louvain",
+    sparsify=True,
+):
     """Normalise counts using the ``scran`` normalisation method
 
     Using `computeSumFactors`_ function from `scran`_ package.
@@ -236,6 +241,16 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
     :param log: whether to performing log1p-transformation after normalisation
     """
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
+
     utils.check_adata(adata)
 
     # Check for 0 count cells
@@ -283,11 +298,18 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
     if precluster:
         # Preliminary clustering for differentiated normalisation
         adata_pp = adata.copy()
-        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6)
+        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
         sc.pp.log1p(adata_pp)
         sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
         sc.pp.neighbors(adata_pp)
-        sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+        if cluster_method == "louvain":
+            sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+        elif cluster_method == "leiden":
+            sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
+        else:
+            raise NotImplementedError(
+                "Choose `cluster_method` from 'louvain', 'leiden'"
+            )
 
         ro.globalenv["input_groups"] = adata_pp.obs["groups"]
         size_factors = ro.r(
@@ -325,11 +347,11 @@ def normalize(adata, sparsify=True, precluster=True, min_mean=0.1, log=True):
 
     # Free memory in R
     ro.r("rm(list=ls())")
-    ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
-    ro.r(
-        'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
-        "detach, character.only=TRUE, unload=TRUE))"
-    )
+    # ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
+    # ro.r(
+    #     'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
+    #     "detach, character.only=TRUE, unload=TRUE))"
+    # )
     ro.r("gc()")
 
     anndata2ri.deactivate()
@@ -359,8 +381,7 @@ def scale_batch(adata, batch):
     for i in split:
         sc.pp.scale(i)
 
-    adata_scaled = utils.merge_adata(split)
-
+    adata_scaled = utils.merge_adata(*split, batch_key=batch, index_unique=None)
     # Reorder to original obs_name ordering
     adata_scaled = adata_scaled[adata.obs_names]
 
@@ -408,9 +429,8 @@ def hvg_intersect(
     hvg_res = []
 
     for i in split:
-        sc.pp.filter_genes(
-            i, min_cells=1
-        )  # remove genes unexpressed (otherwise hvg might break)
+        # remove genes unexpressed (otherwise hvg might break)
+        sc.pp.filter_genes(i, min_cells=1)
         hvg_res.append(
             sc.pp.highly_variable_genes(
                 i, flavor=flavor, n_top_genes=n_hvg, n_bins=n_bins, inplace=False
@@ -552,10 +572,11 @@ def reduce_data(
     n_bins=20,
     pca=True,
     pca_comps=50,
+    svd_solver="arpack",
     overwrite_hvg=True,
     neighbors=True,
     use_rep="X_pca",
-    umap=True,
+    umap=False,
 ):
     """Apply feature selection and dimensionality reduction steps.
 
@@ -615,7 +636,7 @@ def reduce_data(
             adata,
             n_comps=pca_comps,
             use_highly_variable=use_hvgs,
-            svd_solver="arpack",
+            svd_solver=svd_solver,
             return_info=True,
         )
 
@@ -628,8 +649,24 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-# Cell Cycle
-def score_cell_cycle(adata, organism="mouse"):
+def score_cell_cycle(
+    adata: ad.AnnData,
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ] = "mouse",
+):
     """Score cell cycle score given an organism
 
     Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
@@ -639,41 +676,109 @@ def score_cell_cycle(adata, organism="mouse"):
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
 
-    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
-    well conserved across species.
+    See more on gene sets in :func:`~scib.preprocessing.get_cell_cycle_genes`.
+
+    This function picks gene IDs or gene names of the cell cycle genes, depending on what is present in the adata object.
 
     :param adata: anndata object containing
     :param organism: organism of gene names to match cell cycle genes
     :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
-    import pathlib
 
-    root = pathlib.Path(__file__).parent
+    def filter_genes(adata: ad.AnnData, df: pd.DataFrame, columns: list = None):
+        if columns is None:
+            columns = ["gene_name", "gene_id"]
+        elif isinstance(columns, str):
+            columns = [columns]
 
-    cc_files = {
-        "mouse": [
-            root / "resources/s_genes_tirosh.txt",
-            root / "resources/g2m_genes_tirosh.txt",
-        ],
-        "human": [
-            root / "resources/s_genes_tirosh_hm.txt",
-            root / "resources/g2m_genes_tirosh_hm.txt",
-        ],
+        n_genes = 0
+        for col in columns:
+            _genes = [g for g in df[col] if g in adata.var_names]
+            if len(_genes) > n_genes:  # pick largest overlapping set
+                n_genes = len(_genes)
+                genes = _genes
+
+        if n_genes == 0:
+            # pick random genes for error message
+            rand_genes = np.random.choice(adata.var_names, 10)
+            raise ValueError(
+                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}\n cell cycle genes:\n {df}"
+            )
+        return genes
+
+    # get gene sets
+    gene_map = get_cell_cycle_genes(organism)
+
+    # filter gene sets across data
+    s_genes = filter_genes(adata, gene_map.query("phase == 'S'"))
+    g2m_genes = filter_genes(adata, gene_map.query("phase == 'G2/M'"))
+
+    # compute scores
+    sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
+
+
+def get_cell_cycle_genes(
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ]
+):
+    """
+    Get cell cycle genes for a given organism
+
+    Tirosh et al. cell cycle marker genes downloaded from
+    https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
+
+    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
+    well conserved across species
+
+    For organisms other than human or mouse, orthlogy-mapped datasets from Tinyaltas were used:
+    https://github.com/hbc/tinyatlas/tree/master/cell_cycle
+
+    :param organism: organism of gene names to match cell cycle genes
+    :param identifier: gene identifier to use. options: "gene_name", "gene_id"
+    """
+    from pathlib import Path
+
+    organism_map = {
+        "mouse": "mus_musculus",
+        "mus musculus": "mus_musculus",
+        "human": "homo_sapiens",
+        "homo sapiens": "homo_sapiens",
+        "c_elegans": "caenorhabditis_elegans",
+        "caenorhabditis elegans": "caenorhabditis_elegans",
+        "c elegans": "caenorhabditis_elegans",
+        "zebrafish": "danio_rerio",
+        "danio rerio": "danio_rerio",
     }
+    # additionally map each key to itself to make them available as well
+    organism_map |= {x: x for x in organism_map.values()}
 
-    with open(cc_files[organism][0]) as f:
-        s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
-    with open(cc_files[organism][1]) as f:
-        g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+    # get lower-case organism name
+    organism = organism.lower()
 
-    if (len(s_genes) == 0) or (len(g2m_genes) == 0):
-        rand_choice = np.random.randint(1, adata.n_vars, 10)
-        rand_genes = adata.var_names[rand_choice].tolist()
-        raise ValueError(
-            f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
-        )
+    assert (
+        organism in organism_map
+    ), f"organism '{organism}' not supported. Supported organisms: {list(organism_map.keys())}"
 
-    sc.tl.score_genes_cell_cycle(adata, s_genes, g2m_genes)
+    # get organism name needed for retrieving correct file
+    organism = organism_map[organism]
+
+    # read gene sets
+    gene_file = Path(__file__).parent / "resources" / f"cell_cycle_genes_{organism}.tsv"
+    assert gene_file.exists(), f"{gene_file} doesn't exist"
+    return pd.read_table(gene_file)
 
 
 def save_seurat(adata, path, batch, hvgs=None):
@@ -689,7 +794,15 @@ def save_seurat(adata, path, batch, hvgs=None):
     :param batch: key in ``adata.obs`` that holds batch assigments
     :param hvgs: list of highly variable genes
     """
-    import re
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     try:
         ro.r("library(Seurat)")
@@ -734,6 +847,15 @@ def read_seurat(path):
 
     :param path: file path to saved file
     """
+    try:
+        import anndata2ri
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
 
     try:
         ro.r("library(Seurat)")
@@ -766,9 +888,17 @@ def read_conos(inPath, dir_path=None):
     :param inPath:
     :param dir_path:
     """
+    try:
+        import rpy2.rinterface_lib.callbacks
+        import rpy2.rinterface_lib.embedded
+        import rpy2.robjects as ro
+
+        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e)
+
     from shutil import rmtree
 
-    import pandas as pd
     from scipy.io import mmread
 
     if dir_path is None:

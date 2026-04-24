@@ -9,9 +9,7 @@ try:
     )
     sys.stdout.write("Compile knn_graph C++ code for LISI metric...\n")
     sys.stdout.flush()
-    subprocess.check_output(
-        cmd, stderr=subprocess.STDOUT, shell=True, universal_newlines=True
-    )
+    subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
 except subprocess.CalledProcessError as exc:
     sys.stdout.write(
         f"Failed to compile knn_graph for LISI - skipping...\n{exc.returncode}\n{exc.output}"

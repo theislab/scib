@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def assert_near_exact(x, y, diff=1e-5):
-    assert abs(x - y) <= diff
+    assert abs(x - y) <= diff, f"{x} != {y} with error margin {diff}"
 
 
 def create_if_missing(dir):

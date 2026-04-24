@@ -1,7 +1,9 @@
+.benchmarks/
 scratch/
 
 htmlcov/
-.coverage
+coverage.xml
+.coverage*
 **.h5ad
 *test_output*
 
