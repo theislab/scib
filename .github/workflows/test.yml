@@ -87,6 +87,11 @@ jobs:
             with:
                 r-version: ${{ matrix.r }}
 
+        -   name: Set R library path for rpy2
+            run: |
+                R_HOME=$(R RHOME)
+                echo "LD_LIBRARY_PATH=$R_HOME/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
         -   name: Install dependencies
             env:
                 GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
