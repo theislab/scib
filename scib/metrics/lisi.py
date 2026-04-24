@@ -276,9 +276,8 @@ def lisi_graph_py(
 
         # call knn-graph computation in Cpp
         root = pathlib.Path(scib.__file__).parent  # get current root directory
-        cpp_file_path = (
-            root / "knn_graph/knn_graph.o"
-        )  # create POSIX path to file to execute compiled cpp-code
+        # create POSIX path to file to execute compiled cpp-code
+        cpp_file_path = root / "knn_graph/knn_graph.o"
         # comment: POSIX path needs to be converted to string - done below with 'as_posix()'
         # create evenly split chunks if n_obs is divisible by n_chunks (doesn't really make sense on 2nd thought)
         args_int = [

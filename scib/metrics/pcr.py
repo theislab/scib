@@ -21,22 +21,32 @@ def pcr_comparison(
     """Principal component regression score
 
     Compare the explained variance before and after integration using :func:`~scib.metrics.pc_regression`.
-    Return either the difference of variance contribution before and after integration
-    or a score between 0 and 1 (``scaled=True``) with 0 if the variance contribution hasn't
-    changed. The larger the score, the more different the variance contributions are before
-    and after integration.
+    Return either the raw difference in variance contribution before and after integration
+    or a scaled score (``scale=True``).
 
-    :param adata_pre: anndata object before integration
-    :param adata_post: anndata object after integration
+    With ``scale=True``, the score is computed as
+    ``(pcr_before - pcr_after) / pcr_before`` and clipped to 0 if it becomes negative
+    (i.e. when variance contribution increases after integration).
+
+    :param adata_pre: Anndata object before integration
+    :param adata_post: Anndata object after integration
     :param covariate: Key for ``adata_post.obs`` column to regress against
     :param embed: Embedding to use for principal component analysis.
         If None, use the full expression matrix (``adata_post.X``), otherwise use the embedding
         provided in ``adata_post.obsm[embed]``.
     :param n_comps: Number of principal components to compute
-    :param recompute_pca: Whether to recompute PCA with default settings
-    :param linreg_method: Method for linear regression, either 'sklearn' or 'numpy'
-    :param scale: If True, scale score between 0 and 1 (default)
-    :param verbose:
+    :param linreg_method: Method for linear regression passed to
+        :func:`~scib.metrics.pc_regression` (``'sklearn'``, ``'numpy'``, or
+        ``'sequential'``).
+    :param recompute_pca: Whether to recompute PCA. If ``False`` (default), use existing PCA
+        stored in ``adata.obsm["X_pca"]`` and ``adata.uns["pca"]["variance"]`` if available.
+    :param scale: If ``True`` (default), scale score between 0 and 1, where 0 means no change
+        in variance contribution after integration. If ``False``, return the raw difference
+        of variance contributions (post minus pre).
+    :param verbose: If ``True``, print progress information
+    :param n_threads: Number of threads to pass to the selected regression backend
+        (for example BLAS/OpenMP thread limits for ``'numpy'`` and estimator-level
+        parallelism where supported).
     :return:
         Difference of variance contribution of PCR (scaled between 0 and 1 by default)
 
@@ -213,7 +223,17 @@ def pc_regression(
     :param pca_var: Iterable of variances for ``n_comps`` components.
         If ``pca_sd`` is not ``None``, it is assumed that the matrix contains PC,
         otherwise PCA is computed on ``data``.
+    :param linreg_method: Regression backend. One of ``'sklearn'``, ``'numpy'``, or ``'sequential'``.
+
+        - ``'sequential'`` calls :func:`~scib.metrics.pcr.linreg_sklearn`, the
+            original implementation that fits one model per PC and is typically
+            much slower.
+        - ``'sklearn'`` calls :func:`~scib.metrics.pcr.linreg_multiple_sklearn`,
+            a multi-output linear regression backend.
+        - ``'numpy'`` calls :func:`~scib.metrics.pcr.linreg_multiple_np`, a
+            vectorized numpy backend with a categorical one-way ANOVA shortcut.
     :param svd_solver:
+    :param n_threads: Number of threads passed to the selected regression backend.
     :param verbose:
     :return:
         Variance contribution of regression
@@ -225,14 +245,14 @@ def pc_regression(
             f"invalid type: {data.__class__} is not a numpy array or sparse matrix"
         )
 
-    if linreg_method == "sklearn":
-        linreg_method = linreg_multiple_sklearn
-    elif linreg_method == "numpy":
-        linreg_method = linreg_multiple_np
-    elif linreg_method == "sequential":
-        linreg_method = linreg_sklearn
-    else:
+    linreg_methods = {
+        "sklearn": linreg_multiple_sklearn,
+        "numpy": linreg_multiple_np,
+        "sequential": linreg_sklearn,
+    }
+    if linreg_method not in linreg_methods:
         raise ValueError(f"invalid linreg_method: {linreg_method}")
+    linreg_method = linreg_methods[linreg_method]
 
     # perform PCA if no variance contributions are given
     if pca_var is None:
@@ -264,14 +284,6 @@ def pc_regression(
     if verbose:
         print("fit regression on PCs")
 
-    # handle categorical values
-    if pd.api.types.is_numeric_dtype(covariate):
-        covariate = np.array(covariate).reshape(-1, 1)
-    else:
-        if verbose:
-            print("one-hot encode categorical values")
-        covariate = pd.get_dummies(covariate).to_numpy()
-
     # fit linear model for n_comps PCs
     if verbose:
         print(f"Use {n_threads} threads for regression...")
@@ -285,7 +297,58 @@ def pc_regression(
     return R2Var
 
 
+def _to_covariate_2d(covariate):
+    """Return covariate as a 2D ndarray with shape (n_samples, n_covariates)."""
+    if isinstance(covariate, pd.Series):
+        return covariate.to_numpy(copy=False)[:, None]
+    if isinstance(covariate, pd.DataFrame):
+        return covariate.to_numpy(copy=False)
+
+    covariate_arr = np.asarray(covariate)
+    if covariate_arr.ndim == 1:
+        covariate_arr = covariate_arr[:, None]
+    return covariate_arr
+
+
+def _encode_covariate(covariate, as_sparse=False):
+    """Encode covariates for regression backends.
+
+    :param as_sparse: Return a scipy sparse matrix for numeric and categorical
+        covariates when ``True``. Otherwise return a dense numpy array.
+    """
+    covariate_arr = _to_covariate_2d(covariate)
+
+    # Use a single dtype check for all input containers (Series, DataFrame, ndarray).
+    is_numeric = (
+        pd.DataFrame(covariate_arr).dtypes.map(pd.api.types.is_numeric_dtype).all()
+    )
+
+    if is_numeric:
+        return sparse.csr_matrix(covariate_arr) if as_sparse else covariate_arr
+
+    if as_sparse:
+        from sklearn.preprocessing import OneHotEncoder
+
+        try:
+            # Drop one reference level since downstream linear models fit an intercept.
+            # This avoids a rank-deficient design matrix (dummy-variable trap) and
+            # tends to scale better as category count increases.
+            encoder = OneHotEncoder(
+                sparse_output=True, handle_unknown="ignore", drop="first"
+            )
+        except TypeError:
+            encoder = OneHotEncoder(sparse=True, handle_unknown="ignore", drop="first")
+        return encoder.fit_transform(covariate_arr)
+    return pd.get_dummies(pd.DataFrame(covariate_arr), drop_first=True).to_numpy()
+
+
 def linreg_sklearn(X_pca, covariate, n_jobs=None):
+    """Sequential sklearn regression backend for PCR.
+
+    Fits one ``LinearRegression`` model per principal component and returns one
+    :math:`R^2` value per component. This is the original implementation used by
+    ``linreg_method='sequential'`` in :func:`~scib.metrics.pc_regression`.
+    """
     from concurrent.futures import ThreadPoolExecutor
 
     from sklearn.linear_model import LinearRegression
@@ -293,10 +356,12 @@ def linreg_sklearn(X_pca, covariate, n_jobs=None):
     if n_jobs is None:
         n_jobs = 1
 
+    X = _encode_covariate(covariate, as_sparse=False)
+
     def compute_r2(pc):
         model = LinearRegression()
-        model.fit(covariate, pc)
-        return model.score(covariate, pc)
+        model.fit(X, pc)
+        return model.score(X, pc)
 
     # Parallelizing with ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=n_jobs) as executor:
@@ -315,15 +380,16 @@ def linreg_np(X, y):
 
 
 def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
+    """Multi-output sklearn regression backend for PCR.
+
+    Encodes the covariate once and fits a single multi-output
+    ``LinearRegression`` model against all PCs.
+    """
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import r2_score
 
-    X = covariate
+    X = _encode_covariate(covariate, as_sparse=True)
     Y = X_pca
-
-    if not sparse.issparse(X):
-        X = sparse.csr_matrix(X)
-        # X = X.toarray()
 
     model = LinearRegression(fit_intercept=True, n_jobs=n_jobs)
     model.fit(X, Y)
@@ -332,18 +398,121 @@ def linreg_multiple_sklearn(X_pca, covariate, n_jobs=None):
 
 
 def linreg_multiple_np(X_pca, covariate, n_jobs=None):
+    """Compute per-PC :math:`R^2` with a dense numpy regression backend.
+
+    Execution has two paths:
+        1) If exactly one non-numeric covariate is provided, use a fast
+           one-way ANOVA formulation based on between-group variance. This
+           is automatically used for one non-numeric covariate.
+        2) Otherwise, run dense least-squares regression using an intercept
+           and pseudo-inverse.
+
+    One-way ANOVA path:
+        For a single categorical covariate, compute per-PC
+        ``R2 = SS_between / SS_total`` where
+        ``SS_between = sum_g n_g * (mu_g - mu)^2`` and
+        ``SS_total = sum_i (y_i - mu)^2``.
+        This is algebraically equivalent to linear regression with categorical
+        indicators and an intercept, but avoids explicit design-matrix solves.
+
+    Thread control:
+        If ``n_jobs`` is provided and ``threadpoolctl`` is installed,
+        BLAS/LAPACK thread pools are limited for the full function scope
+        (including shortcut checks and dense regression). This keeps runtime
+        behavior reproducible across environments and avoids BLAS oversubscription.
+
+    Used by ``linreg_method='numpy'`` in :func:`~scib.metrics.pc_regression`.
+
+    :param n_jobs: Preferred number of BLAS/LAPACK threads for numpy linalg calls.
+        If ``None``, keep the runtime default. If ``threadpoolctl`` is unavailable,
+        this hint is ignored.
     """
-    :param n_jobs: Number of threads ignored
-    """
-    X = covariate
-    Y = X_pca
 
-    X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
-    beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
-    Y_pred = X @ beta
+    def _fit_numpy_regression(X, Y):
+        X = np.hstack([np.ones((X.shape[0], 1)), X])  # fit with intercept
+        beta = np.linalg.pinv(X.T @ X) @ X.T @ Y
+        Y_pred = X @ beta
 
-    # Compute r2 scores
-    ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
-    ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
+        ss_total = np.sum((Y - Y.mean(axis=0)) ** 2, axis=0)
+        ss_residual = np.sum((Y - Y_pred) ** 2, axis=0)
 
-    return 1 - ss_residual / ss_total
+        return 1 - ss_residual / ss_total
+
+    def _fit_one_way_anova(covariate, Y):
+        """Compute per-target R2 from one-way ANOVA decomposition."""
+        if isinstance(covariate, pd.Series) and isinstance(
+            covariate.dtype, pd.CategoricalDtype
+        ):
+            # Reuse existing categorical encoding directly when available.
+            codes = covariate.cat.codes.to_numpy(copy=False)
+            n_categories = len(covariate.cat.categories)
+        else:
+            categories = pd.Categorical(covariate)
+            n_categories = len(categories.categories)
+            codes = categories.codes
+
+        # Pandas categorical missing values are encoded as -1 in cat.codes.
+        if np.any(codes < 0):
+            raise ValueError(
+                "linreg_method='numpy' does not support missing covariate values"
+            )
+
+        if n_categories <= 1:
+            return np.zeros(Y.shape[1], dtype=Y.dtype)
+
+        mean_global = Y.mean(axis=0, keepdims=True)
+        counts = np.bincount(codes, minlength=n_categories).astype(Y.dtype)
+
+        # Sparse one_hot (n_categories × n_cells) @ Y  →  per-group sums for all PCs at once.
+        # Equivalent to a one-hot encoding but stored as sparse to avoid the n×k dense matrix.
+        one_hot = sparse.csr_matrix(
+            (
+                np.ones(len(codes), dtype=Y.dtype),  # one non-zero per cell
+                (
+                    codes,  # rows=group
+                    np.arange(len(codes), dtype=np.int32),  # cols=cell
+                ),
+            ),
+            shape=(n_categories, Y.shape[0]),
+        )
+        sums = one_hot @ Y  # shape: (n_categories, n_pcs)
+
+        # Divide in-place: sums becomes per-group means, avoiding a second allocation.
+        sums /= counts[:, None]
+        ss_between = np.sum(counts[:, None] * (sums - mean_global) ** 2, axis=0)
+        # Computational formula avoids a full (n_cells × n_pcs) copy:
+        #   Σ(y - μ)² = Σy² - n·μ²
+        ss_total = np.einsum("ij,ij->j", Y, Y) - Y.shape[0] * mean_global.ravel() ** 2
+        return np.divide(
+            ss_between,
+            ss_total,
+            out=np.zeros_like(ss_between),
+            where=ss_total > 0,
+        )
+
+    from contextlib import nullcontext
+
+    threadpool_context = nullcontext()
+    if n_jobs is not None:
+        try:
+            from threadpoolctl import threadpool_limits
+
+            threadpool_context = threadpool_limits(limits=n_jobs)
+        except ImportError:
+            pass
+
+    with threadpool_context:
+        # a Series[category] with numeric-valued categories must still use ANOVA.
+        if isinstance(covariate, pd.Series) and not pd.api.types.is_numeric_dtype(
+            covariate
+        ):
+            return _fit_one_way_anova(covariate, X_pca)
+
+        covariate = _to_covariate_2d(covariate)
+
+        # Fallback for non-numeric ndarray/list inputs (e.g. object dtype strings)
+        if covariate.shape[1] == 1 and not np.issubdtype(covariate.dtype, np.number):
+            return _fit_one_way_anova(pd.Series(covariate[:, 0]), X_pca)
+
+        X = _encode_covariate(covariate, as_sparse=False)
+        return _fit_numpy_regression(X, X_pca)
