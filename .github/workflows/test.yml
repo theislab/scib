@@ -73,7 +73,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                r: ['4.3', '4.5']
+                r: ['4.3', release]
                 python: ['3.11']
                 os: [ubuntu-latest]
         continue-on-error: false
