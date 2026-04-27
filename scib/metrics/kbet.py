@@ -159,7 +159,7 @@ def kBET(
             # check which components are small
             comp_size_thresh = 3 * k0
             idx_nonan = np.flatnonzero(
-                np.in1d(labs, comp_size[comp_size >= comp_size_thresh].index)
+                np.isin(labs, comp_size[comp_size >= comp_size_thresh].index)
             )
 
             # check if 75% of all cells can be used for kBET run
