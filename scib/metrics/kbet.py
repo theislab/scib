@@ -1,12 +1,9 @@
-import logging
-
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy.sparse
 
-from ..exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
-from ..utils import check_adata, check_batch
+from ..utils import _rpy2_import, _rpy2_init, check_adata, check_batch
 from .utils import NeighborsError, diffusion_conn, diffusion_nn
 
 
@@ -68,23 +65,13 @@ def kBET(
         scib.me.kBET(adata, batch_key="batch", label_key="celltype", type_="knn")
 
     """
-    try:
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
-
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
+    # initialize rpy2 (works across different rpy2 versions)
+    ro = _rpy2_init()
+    _rpy2_import(ro, "kBET")
 
     check_adata(adata)
     check_batch(batch_key, adata.obs)
     check_batch(label_key, adata.obs)
-
-    try:
-        ro.r("library(kBET)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as e:
-        raise OptionalDependencyNotInstalled(e, "kBET")
 
     # compute connectivities for non-knn type data integrations
     # and increase neighborhoods for knn type data integrations
@@ -181,6 +168,7 @@ def kBET(
                         + 1,  # nn_index in python is 0-based and 1-based in R
                         verbose=verbose,
                         k0=k0,
+                        ro=ro,
                     )
                 except NeighborsError:
                     print("Not enough neighbours")
@@ -201,7 +189,7 @@ def kBET(
     return 1 - final_score if scaled else final_score
 
 
-def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
+def kBET_single(matrix, batch, k0=10, knn=None, verbose=False, ro=None):
     """Single kBET run
 
     Compute k-nearest neighbour batch effect test (kBET) score as described in
@@ -211,25 +199,16 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
     :param batch: series or list of batch assignments
     :returns: kBET observed rejection rate
     """
-    try:
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
-        import rpy2.robjects.numpy2ri
-        from rpy2.robjects import pandas2ri
-        from rpy2.robjects.conversion import localconverter
-
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
-
-    try:
-        ro.r("library(kBET)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        RLibraryNotFound(ex)
+    # initialize rpy2 and conversions
+    if ro is None:
+        ro = _rpy2_init()
+    _rpy2_import(ro, "kBET")
+    from rpy2.rinterface_lib.embedded import RRuntimeError
+    from rpy2.robjects import numpy2ri, pandas2ri
+    from rpy2.robjects.conversion import localconverter
 
     with localconverter(
-        ro.default_converter + rpy2.robjects.numpy2ri.converter + pandas2ri.converter
+        ro.default_converter + numpy2ri.converter + pandas2ri.converter
     ):
         if verbose:
             print("importing expression matrix")
@@ -257,7 +236,7 @@ def kBET_single(matrix, batch, k0=10, knn=None, verbose=False):
 
         try:
             score = ro.r("batch.estimate$summary$kBET.observed")[0]
-        except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
+        except RRuntimeError as ex:
             print(f"Error computing kBET: {ex}\nSetting value to np.nan")
             score = np.nan
 
