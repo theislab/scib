@@ -1,6 +1,10 @@
 import numpy as np
 import scanpy as sc
-from scanpy._utils import deprecated_arg_names
+
+try:
+    from scanpy._utils import renamed_arg
+except ImportError:
+    from .._package_tools import renamed_arg
 
 from ..utils import split_batches
 
@@ -36,7 +40,7 @@ def precompute_hvg_batch(adata, batch, features, n_hvg=500, save_hvg=False):
         return hvg_dir
 
 
-@deprecated_arg_names({"batch": "batch_key"})
+@renamed_arg("batch", "batch_key")
 def hvg_overlap(adata_pre, adata_post, batch_key, n_hvg=500, verbose=False):
     """Highly variable gene overlap
 

@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 from sklearn.metrics import f1_score, silhouette_samples
 
@@ -9,8 +11,11 @@ def isolated_labels_f1(
     label_key,
     batch_key,
     embed,
+    cluster_key="iso_label",
+    resolutions=None,
     iso_threshold=None,
     verbose=True,
+    **kwargs,
 ):
     """Isolated label score F1
 
@@ -25,11 +30,17 @@ def isolated_labels_f1(
     :param iso_threshold: max number of batches per label for label to be considered as
         isolated, if iso_threshold is integer.
         If ``iso_threshold=None``, consider minimum number of batches that labels are present in
+    :param cluster_key: clustering key prefix to look or recompute for each resolution in resolutions.
+        Is passed to :func:`~scib.metrics.cluster_optimal_resolution`
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param verbose:
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return: Mean of F1 scores over all isolated labels
 
     This function performs clustering on a kNN graph and can be applied to all integration output types.
-    For this metric the ``adata`` needs a kNN graph.
+    For this metric the ``adata`` needs a kNN graph and can optionally make use of precomputed clustering (see example below).
+    The precomputed clusters must be saved under ``adata.obs[cluster_key]`` as well as ``adata.obs[f"{cluster_key}_{resolution}"]`` for all resolutions.
+
     See :ref:`preprocessing` for more information on preprocessing.
 
     **Examples**
@@ -49,6 +60,13 @@ def isolated_labels_f1(
         # knn output
         scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype")
 
+        # use precomputed clustering
+        scib.cl.cluster_optimal_resolution(adata, cluster_key="iso_label", label_key="celltype")
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype")
+
+        # overwrite existing clustering
+        scib.me.isolated_labels_f1(adata, batch_key="batch", label_key="celltype", force=True)
+
     """
     return isolated_labels(
         adata,
@@ -56,8 +74,11 @@ def isolated_labels_f1(
         batch_key=batch_key,
         embed=embed,
         cluster=True,
+        cluster_key=cluster_key,
+        resolutions=resolutions,
         iso_threshold=iso_threshold,
         verbose=verbose,
+        **kwargs,
     )
 
 
@@ -84,6 +105,7 @@ def isolated_labels_asw(
         If ``iso_threshold=None``, consider minimum number of batches that labels are present in
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return: Mean of ASW over all isolated labels
 
     The function requires an embedding to be stored in ``adata.obsm`` and can only be applied to feature and embedding
@@ -125,10 +147,13 @@ def isolated_labels(
     batch_key,
     embed,
     cluster=True,
+    cluster_key="iso_label",
+    resolutions=None,
     iso_threshold=None,
     scale=True,
     return_all=False,
     verbose=True,
+    **kwargs,
 ):
     """Isolated label score
 
@@ -146,9 +171,12 @@ def isolated_labels(
     :param iso_threshold: max number of batches per label for label to be considered as
         isolated, if iso_threshold is integer.
         If iso_threshold=None, consider minimum number of batches that labels are present in
+    :param cluster_key: name of key to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param return_all: return scores for all isolated labels instead of aggregated mean
     :param verbose:
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return:
         Mean of scores for each isolated label
         or dictionary of scores for each label if `return_all=True`
@@ -158,6 +186,8 @@ def isolated_labels(
     isolated_labels = get_isolated_labels(
         adata, label_key, batch_key, iso_threshold, verbose
     )
+    if verbose:
+        print(f"isolated labels: {isolated_labels}")
 
     # 2. compute isolated label score for each isolated label
     scores = {}
@@ -171,9 +201,12 @@ def isolated_labels(
             label_key,
             label,
             embed,
-            cluster,
+            cluster_key=cluster_key,
+            cluster=cluster,
             scale=scale,
             verbose=verbose,
+            resolutions=resolutions,
+            **kwargs,
         )
         scores[label] = score
     scores = pd.Series(scores)
@@ -189,10 +222,12 @@ def score_isolated_label(
     label_key,
     isolated_label,
     embed,
+    cluster_key,
     cluster=True,
-    iso_label_key="iso_label",
+    resolutions=None,
     scale=True,
     verbose=False,
+    **kwargs,
 ):
     """
     Compute label score for a single label
@@ -203,10 +238,12 @@ def score_isolated_label(
     :param embed: embedding to be passed to opt_louvain, if adata.uns['neighbors'] is missing
     :param cluster: if True, compute clustering-based F1 score, otherwise compute
         silhouette score on grouping of isolated label vs all other remaining labels
-    :param iso_label_key: name of key to use for cluster assignment for F1 score or
+    :param cluster_key: name of key to use for cluster assignment for F1 score or
         isolated-vs-rest assignment for silhouette score
+    :param resolutions: list of resolutions to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :param scale: Whether to scale the score between 0 and 1. Only relevant for ASW scores.
     :param verbose:
+    :params \\**kwargs: additional arguments to be passed to :func:`~scib.metrics.cluster_optimal_resolution`
     :return:
         Isolated label score
     """
@@ -233,13 +270,15 @@ def score_isolated_label(
         cluster_optimal_resolution(
             adata,
             label_key,
-            cluster_key=iso_label_key,
+            cluster_key=cluster_key,
             use_rep=embed,
             metric=max_f1,
             metric_kwargs={"label": isolated_label},
-            verbose=False,
+            resolutions=resolutions,
+            force=False,
+            verbose=verbose,
         )
-        score = max_f1(adata, label_key, iso_label_key, isolated_label, argmax=False)
+        score = max_f1(adata, label_key, cluster_key, isolated_label, argmax=False)
     else:
         # AWS score between isolated label vs rest
         if "silhouette_temp" not in adata.obs:
@@ -274,6 +313,13 @@ def get_isolated_labels(adata, label_key, batch_key, iso_threshold, verbose):
     # threshold for determining when label is considered isolated
     if iso_threshold is None:
         iso_threshold = batch_per_lab.min().tolist()[0]
+
+    if iso_threshold == adata.obs[batch_key].nunique():
+        warnings.warn(
+            "iso_threshold is equal to number of batches in data, no isolated labels will be found",
+            stacklevel=2,
+        )
+        return []
 
     if verbose:
         print(f"isolated labels: no more than {iso_threshold} batches per label")

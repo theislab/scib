@@ -4,12 +4,13 @@ import pandas as pd
 from ..utils import check_adata, check_batch
 from .ari import ari
 from .cell_cycle import cell_cycle
-from .clustering import opt_louvain
+from .clustering import cluster_optimal_resolution
 from .graph_connectivity import graph_connectivity
 from .highly_variable_genes import hvg_overlap
 from .isolated_labels import isolated_labels
 from .kbet import kBET
 from .lisi import clisi_graph, ilisi_graph
+from .morans_i import morans_i
 from .nmi import nmi
 from .pcr import pcr_comparison
 from .silhouette import silhouette, silhouette_batch
@@ -67,6 +68,7 @@ def metrics_slim(adata, adata_int, batch_key, label_key, **kwargs):
         + ARI cluster/label :func:`~scib.metrics.ari`
         + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
         + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
+        + Moran's I autocorrelation :func:`~scib.metrics.morans_i`
 
     :Batch correction:
         + Graph connectivity :func:`~scib.metrics.graph_connectivity`
@@ -101,6 +103,7 @@ def metrics_slim(adata, adata_int, batch_key, label_key, **kwargs):
         pcr_=True,
         isolated_labels_f1_=True,
         trajectory_=True,
+        morans_i_=True,
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
@@ -121,6 +124,7 @@ def metrics_all(adata, adata_int, batch_key, label_key, **kwargs):
         + Cell cycle conservation :func:`~scib.metrics.cell_cycle`
         + cLISI (cell type Local Inverse Simpson's Index) :func:`~scib.metrics.clisi_graph`
         + Trajectory conservation :func:`~scib.metrics.trajectory_conservation`
+        + Moran's I autocorrelation :func:`~scib.metrics.morans_i`
 
     :Batch correction:
         + Graph connectivity :func:`~scib.metrics.graph_connectivity`
@@ -159,6 +163,7 @@ def metrics_all(adata, adata_int, batch_key, label_key, **kwargs):
         pcr_=True,
         isolated_labels_f1_=True,
         trajectory_=True,
+        morans_i_=True,
         nmi_=True,
         ari_=True,
         cell_cycle_=True,
@@ -193,6 +198,7 @@ def metrics(
     n_isolated=None,
     graph_conn_=False,
     trajectory_=False,
+    morans_i_=False,
     kBET_=False,
     lisi_graph_=False,
     ilisi_=False,
@@ -265,6 +271,8 @@ def metrics(
         whether to compute graph connectivity score using :func:`~scib.metrics.graph_connectivity`
     :param `trajectory_`:
         whether to compute trajectory score using :func:`~scib.metrics.trajectory_conservation`
+    :param `morans_i_`:
+        whether to compute Moran's I score using :func:`~scib.metrics.morans_i`
     :param `kBET_`:
         whether to compute kBET score using :func:`~scib.metrics.kBET`
     :param `lisi_graph_`:
@@ -290,16 +298,15 @@ def metrics(
 
     # clustering
     if nmi_ or ari_:
-        res_max, nmi_max, nmi_all = opt_louvain(
+        res_max, nmi_max, nmi_all = cluster_optimal_resolution(
             adata_int,
             label_key=label_key,
             cluster_key=cluster_key,
+            metric=nmi,
             use_rep=embed,
-            function=nmi,
-            plot=False,
-            verbose=verbose,
-            inplace=True,
             force=True,
+            verbose=verbose,
+            return_all=True,
         )
         if cluster_nmi is not None:
             nmi_all.to_csv(cluster_nmi, header=False)
@@ -465,6 +472,16 @@ def metrics(
     else:
         trajectory_score = np.nan
 
+    if morans_i_:
+        print("Moran's I score...")
+        morans_i_score = morans_i(
+            adata,
+            adata_int,
+            batch_key=batch_key,
+        )
+    else:
+        morans_i_score = np.nan
+
     results = {
         "NMI_cluster/label": nmi_score,
         "ARI_cluster/label": ari_score,
@@ -480,6 +497,7 @@ def metrics(
         "cLISI": clisi,
         "hvg_overlap": hvg_score,
         "trajectory": trajectory_score,
+        "morans_i": morans_i_score,
     }
 
     return pd.DataFrame.from_dict(results, orient="index")

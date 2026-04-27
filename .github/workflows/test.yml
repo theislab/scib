@@ -5,6 +5,7 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
+    workflow_dispatch:
 
 jobs:
     lint:
@@ -14,7 +15,7 @@ jobs:
         -   name: Set up Python
             uses: actions/setup-python@v4
             with:
-                python-version: 3.9
+                python-version: '3.11'
 
         -   uses: actions/cache@v3
             with:
@@ -32,7 +33,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: [3.7, 3.9]
+                python: ['3.11', '3.13']
                 os: [ubuntu-latest, macos-latest]
 
         steps:
@@ -60,22 +61,23 @@ jobs:
         -   name: Test with pytest
             if: ${{ matrix.os != 'macos-latest'}}
             run: |
-                pytest --cov=scib --cov-report=xml -vv --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv
+                pytest --cov=scib --cov-report=xml -vv -m "not slow" --ignore=tests/integration/ --ignore=tests/metrics/rpy2 -vv --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_metrics_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4
             with:
-                name: metrics
+                name: pytest-metrics-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
     rpy2:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                r: [4.2]
-                python: [3.9]
+                r: ['4.4', release]
+                python: ['3.11']
                 os: [ubuntu-latest]
+        continue-on-error: false
         steps:
         -   uses: actions/checkout@v3
         -   name: Set up Python ${{ matrix.python }}
@@ -87,24 +89,34 @@ jobs:
             with:
                 r-version: ${{ matrix.r }}
 
-        -   name: Install dependencies
+        -   name: Set R library path for rpy2
+            run: |
+                R_HOME=$(R RHOME)
+                echo "LD_LIBRARY_PATH=$R_HOME/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+        -   name: Install dependencies for R
             env:
                 GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
             run: |
                 python -m pip install --upgrade pip
-                pip install '.[test,rpy2]'
+                if [ "${{ matrix.r }}" = "4.4" ]; then
+                  EXTRA="rpy2_r4_4"
+                else
+                  EXTRA="rpy2_r4_5"
+                fi
+                pip install ".[test,$EXTRA]"
                 Rscript -e "install.packages('remotes')"
                 Rscript -e "remotes::install_github('theislab/kBET')"
 
         -   name: Test with pytest
             run: |
-                pytest --cov=scib --cov-report=xml -vv --tb=native -k rpy2
+                pytest --cov=scib --cov-report=xml -vv -m "not slow" --tb=native -k rpy2 --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_rpy2_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4
             with:
-                name: rpy2
+                name: pytest-rpy2-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
 
@@ -112,7 +124,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                python: [3.7, 3.9]
+                python: ['3.11', '3.13']
                 os: [ubuntu-latest]
 
         steps:
@@ -129,18 +141,37 @@ jobs:
 
         -   name: Test with pytest
             run: |
-                pytest --cov=scib --cov-report=xml -vv --tb=native -k integration
+                pytest --cov=scib --cov-report=xml -vv -m "not slow" --tb=native -k integration --durations 0 --durations-min=1.0
                 mv coverage.xml "$(echo 'coverage_integration_${{ matrix.os }}_${{ matrix.python }}.xml' | sed 's/[^a-z0-9\.\/]/_/g')"
 
         -   name: Upload coverage to GitHub Actions
-            uses: actions/upload-artifact@v3
+            uses: actions/upload-artifact@v4
             with:
-                name: integration
+                name: pytest-integration-${{ matrix.os }}-${{ matrix.python }}
                 path: coverage_*.xml
 
 
+    preprocessing:
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v3
+        -   name: Set up Python
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.11'
+
+        -   name: Install test dependencies
+            run: |
+                python -m pip install --upgrade pip
+                pip install '.[test]'
+
+        -   name: Run preprocessing tests
+            run: |
+                pytest -q tests/preprocessing
+
+
     upload-codecov:
-        needs: [metrics, rpy2, integration]
+        needs: [metrics, rpy2]
         runs-on: ubuntu-latest
 
         steps:
@@ -149,10 +180,10 @@ jobs:
                 fetch-depth: 0
 
         -   name: Download coverage from GitHub Actions
-            uses: actions/download-artifact@v3
+            uses: actions/download-artifact@v4.1.7
 
         -   name: Upload coverage
-            uses: codecov/codecov-action@v3
+            uses: codecov/codecov-action@v4
             with:
                 token: ${{ secrets.CODECOV_TOKEN }}
                 flags: unittests
@@ -160,4 +191,4 @@ jobs:
                 verbose: true
 
         -   name: Delete coverage artifacts
-            uses: geekyeggo/delete-artifact@v2
+            uses: geekyeggo/delete-artifact@v4

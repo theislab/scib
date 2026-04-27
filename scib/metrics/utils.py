@@ -119,17 +119,23 @@ def diffusion_nn(adata, k, max_iterations=26):
     # Row-normalize T
     T = sparse.diags(1 / T.sum(1).A.ravel()) * T
 
-    T_agg = T**3
-    M = T + T**2 + T_agg
-    i = 4
+    # T is very sparse
+    # T^2 is much less sparse, T^3 is dense
+    M = (T @ T).toarray()  # Both Sparse, fast
+    T_agg = T @ M  # Want sparse - dense matmul
+    M += T.toarray()  # Without explicit toarray, would copy M into a np.matrix
+    M += T_agg
 
-    while ((M > 0).sum(1).min() < (k + 1)) and (i < max_iterations):
+    i = 4
+    while (np.count_nonzero(M, axis=1).min() < (k + 1)) and (i < max_iterations):
         # note: k+1 is used as diag is non-zero (self-loops)
         print(f"Adding diffusion to step {i}")
-        T_agg *= T
+        T_agg = T @ T_agg  # Again, sparse rows @ dense cols
         M += T_agg
         i += 1
 
+    print("Done with diffusion iterations")
+    del T_agg
     if (M > 0).sum(1).min() < (k + 1):
         raise NeighborsError(
             f"could not find {k} nearest neighbors in {max_iterations}"
@@ -137,8 +143,10 @@ def diffusion_nn(adata, k, max_iterations=26):
             " k.\n"
         )
 
-    M.setdiag(0)
-    k_indices = np.argpartition(M.A, -k, axis=1)[:, -k:]
+    np.fill_diagonal(M, 0)
+    k_indices = np.zeros((M.shape[0], k))  # Avoid creating intermediate of size NxN
+    for i, row in enumerate(M):
+        k_indices[i] = np.argpartition(row, -k)[-k:]
 
     return k_indices
 

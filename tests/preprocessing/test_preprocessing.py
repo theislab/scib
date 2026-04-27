@@ -20,12 +20,8 @@ def test_merge_adatas(adata_paul15_template):
 
     # create ambiguous column names
     adata.var[["1", "2"]] = (0, 2)
-    adata.var = adata.var.rename(
-        columns={name: "ambig_var" for name in adata.var.columns.values}
-    )
-    adata.obs = adata.obs.rename(
-        columns={name: "ambig_obs" for name in adata.obs.columns.values}
-    )
+    adata.var = adata.var.rename(columns=dict.fromkeys(adata.var.columns, "ambig_var"))
+    adata.obs = adata.obs.rename(columns=dict.fromkeys(adata.obs.columns, "ambig_obs"))
 
     LOGGER.debug(adata)
 

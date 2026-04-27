@@ -23,12 +23,7 @@ def adata_paul15_template():
 
 @pytest.fixture(scope="session")
 def adata_pbmc_template():
-    # adata_ref = sc.datasets.pbmc3k_processed()
-    # quick fix for broken dataset paths, should be removed with scanpy>=1.6.0
-    adata_ref = sc.read(
-        "pbmc3k_processed.h5ad",
-        backup_url="https://raw.githubusercontent.com/chanzuckerberg/cellxgene/main/example-dataset/pbmc3k.h5ad",
-    )
+    adata_ref = sc.datasets.pbmc3k_processed()
     adata = sc.datasets.pbmc68k_reduced()
 
     var_names = adata_ref.var_names.intersection(adata.var_names)
@@ -44,8 +39,8 @@ def adata_pbmc_template():
     adata_concat = adata_ref.concatenate(adata, batch_categories=["ref", "new"])
     adata_concat.obs.louvain = adata_concat.obs.louvain.astype("category")
     # fix category ordering
-    adata_concat.obs.louvain.cat.reorder_categories(
-        adata_ref.obs.louvain.cat.categories, inplace=True
+    adata_concat.obs["louvain"] = adata_concat.obs["louvain"].cat.set_categories(
+        adata_ref.obs["louvain"].cat.categories
     )
     adata_concat.obs["celltype"] = adata_concat.obs["louvain"]
 
@@ -85,7 +80,12 @@ def adata_pca(adata):
 def adata_neighbors(adata):
     adata_obj = adata
     scib.pp.reduce_data(
-        adata_obj, pca=True, n_top_genes=200, neighbors=True, umap=False
+        adata_obj,
+        pca=True,
+        svd_solver="auto",
+        n_top_genes=200,
+        neighbors=True,
+        umap=False,
     )
     yield adata_obj
 
@@ -97,3 +97,37 @@ def adata_clustered(adata_neighbors):
         adata_obj, label_key="celltype", cluster_key="cluster", verbose=True
     )
     yield adata_obj
+
+
+DATASETS = {
+    "c_elegans": {
+        "backup_url": "https://github.com/Munfred/wormcells-data/releases/download/cao2017/cao2017.h5ad"
+    },
+    "zebrafish": {
+        "loader": sc.datasets.ebi_expression_atlas,
+        "kwargs": {"accession": "E-MTAB-7117"},
+    },
+}
+
+
+@pytest.fixture()
+def adata_from_url(request):
+    dataset_name = request.param
+    entry = DATASETS[dataset_name]
+    if isinstance(entry, dict) and callable(entry.get("loader")):
+        adata = entry["loader"](**entry.get("kwargs", {}))
+    else:
+        backup = entry["backup_url"] if isinstance(entry, dict) else entry
+        adata = sc.read(f"{dataset_name}.h5ad", backup_url=backup)
+
+    assert adata is not None
+    adata.uns["dataset_name"] = dataset_name
+
+    if "gene_id" in adata.var.columns:
+        adata.var_names = adata.var["gene_id"]
+
+    if dataset_name == "zebrafish":
+        adata.var_names = adata.var_names.str.upper()
+        adata = adata[:, ~adata.var_names.duplicated()].copy()
+
+    yield adata

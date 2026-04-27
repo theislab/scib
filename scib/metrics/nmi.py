@@ -1,15 +1,19 @@
 import os
 import subprocess
 
-from scanpy._utils import deprecated_arg_names
 from sklearn.metrics.cluster import normalized_mutual_info_score
+
+try:
+    from scanpy._utils import renamed_arg
+except ImportError:
+    from .._package_tools import renamed_arg
 
 from ..utils import check_adata, check_batch
 
 
-@deprecated_arg_names(
-    {"group1": "cluster_key", "group2": "label_key", "method": "implementation"}
-)
+@renamed_arg("group1", "cluster_key")
+@renamed_arg("group2", "label_key")
+@renamed_arg("method", "implementation")
 def nmi(adata, cluster_key, label_key, implementation="arithmetic", nmi_dir=None):
     """Normalized mutual information
 

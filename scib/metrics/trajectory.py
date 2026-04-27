@@ -121,7 +121,7 @@ def get_root(adata_pre, adata_post, ct_key, pseudotime_key="dpt_pseudotime", dpt
         csgraph=adata_post.obsp["connectivities"], directed=False, return_labels=True
     )
 
-    start_clust = adata_pre.obs.groupby([ct_key]).mean()[pseudotime_key].idxmin()
+    start_clust = adata_pre.obs.groupby(ct_key)[pseudotime_key].mean().idxmin()
     min_dpt = adata_pre.obs[adata_pre.obs[ct_key] == start_clust].index
     which_max_neigh = (
         adata_post.obs["neighborhood"]
