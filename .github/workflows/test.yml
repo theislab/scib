@@ -93,12 +93,17 @@ jobs:
                 R_HOME=$(R RHOME)
                 echo "LD_LIBRARY_PATH=$R_HOME/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
-        -   name: Install dependencies
+        -   name: Install dependencies for R
             env:
                 GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
             run: |
                 python -m pip install --upgrade pip
-                pip install '.[test,rpy2]'
+                if [ "${{ matrix.r }}" = "4.4" ]; then
+                  EXTRA="rpy2_r4_4"
+                else
+                  EXTRA="rpy2_r4_5"
+                fi
+                pip install ".[test,$EXTRA]"
                 Rscript -e "install.packages('remotes')"
                 Rscript -e "remotes::install_github('theislab/kBET')"
 
