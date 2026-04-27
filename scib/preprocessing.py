@@ -294,7 +294,9 @@ def normalize(
             sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
             sc.pp.neighbors(adata_pp)
             if cluster_method == "louvain":
-                sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
+                sc.tl.louvain(
+                    adata_pp, key_added="groups", resolution=0.5, flavor="igraph"
+                )
             elif cluster_method == "leiden":
                 sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
             else:
