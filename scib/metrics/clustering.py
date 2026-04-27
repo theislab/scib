@@ -234,7 +234,7 @@ def opt_louvain(
         sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
-        sc.tl.louvain(adata, resolution=res, key_added=cluster_key)
+        sc.tl.louvain(adata, resolution=res, key_added=cluster_key, flavor="igraph")
         score = function(adata, label_key, cluster_key, **kwargs)
         if verbose:
             print(f"resolution: {res}, {function.__name__}: {score}")

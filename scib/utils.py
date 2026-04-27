@@ -1,4 +1,28 @@
+import logging
+
 import anndata
+
+from .exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
+
+
+def _rpy2_init():
+    try:
+        import rpy2.rinterface_lib.callbacks as cb
+        import rpy2.robjects as ro
+
+        cb.logger.setLevel(logging.ERROR)
+        return ro
+    except ModuleNotFoundError as e:
+        raise OptionalDependencyNotInstalled(e, module_name="rpy2")
+
+
+def _rpy2_import(robject, package: str):
+    from rpy2.rinterface_lib.embedded import RRuntimeError
+
+    try:
+        robject.r(f"library({package})")
+    except RRuntimeError as ex:
+        raise RLibraryNotFound(ex, package)
 
 
 # checker functions for data sanity

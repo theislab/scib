@@ -1,4 +1,3 @@
-import logging
 import re
 import tempfile
 from typing import Literal
@@ -13,7 +12,6 @@ from matplotlib import pyplot as plt
 from scipy import sparse
 
 from . import utils  # TODO: move util fcns (eg reader) elsewhere
-from .exceptions import OptionalDependencyNotInstalled, RLibraryNotFound
 
 seaborn.set_context("talk")
 
@@ -241,15 +239,10 @@ def normalize(
     :param min_mean: parameter of ``scran``'s ``computeSumFactors`` function
     :param log: whether to performing log1p-transformation after normalisation
     """
-    try:
-        import anndata2ri
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
-
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
+    ro = utils._rpy2_init()
+    import rpy2.robjects.numpy2ri
+    from rpy2.robjects import pandas2ri
+    from rpy2.robjects.conversion import localconverter
 
     utils.check_adata(adata)
 
@@ -272,12 +265,7 @@ def normalize(
         if not sparse.issparse(adata.X):  # quick fix: HVG doesn't work on dense matrix
             adata.X = sparse.csr_matrix(adata.X)
 
-    try:
-        ro.r("library(scran)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        RLibraryNotFound(ex)
-
-    anndata2ri.activate()
+    utils._rpy2_import(ro, "scran")
 
     # keep raw counts
     adata.layers["counts"] = adata.X.copy()
@@ -293,42 +281,56 @@ def normalize(
         else:
             X = X.tocsc()
 
-    ro.globalenv["data_mat"] = X
+    with localconverter(
+        ro.default_converter + rpy2.robjects.numpy2ri.converter + pandas2ri.converter
+    ):
+        ro.globalenv["data_mat"] = X
 
-    if precluster:
-        # Preliminary clustering for differentiated normalisation
-        adata_pp = adata.copy()
-        sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
-        sc.pp.log1p(adata_pp)
-        sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
-        sc.pp.neighbors(adata_pp)
-        if cluster_method == "louvain":
-            sc.tl.louvain(adata_pp, key_added="groups", resolution=0.5)
-        elif cluster_method == "leiden":
-            sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
-        else:
-            raise NotImplementedError(
-                "Choose `cluster_method` from 'louvain', 'leiden'"
+        if precluster:
+            # Preliminary clustering for differentiated normalisation
+            adata_pp = adata.copy()
+            sc.pp.normalize_per_cell(adata_pp, counts_per_cell_after=1e6, min_counts=1)
+            sc.pp.log1p(adata_pp)
+            sc.pp.pca(adata_pp, n_comps=15, svd_solver="arpack")
+            sc.pp.neighbors(adata_pp)
+            if cluster_method == "louvain":
+                sc.tl.louvain(
+                    adata_pp, key_added="groups", resolution=0.5, flavor="igraph"
+                )
+            elif cluster_method == "leiden":
+                sc.tl.leiden(adata_pp, key_added="groups", resolution=0.5)
+            else:
+                raise NotImplementedError(
+                    "Choose `cluster_method` from 'louvain', 'leiden'"
+                )
+
+            ro.globalenv["input_groups"] = adata_pp.obs["groups"]
+            size_factors = ro.r(
+                "sizeFactors("
+                "   computeSumFactors("
+                "       SingleCellExperiment(list(counts=data_mat)),"
+                "       clusters = input_groups,"
+                f"       min.mean = {min_mean}"
+                "   )"
+                ")"
             )
 
-        ro.globalenv["input_groups"] = adata_pp.obs["groups"]
-        size_factors = ro.r(
-            "sizeFactors("
-            "   computeSumFactors("
-            "       SingleCellExperiment(list(counts=data_mat)),"
-            "       clusters = input_groups,"
-            f"       min.mean = {min_mean}"
-            "   )"
-            ")"
-        )
+            del adata_pp
 
-        del adata_pp
+        else:
+            size_factors = ro.r(
+                "sizeFactors(computeSumFactors(SingleCellExperiment("
+                f"list(counts=data_mat)), min.mean = {min_mean}))"
+            )
 
-    else:
-        size_factors = ro.r(
-            "sizeFactors(computeSumFactors(SingleCellExperiment("
-            f"list(counts=data_mat)), min.mean = {min_mean}))"
-        )
+        # Free memory in R
+        ro.r("rm(list=ls())")
+        # ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
+        # ro.r(
+        #     'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
+        #     "detach, character.only=TRUE, unload=TRUE))"
+        # )
+        ro.r("gc()")
 
     # modify adata
     adata.obs["size_factors"] = size_factors
@@ -344,17 +346,6 @@ def normalize(
         adata.X = sparse.csr_matrix(adata.X)
 
     adata.raw = adata  # Store the full data set in 'raw' as log-normalised data for statistical testing
-
-    # Free memory in R
-    ro.r("rm(list=ls())")
-    # ro.r("lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)")
-    # ro.r(
-    #     'invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)), '
-    #     "detach, character.only=TRUE, unload=TRUE))"
-    # )
-    ro.r("gc()")
-
-    anndata2ri.deactivate()
 
 
 def scale_batch(adata, batch):
@@ -702,7 +693,8 @@ def score_cell_cycle(
             # pick random genes for error message
             rand_genes = np.random.choice(adata.var_names, 10)
             raise ValueError(
-                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}\n cell cycle genes:\n {df}"
+                f"cell cycle genes not in adata\n organism: {organism}\n"
+                f"varnames: {rand_genes}\n cell cycle genes:\n {df}"
             )
         return genes
 
@@ -794,22 +786,11 @@ def save_seurat(adata, path, batch, hvgs=None):
     :param batch: key in ``adata.obs`` that holds batch assigments
     :param hvgs: list of highly variable genes
     """
-    try:
-        import anndata2ri
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
+    ro = utils._rpy2_init()
+    import anndata2ri
 
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
-
-    try:
-        ro.r("library(Seurat)")
-        ro.r("library(scater)")
-
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        RLibraryNotFound(ex)
+    utils._rpy2_import(ro, "Seurat")
+    utils._rpy2_import(ro, "scater")
 
     anndata2ri.activate()
 
@@ -847,21 +828,11 @@ def read_seurat(path):
 
     :param path: file path to saved file
     """
-    try:
-        import anndata2ri
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
+    ro = utils._rpy2_init()
+    import anndata2ri
 
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
-
-    try:
-        ro.r("library(Seurat)")
-        ro.r("library(scater)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        RLibraryNotFound(ex)
+    utils._rpy2_import(ro, "Seurat")
+    utils._rpy2_import(ro, "scater")
 
     anndata2ri.activate()
 
@@ -888,14 +859,7 @@ def read_conos(inPath, dir_path=None):
     :param inPath:
     :param dir_path:
     """
-    try:
-        import rpy2.rinterface_lib.callbacks
-        import rpy2.rinterface_lib.embedded
-        import rpy2.robjects as ro
-
-        rpy2.rinterface_lib.callbacks.logger.setLevel(logging.ERROR)
-    except ModuleNotFoundError as e:
-        raise OptionalDependencyNotInstalled(e)
+    ro = utils._rpy2_init()
 
     from shutil import rmtree
 
@@ -905,11 +869,8 @@ def read_conos(inPath, dir_path=None):
         tmpdir = tempfile.TemporaryDirectory()
         dir_path = tmpdir.name + "/"
 
-    try:
-        ro.r("library(conos)")
-        ro.r("library(data.table)")
-    except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
-        RLibraryNotFound(ex)
+    utils._rpy2_import(ro, "conos")
+    utils._rpy2_import(ro, "data.table")
 
     ro.r(f'con <- readRDS("{inPath}")')
     ro.r("meta <- function(sobj) {return(sobj@meta.data)}")
