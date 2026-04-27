@@ -100,18 +100,26 @@ def adata_clustered(adata_neighbors):
 
 
 DATASETS = {
-    "c_elegans": "https://github.com/Munfred/wormcells-data/releases/download/cao2017/cao2017.h5ad",
-    "zebrafish": "https://figshare.com/ndownloader/files/27265280",
-    # from https://cellrank.readthedocs.io/en/stable/_modules/cellrank/datasets.html
+    "c_elegans": {
+        "backup_url": "https://github.com/Munfred/wormcells-data/releases/download/cao2017/cao2017.h5ad"
+    },
+    "zebrafish": {
+        "loader": sc.datasets.ebi_expression_atlas,
+        "kwargs": {"accession": "E-MTAB-7117"},
+    },
 }
 
 
 @pytest.fixture()
 def adata_from_url(request):
     dataset_name = request.param
-    url = DATASETS[dataset_name]
+    entry = DATASETS[dataset_name]
+    if isinstance(entry, dict) and callable(entry.get("loader")):
+        adata = entry["loader"](**entry.get("kwargs", {}))
+    else:
+        backup = entry["backup_url"] if isinstance(entry, dict) else entry
+        adata = sc.read(f"{dataset_name}.h5ad", backup_url=backup)
 
-    adata = sc.read(f"{dataset_name}.h5ad", backup_url=url)
     assert adata is not None
     adata.uns["dataset_name"] = dataset_name
 
@@ -119,7 +127,7 @@ def adata_from_url(request):
         adata.var_names = adata.var["gene_id"]
 
     if dataset_name == "zebrafish":
-        adata.var_names = adata.var_names.str.lower()
+        adata.var_names = adata.var_names.str.upper()
         adata = adata[:, ~adata.var_names.duplicated()].copy()
 
     yield adata

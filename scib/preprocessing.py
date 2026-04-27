@@ -693,7 +693,8 @@ def score_cell_cycle(
             # pick random genes for error message
             rand_genes = np.random.choice(adata.var_names, 10)
             raise ValueError(
-                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}\n cell cycle genes:\n {df}"
+                f"cell cycle genes not in adata\n organism: {organism}\n"
+                f"varnames: {rand_genes}\n cell cycle genes:\n {df}"
             )
         return genes
 
