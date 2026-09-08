@@ -34,7 +34,8 @@ def cell_cycle(
     Variance contribution is obtained through principal component regression using :func:`~scib.metrics.pc_regression`.
 
     :param adata_pre: adata before integration
-    :param adata_post: adata after integration
+    :param adata_post: adata after integration, with unique ``obs_names`` matching
+        the same cells and batch assignments in ``adata_pre``; cell order may differ
     :param batch_key: Batch key in ``adata_post.obs``
     :param embed: Name of embedding in ``adata_post.obsm``.
         If ``embed=None``, use the full expression matrix (``adata_post.X``), otherwise use the
@@ -159,7 +160,8 @@ def get_pcr_before_after(
     before and after integration
 
     :param adata_pre: adata before integration
-    :param adata_post: adata after integration
+    :param adata_post: adata after integration, with unique ``obs_names`` matching
+        the same cells and batch assignments in ``adata_pre``; cell order may differ
     :param embed: Name of embedding in adata_post.obsm.
         If ``embed=None``, use the full expression matrix (``adata.X``), otherwise use the
         embedding provided in ``adata_post.obsm[embed]``
@@ -175,10 +177,12 @@ def get_pcr_before_after(
         A score between 1 and 0. The larger the score, the stronger the cell cycle
         variance is conserved.
     """
+    if not adata_pre.obs_names.is_unique or not adata_post.obs_names.is_unique:
+        raise ValueError("Cell cycle conservation requires unique obs_names.")
+
     # subset adata objects
     raw_sub = adata_pre[adata_pre.obs[batch_key] == batch]
     int_sub = adata_post[adata_post.obs[batch_key] == batch].copy()
-    int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
 
     # sanity check: subsets have same number of rows?
     if raw_sub.shape[0] != int_sub.shape[0]:
@@ -187,6 +191,14 @@ def get_pcr_before_after(
             f"entries before and after integration.\n"
             f"before: {raw_sub.shape[0]} after: {int_sub.shape[0]}"
         )
+
+    if not raw_sub.obs_names.isin(int_sub.obs_names).all():
+        raise ValueError(
+            f'batch "{batch}" must contain the same cells before and after integration.'
+        )
+    # Pair each integrated row with the pre-integration scores for that cell.
+    int_sub = int_sub[raw_sub.obs_names]
+    int_sub = int_sub.obsm[embed] if embed is not None else int_sub.X
 
     # compute cc scores if necessary
     if recompute_cc:
